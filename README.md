@@ -48,8 +48,8 @@ Agent / App
 docs/          Architecture, pattern guidance, security, troubleshooting
 samples/rest/  REST Client files for Knowledge Source and Knowledge Base operations
 samples/python Python helpers for generating request payloads and inspecting traces
+samples/responses Synthetic sample retrieve responses
 src/ks_factory Reusable payload builders for live Knowledge Sources
-notebooks/     Workshop-style notebook placeholders
 evals/         Source routing testset skeleton
 assets/        Diagrams and screenshots
 ```
@@ -61,4 +61,3 @@ Use API keys only for quick proof-of-concept flows. Use Microsoft Entra ID and A
 ## Preview Notes
 
 These capabilities use preview APIs and can change. Keep API versions explicit in every request file and notebook. Validate data handling, tenant alignment, region behavior, and authorization before using regulated or customer data.
-
