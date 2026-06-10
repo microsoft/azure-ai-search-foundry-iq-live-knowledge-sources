@@ -22,6 +22,20 @@ coverage/
 .ipynb_checkpoints/
 notebooks/output/
 
+# Local planning, specs, and private work notes
+spec/
+specs/
+_spec/
+_specs/
+planning/
+_planning/
+worklog/
+worklogs/
+_worklog/
+_worklogs/
+scratch/
+_scratch/
+
 # Local editor and OS files
 .idea/
 .vscode/
