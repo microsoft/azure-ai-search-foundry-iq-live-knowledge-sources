@@ -1,0 +1,30 @@
+@searchEndpoint = https://<search-service>.search.windows.net
+@apiVersion = 2026-05-01-preview
+@searchApiKey = <search-admin-key>
+@knowledgeSourceName = microsoft-learn-mcp-ks
+
+### Create an MCP Server Knowledge Source for Microsoft Learn MCP
+PUT {{searchEndpoint}}/knowledgesources/{{knowledgeSourceName}}?api-version={{apiVersion}}
+api-key: {{searchApiKey}}
+Content-Type: application/json
+Prefer: return=representation
+
+{
+  "name": "{{knowledgeSourceName}}",
+  "kind": "mcpServer",
+  "description": "Microsoft Learn MCP grounding source for official documentation.",
+  "mcpServerParameters": {
+    "serverURL": "https://learn.microsoft.com/api/mcp",
+    "tools": [
+      {
+        "name": "microsoft_docs_search",
+        "outputParsing": {
+          "kind": "auto"
+        },
+        "inclusionMode": "reranked",
+        "maxOutputTokens": 1000
+      }
+    ]
+  }
+}
+

@@ -1,0 +1,23 @@
+@searchEndpoint = https://<search-service>.search.windows.net
+@apiVersion = 2026-05-01-preview
+@searchApiKey = <search-admin-key>
+@knowledgeSourceName = fabric-ontology-ks
+@fabricWorkspaceId = <fabric-workspace-guid>
+@fabricOntologyId = <fabric-ontology-guid>
+
+### Create a Fabric Ontology Knowledge Source
+PUT {{searchEndpoint}}/knowledgesources/{{knowledgeSourceName}}?api-version={{apiVersion}}
+api-key: {{searchApiKey}}
+Content-Type: application/json
+Prefer: return=representation
+
+{
+  "name": "{{knowledgeSourceName}}",
+  "kind": "fabricOntology",
+  "description": "Governed business-semantic grounding source from Microsoft Fabric.",
+  "fabricOntologyParameters": {
+    "workspaceId": "{{fabricWorkspaceId}}",
+    "ontologyId": "{{fabricOntologyId}}"
+  }
+}
+

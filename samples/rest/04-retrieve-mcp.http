@@ -1,0 +1,38 @@
+@searchEndpoint = https://<search-service>.search.windows.net
+@apiVersion = 2026-05-01-preview
+@searchApiKey = <search-query-or-admin-key>
+@knowledgeBaseName = live-knowledge-sources-kb
+@mcpKnowledgeSourceName = microsoft-learn-mcp-ks
+
+### Retrieve using MCP Server Knowledge Source
+POST {{searchEndpoint}}/knowledgebases('{{knowledgeBaseName}}')/retrieve?api-version={{apiVersion}}
+api-key: {{searchApiKey}}
+Content-Type: application/json
+
+{
+  "messages": [
+    {
+      "role": "user",
+      "content": [
+        {
+          "type": "text",
+          "text": "Find Microsoft Learn guidance for Azure AI Search knowledge sources."
+        }
+      ]
+    }
+  ],
+  "knowledgeSourceParams": [
+    {
+      "kind": "mcpServer",
+      "knowledgeSourceName": "{{mcpKnowledgeSourceName}}",
+      "includeReferences": true,
+      "includeReferenceSourceData": true
+    }
+  ],
+  "outputMode": "answerSynthesis",
+  "retrievalReasoningEffort": {
+    "kind": "low"
+  },
+  "maxRuntimeInSeconds": 60
+}
+

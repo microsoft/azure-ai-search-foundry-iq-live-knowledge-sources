@@ -1,0 +1,14 @@
+flowchart LR
+  User["User question"]
+  Agent["Foundry Agent or app"]
+  KB["Foundry IQ Knowledge Base"]
+  Fabric["Fabric Ontology KS"]
+  MCP["MCP Server KS"]
+  Answer["Grounded answer with references"]
+
+  User --> Agent --> KB
+  KB --> Fabric
+  KB --> MCP
+  Fabric --> Answer
+  MCP --> Answer
+

@@ -1,0 +1,8 @@
+- query: "Find Microsoft Learn guidance for Azure AI Search knowledge sources."
+  expected_knowledge_source: "microsoft-learn-mcp-ks"
+  expected_tool: "microsoft_docs_search"
+
+- query: "Use the governed ontology to summarize relevant business entities and relationships."
+  expected_knowledge_source: "fabric-ontology-ks"
+  expected_reference_source_data: true
+

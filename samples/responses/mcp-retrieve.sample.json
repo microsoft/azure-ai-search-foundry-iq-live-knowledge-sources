@@ -1,0 +1,33 @@
+{
+  "response": [
+    {
+      "role": "assistant",
+      "content": [
+        {
+          "type": "text",
+          "text": "Azure AI Search MCP Server Knowledge Sources connect remote HTTPS MCP tools to Knowledge Base retrieval when tools are explicitly allowed and output parsing is configured."
+        }
+      ]
+    }
+  ],
+  "activity": [
+    {
+      "type": "mcpServer",
+      "knowledgeSourceName": "microsoft-learn-mcp-ks",
+      "toolName": "microsoft_docs_search"
+    }
+  ],
+  "references": [
+    {
+      "type": "mcpServer",
+      "knowledgeSourceName": "microsoft-learn-mcp-ks",
+      "toolName": "microsoft_docs_search",
+      "title": "Create an MCP Server knowledge source",
+      "sourceData": {
+        "title": "Create an MCP Server knowledge source",
+        "content": "Synthetic sample content. Replace with a real retrieve response during validation."
+      }
+    }
+  ]
+}
+
