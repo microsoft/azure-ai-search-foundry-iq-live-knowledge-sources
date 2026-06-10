@@ -1,0 +1,19 @@
+@searchEndpoint = https://<search-service>.search.windows.net
+@apiVersion = 2026-05-01-preview
+@searchApiKey = <search-admin-key>
+@knowledgeBaseName = live-knowledge-sources-kb
+@mcpKnowledgeSourceName = microsoft-learn-mcp-ks
+@fabricOntologyKnowledgeSourceName = fabric-ontology-ks
+
+### Delete Knowledge Base
+DELETE {{searchEndpoint}}/knowledgebases('{{knowledgeBaseName}}')?api-version={{apiVersion}}
+api-key: {{searchApiKey}}
+
+### Delete MCP Server Knowledge Source
+DELETE {{searchEndpoint}}/knowledgesources/{{mcpKnowledgeSourceName}}?api-version={{apiVersion}}
+api-key: {{searchApiKey}}
+
+### Delete Fabric Ontology Knowledge Source
+DELETE {{searchEndpoint}}/knowledgesources/{{fabricOntologyKnowledgeSourceName}}?api-version={{apiVersion}}
+api-key: {{searchApiKey}}
+

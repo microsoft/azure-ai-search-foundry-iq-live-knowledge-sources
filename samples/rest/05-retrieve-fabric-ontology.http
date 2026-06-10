@@ -1,0 +1,40 @@
+@searchEndpoint = https://<search-service>.search.windows.net
+@apiVersion = 2026-05-01-preview
+@searchApiKey = <search-query-or-admin-key>
+@knowledgeBaseName = live-knowledge-sources-kb
+@fabricOntologyKnowledgeSourceName = fabric-ontology-ks
+@userSearchToken = <entra-user-token-for-https://search.azure.com/.default>
+
+### Retrieve using Fabric Ontology Knowledge Source with delegated user context
+POST {{searchEndpoint}}/knowledgebases('{{knowledgeBaseName}}')/retrieve?api-version={{apiVersion}}
+api-key: {{searchApiKey}}
+x-ms-query-source-authorization: Bearer {{userSearchToken}}
+Content-Type: application/json
+
+{
+  "messages": [
+    {
+      "role": "user",
+      "content": [
+        {
+          "type": "text",
+          "text": "Use the governed ontology to summarize relevant business entities and relationships."
+        }
+      ]
+    }
+  ],
+  "knowledgeSourceParams": [
+    {
+      "kind": "fabricOntology",
+      "knowledgeSourceName": "{{fabricOntologyKnowledgeSourceName}}",
+      "includeReferences": true,
+      "includeReferenceSourceData": true
+    }
+  ],
+  "outputMode": "answerSynthesis",
+  "retrievalReasoningEffort": {
+    "kind": "low"
+  },
+  "maxRuntimeInSeconds": 60
+}
+
