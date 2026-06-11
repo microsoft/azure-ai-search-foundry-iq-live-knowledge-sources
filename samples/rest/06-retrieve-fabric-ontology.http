@@ -6,7 +6,7 @@
 @userSearchToken = <entra-user-token-for-https://search.azure.com/.default>
 
 ### Retrieve using Fabric Ontology Knowledge Source with delegated user context
-POST {{searchEndpoint}}/knowledgebases('{{knowledgeBaseName}}')/retrieve?api-version={{apiVersion}}
+POST {{searchEndpoint}}/knowledgebases/{{knowledgeBaseName}}/retrieve?api-version={{apiVersion}}
 api-key: {{searchApiKey}}
 x-ms-query-source-authorization: Bearer {{userSearchToken}}
 Content-Type: application/json
@@ -23,6 +23,7 @@ Content-Type: application/json
       ]
     }
   ],
+  "includeActivity": true,
   "knowledgeSourceParams": [
     {
       "kind": "fabricOntology",
@@ -37,4 +38,3 @@ Content-Type: application/json
   },
   "maxRuntimeInSeconds": 60
 }
-

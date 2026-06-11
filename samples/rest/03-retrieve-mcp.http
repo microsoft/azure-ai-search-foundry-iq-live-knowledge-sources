@@ -5,7 +5,7 @@
 @mcpKnowledgeSourceName = microsoft-learn-mcp-ks
 
 ### Retrieve using MCP Server Knowledge Source
-POST {{searchEndpoint}}/knowledgebases('{{knowledgeBaseName}}')/retrieve?api-version={{apiVersion}}
+POST {{searchEndpoint}}/knowledgebases/{{knowledgeBaseName}}/retrieve?api-version={{apiVersion}}
 api-key: {{searchApiKey}}
 Content-Type: application/json
 
@@ -21,6 +21,7 @@ Content-Type: application/json
       ]
     }
   ],
+  "includeActivity": true,
   "knowledgeSourceParams": [
     {
       "kind": "mcpServer",
@@ -35,4 +36,3 @@ Content-Type: application/json
   },
   "maxRuntimeInSeconds": 60
 }
-

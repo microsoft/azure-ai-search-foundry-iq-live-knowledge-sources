@@ -1,0 +1,26 @@
+@searchEndpoint = https://<search-service>.search.windows.net
+@apiVersion = 2026-05-01-preview
+@searchApiKey = <search-admin-key>
+@knowledgeBaseName = live-knowledge-sources-kb
+@mcpKnowledgeSourceName = microsoft-learn-mcp-ks
+
+### Create a Knowledge Base with only the MCP Server Knowledge Source
+PUT {{searchEndpoint}}/knowledgebases/{{knowledgeBaseName}}?api-version={{apiVersion}}
+api-key: {{searchApiKey}}
+Content-Type: application/json
+Prefer: return=representation
+
+{
+  "name": "{{knowledgeBaseName}}",
+  "description": "Knowledge Base for validating MCP Server live grounding before adding tenant-specific sources.",
+  "retrievalInstructions": "Use the Microsoft Learn MCP Server knowledge source for questions about Azure AI Search, Foundry IQ, and Microsoft documentation.",
+  "outputMode": "answerSynthesis",
+  "retrievalReasoningEffort": {
+    "kind": "low"
+  },
+  "knowledgeSources": [
+    {
+      "name": "{{mcpKnowledgeSourceName}}"
+    }
+  ]
+}
