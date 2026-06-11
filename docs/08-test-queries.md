@@ -85,8 +85,8 @@ Run `samples/rest/05-create-combined-kb.http` after both Knowledge Sources exist
 
 | Test query | Expected source behavior | What to check |
 | --- | --- | --- |
-| What must be configured to connect a remote MCP server as a Knowledge Source? | MCP only | `activity` contains `mcpServer` and not `fabricOntology` |
-| Use the governed ontology to explain the relevant business entities for this scenario. | Fabric only | `activity` contains `fabricOntology` |
+| What must be configured to connect a remote MCP server as a Knowledge Source? | MCP should provide the answer | `activity` contains an `mcpServer` call with `count > 0`; other sources can appear with `count == 0` |
+| Use the governed ontology to explain the relevant business entities for this scenario. | Fabric should provide the answer | `activity` contains `fabricOntology`; use a Fabric-only KB if you need deterministic source isolation |
 | Explain the governed business entity from the ontology and cite Microsoft Learn guidance for how the Knowledge Base should inspect references. | Mixed or source-selected | Confirm whether one or both sources were selected; do not assume both will always be called |
 
 When routing does not match your expectation, improve:
@@ -94,7 +94,9 @@ When routing does not match your expectation, improve:
 - Knowledge Source descriptions
 - `retrievalInstructions`
 - the query wording
-- `knowledgeSourceParams.alwaysQuerySource` during controlled tests
+- separate single-source Knowledge Bases for controlled tests
+
+`knowledgeSourceParams` configures runtime options for a source, but it isn't a strict allow-list in combined Knowledge Bases. During live validation, MCP Server KS rejected `alwaysQuerySource`, so use a single-source KB when you need deterministic MCP-only or Fabric-only behavior.
 
 ## Pass/Fail Checklist
 

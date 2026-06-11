@@ -4,6 +4,9 @@
 @knowledgeBaseName = live-knowledge-sources-kb
 @mcpKnowledgeSourceName = microsoft-learn-mcp-ks
 @fabricOntologyKnowledgeSourceName = fabric-ontology-ks
+@azureOpenAIEndpoint = https://<azure-openai-or-foundry-resource>.openai.azure.com
+@azureOpenAIDeploymentId = <chat-completions-deployment-name>
+@azureOpenAIModelName = <model-name>
 
 ### Create a Knowledge Base with both live Knowledge Sources
 PUT {{searchEndpoint}}/knowledgebases/{{knowledgeBaseName}}?api-version={{apiVersion}}
@@ -14,6 +17,16 @@ Prefer: return=representation
 {
   "name": "{{knowledgeBaseName}}",
   "description": "Knowledge Base with MCP Server and Fabric Ontology live Knowledge Sources.",
+  "models": [
+    {
+      "kind": "azureOpenAI",
+      "azureOpenAIParameters": {
+        "resourceUrl": "{{azureOpenAIEndpoint}}",
+        "deploymentId": "{{azureOpenAIDeploymentId}}",
+        "modelName": "{{azureOpenAIModelName}}"
+      }
+    }
+  ],
   "retrievalInstructions": "Use Fabric Ontology for governed business entities and relationships. Use MCP Server for remote tool-backed documentation or API data.",
   "outputMode": "answerSynthesis",
   "retrievalReasoningEffort": {
