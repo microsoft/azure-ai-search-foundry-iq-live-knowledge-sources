@@ -21,6 +21,12 @@ from ks_factory import (
 
 
 def main() -> None:
+    azure_openai_model = {
+        "azure_openai_endpoint": "https://<azure-openai-or-foundry-resource>.openai.azure.com",
+        "azure_openai_deployment_id": "<chat-completions-deployment-name>",
+        "azure_openai_model_name": "<model-name>",
+    }
+
     mcp_source = create_mcp_server_knowledge_source(
         name="microsoft-learn-mcp-ks",
         server_url="https://learn.microsoft.com/api/mcp",
@@ -43,6 +49,7 @@ def main() -> None:
             "Use Fabric Ontology for governed business entities and relationships. "
             "Use MCP Server for remote tool-backed documentation or API data."
         ),
+        **azure_openai_model,
     )
 
     mcp_only_knowledge_base = create_knowledge_base(
@@ -53,6 +60,7 @@ def main() -> None:
             "Use the Microsoft Learn MCP Server knowledge source for questions about "
             "Azure AI Search, Foundry IQ, and Microsoft documentation."
         ),
+        **azure_openai_model,
     )
 
     print(

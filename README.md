@@ -83,10 +83,11 @@ https://learn.microsoft.com/api/mcp
 
 1. Copy `.env.sample` to `.env` for your own notes. The REST files use inline variables so they also work directly in VS Code REST Client.
 2. Set `@searchEndpoint`, `@searchApiKey`, and `@apiVersion` in `samples/rest/01-create-mcp-server-ks.http`.
-3. Run `samples/rest/01-create-mcp-server-ks.http` to create `microsoft-learn-mcp-ks`.
-4. Run `samples/rest/02-create-mcp-only-kb.http` to create a Knowledge Base with only the MCP source.
-5. Run `samples/rest/03-retrieve-mcp.http`.
-6. Inspect:
+3. Set Azure OpenAI model variables in `samples/rest/02-create-mcp-only-kb.http`.
+4. Run `samples/rest/01-create-mcp-server-ks.http` to create `microsoft-learn-mcp-ks`.
+5. Run `samples/rest/02-create-mcp-only-kb.http` to create a Knowledge Base with only the MCP source.
+6. Run `samples/rest/03-retrieve-mcp.http`.
+7. Inspect:
    - `activity[*].type`
    - `activity[*].knowledgeSourceName`
    - `activity[*].toolName`
@@ -106,7 +107,7 @@ Fabric Ontology KS requires tenant-specific Fabric assets and delegated user con
 3. Run `samples/rest/04-create-fabric-ontology-ks.http`.
 4. Run `samples/rest/05-create-combined-kb.http` to update the Knowledge Base with both MCP and Fabric sources.
 5. Acquire an end-user token scoped to `https://search.azure.com/.default`.
-6. Set `@userSearchToken` in `samples/rest/06-retrieve-fabric-ontology.http`.
+6. Set `@userSearchToken` in `samples/rest/06-retrieve-fabric-ontology.http` as the raw token value, without a `Bearer` prefix.
 7. Run the retrieve request and inspect `sourceData.fabricAnswer` and `sourceData.fabricRawData`.
 
 ## Repository Layout
@@ -172,6 +173,8 @@ The helper code is intentionally small. It is here to make payload shape reusabl
 - MCP tools must be explicitly allowed in the Knowledge Source definition.
 - Query-time MCP header passthrough is the right pattern for per-user or rotating credentials.
 - Fabric Ontology KS uses delegated user context. Pass the end-user token separately with `x-ms-query-source-authorization`.
+- Pass the raw user token in `x-ms-query-source-authorization`; don't prefix it with `Bearer`.
+- Knowledge Bases that use `low` or `medium` retrieval reasoning effort need an Azure OpenAI model block. Fabric Ontology KS doesn't support `minimal`.
 - Do not commit customer data, tenant IDs, service URLs, API keys, live retrieve outputs, or internal planning docs.
 
 ## What Good Looks Like

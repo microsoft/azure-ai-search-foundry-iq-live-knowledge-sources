@@ -3,12 +3,12 @@
 @searchApiKey = <search-query-or-admin-key>
 @knowledgeBaseName = live-knowledge-sources-kb
 @fabricOntologyKnowledgeSourceName = fabric-ontology-ks
-@userSearchToken = <entra-user-token-for-https://search.azure.com/.default>
+@userSearchToken = <raw-entra-user-token-for-https://search.azure.com/.default>
 
 ### Test query 1: retrieve governed business semantics with delegated user context
 POST {{searchEndpoint}}/knowledgebases/{{knowledgeBaseName}}/retrieve?api-version={{apiVersion}}
 api-key: {{searchApiKey}}
-x-ms-query-source-authorization: Bearer {{userSearchToken}}
+x-ms-query-source-authorization: {{userSearchToken}}
 Content-Type: application/json
 
 {
@@ -42,7 +42,7 @@ Content-Type: application/json
 ### Test query 2: inspect ontology answer and raw grounding data
 POST {{searchEndpoint}}/knowledgebases/{{knowledgeBaseName}}/retrieve?api-version={{apiVersion}}
 api-key: {{searchApiKey}}
-x-ms-query-source-authorization: Bearer {{userSearchToken}}
+x-ms-query-source-authorization: {{userSearchToken}}
 Content-Type: application/json
 
 {
