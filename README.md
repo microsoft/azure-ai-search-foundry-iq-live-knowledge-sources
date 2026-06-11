@@ -57,6 +57,22 @@ The initial quickstart proves the MCP Server path. The Fabric path is added when
 | Fabric Ontology grounding | A Knowledge Base can query governed Fabric semantics with delegated user context | `samples/rest/04-create-fabric-ontology-ks.http` |
 | Combined routing | One Knowledge Base can route across MCP and Fabric live sources | `samples/rest/05-create-combined-kb.http` |
 
+## Integration Flow
+
+Every path in this repo follows the same four-step loop:
+
+```text
+Create Knowledge Source
+  -> Attach it to a Knowledge Base
+    -> Retrieve with knowledgeSourceParams
+      -> Inspect activity, references, and sourceData
+```
+
+The REST files show the raw API calls. The notebook gives the same flow as a guided tutorial:
+
+- `notebooks/01-mcp-server-ks-quickstart.ipynb`
+- `docs/08-test-queries.md`
+
 ## Quickstart: MCP Server KS
 
 This path has the least setup because it uses the public Microsoft Learn MCP endpoint:
@@ -78,6 +94,8 @@ https://learn.microsoft.com/api/mcp
    - `references[*].sourceData`
 
 This is the first "known good" path for the repository. After this works, add Fabric.
+
+For private local testing, you can point the notebook at an untracked env file by setting `LIVE_KS_ENV_FILE=/path/to/.env`. Do not copy tenant values into tracked docs, notebooks, or sample responses.
 
 ## Add Fabric Ontology KS
 
@@ -116,6 +134,9 @@ samples/rest/
 samples/python/
   build_payloads.py            Generates sample JSON payloads from reusable helpers
   inspect_retrieve_response.py Summarizes activity and references from a saved response
+
+notebooks/
+  01-mcp-server-ks-quickstart.ipynb Guided MCP Server KS tutorial
 
 src/ks_factory/
   Reusable Python payload builders for Knowledge Sources and Knowledge Bases
