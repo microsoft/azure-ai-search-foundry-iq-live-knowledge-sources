@@ -3,6 +3,9 @@
 @searchApiKey = <search-admin-key>
 @knowledgeBaseName = live-knowledge-sources-kb
 @mcpKnowledgeSourceName = microsoft-learn-mcp-ks
+@azureOpenAIEndpoint = https://<azure-openai-or-foundry-resource>.openai.azure.com
+@azureOpenAIDeploymentId = <chat-completions-deployment-name>
+@azureOpenAIModelName = <model-name>
 
 ### Create a Knowledge Base with only the MCP Server Knowledge Source
 PUT {{searchEndpoint}}/knowledgebases/{{knowledgeBaseName}}?api-version={{apiVersion}}
@@ -13,6 +16,16 @@ Prefer: return=representation
 {
   "name": "{{knowledgeBaseName}}",
   "description": "Knowledge Base for validating MCP Server live grounding before adding tenant-specific sources.",
+  "models": [
+    {
+      "kind": "azureOpenAI",
+      "azureOpenAIParameters": {
+        "resourceUrl": "{{azureOpenAIEndpoint}}",
+        "deploymentId": "{{azureOpenAIDeploymentId}}",
+        "modelName": "{{azureOpenAIModelName}}"
+      }
+    }
+  ],
   "retrievalInstructions": "Use the Microsoft Learn MCP Server knowledge source for questions about Azure AI Search, Foundry IQ, and Microsoft documentation.",
   "outputMode": "answerSynthesis",
   "retrievalReasoningEffort": {
