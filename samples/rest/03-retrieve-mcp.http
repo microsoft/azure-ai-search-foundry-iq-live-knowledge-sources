@@ -4,7 +4,7 @@
 @knowledgeBaseName = live-knowledge-sources-kb
 @mcpKnowledgeSourceName = microsoft-learn-mcp-ks
 
-### Retrieve using MCP Server Knowledge Source
+### Test query 1: explain the MCP Server Knowledge Source setup
 POST {{searchEndpoint}}/knowledgebases/{{knowledgeBaseName}}/retrieve?api-version={{apiVersion}}
 api-key: {{searchApiKey}}
 Content-Type: application/json
@@ -16,7 +16,40 @@ Content-Type: application/json
       "content": [
         {
           "type": "text",
-          "text": "Find Microsoft Learn guidance for Azure AI Search knowledge sources."
+          "text": "What must be configured to create an Azure AI Search MCP Server knowledge source?"
+        }
+      ]
+    }
+  ],
+  "includeActivity": true,
+  "knowledgeSourceParams": [
+    {
+      "kind": "mcpServer",
+      "knowledgeSourceName": "{{mcpKnowledgeSourceName}}",
+      "includeReferences": true,
+      "includeReferenceSourceData": true
+    }
+  ],
+  "outputMode": "answerSynthesis",
+  "retrievalReasoningEffort": {
+    "kind": "low"
+  },
+  "maxRuntimeInSeconds": 60
+}
+
+### Test query 2: ask for trace and citation guidance
+POST {{searchEndpoint}}/knowledgebases/{{knowledgeBaseName}}/retrieve?api-version={{apiVersion}}
+api-key: {{searchApiKey}}
+Content-Type: application/json
+
+{
+  "messages": [
+    {
+      "role": "user",
+      "content": [
+        {
+          "type": "text",
+          "text": "How do I inspect activity, references, and sourceData from an Azure AI Search knowledge base retrieve response?"
         }
       ]
     }

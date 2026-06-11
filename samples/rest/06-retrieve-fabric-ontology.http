@@ -5,7 +5,7 @@
 @fabricOntologyKnowledgeSourceName = fabric-ontology-ks
 @userSearchToken = <entra-user-token-for-https://search.azure.com/.default>
 
-### Retrieve using Fabric Ontology Knowledge Source with delegated user context
+### Test query 1: retrieve governed business semantics with delegated user context
 POST {{searchEndpoint}}/knowledgebases/{{knowledgeBaseName}}/retrieve?api-version={{apiVersion}}
 api-key: {{searchApiKey}}
 x-ms-query-source-authorization: Bearer {{userSearchToken}}
@@ -19,6 +19,40 @@ Content-Type: application/json
         {
           "type": "text",
           "text": "Use the governed ontology to summarize relevant business entities and relationships."
+        }
+      ]
+    }
+  ],
+  "includeActivity": true,
+  "knowledgeSourceParams": [
+    {
+      "kind": "fabricOntology",
+      "knowledgeSourceName": "{{fabricOntologyKnowledgeSourceName}}",
+      "includeReferences": true,
+      "includeReferenceSourceData": true
+    }
+  ],
+  "outputMode": "answerSynthesis",
+  "retrievalReasoningEffort": {
+    "kind": "low"
+  },
+  "maxRuntimeInSeconds": 60
+}
+
+### Test query 2: inspect ontology answer and raw grounding data
+POST {{searchEndpoint}}/knowledgebases/{{knowledgeBaseName}}/retrieve?api-version={{apiVersion}}
+api-key: {{searchApiKey}}
+x-ms-query-source-authorization: Bearer {{userSearchToken}}
+Content-Type: application/json
+
+{
+  "messages": [
+    {
+      "role": "user",
+      "content": [
+        {
+          "type": "text",
+          "text": "Which ontology entities, definitions, and relationships are most relevant to this business question?"
         }
       ]
     }
