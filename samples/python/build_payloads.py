@@ -38,13 +38,34 @@ def main() -> None:
     knowledge_base = create_knowledge_base(
         name="live-knowledge-sources-kb",
         knowledge_source_names=["microsoft-learn-mcp-ks", "fabric-ontology-ks"],
+        description="Knowledge Base with MCP Server and Fabric Ontology live Knowledge Sources.",
         retrieval_instructions=(
             "Use Fabric Ontology for governed business entities and relationships. "
             "Use MCP Server for remote tool-backed documentation or API data."
         ),
     )
 
-    print(json.dumps({"mcp": mcp_source, "fabric": fabric_source, "knowledgeBase": knowledge_base}, indent=2))
+    mcp_only_knowledge_base = create_knowledge_base(
+        name="live-knowledge-sources-kb",
+        knowledge_source_names=["microsoft-learn-mcp-ks"],
+        description="Knowledge Base for validating MCP Server live grounding before adding tenant-specific sources.",
+        retrieval_instructions=(
+            "Use the Microsoft Learn MCP Server knowledge source for questions about "
+            "Azure AI Search, Foundry IQ, and Microsoft documentation."
+        ),
+    )
+
+    print(
+        json.dumps(
+            {
+                "mcp": mcp_source,
+                "mcpOnlyKnowledgeBase": mcp_only_knowledge_base,
+                "fabric": fabric_source,
+                "combinedKnowledgeBase": knowledge_base,
+            },
+            indent=2,
+        )
+    )
 
 
 if __name__ == "__main__":

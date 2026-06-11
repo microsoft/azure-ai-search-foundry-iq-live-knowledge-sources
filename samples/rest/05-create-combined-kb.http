@@ -6,7 +6,7 @@
 @fabricOntologyKnowledgeSourceName = fabric-ontology-ks
 
 ### Create a Knowledge Base with both live Knowledge Sources
-PUT {{searchEndpoint}}/knowledgebases('{{knowledgeBaseName}}')?api-version={{apiVersion}}
+PUT {{searchEndpoint}}/knowledgebases/{{knowledgeBaseName}}?api-version={{apiVersion}}
 api-key: {{searchApiKey}}
 Content-Type: application/json
 Prefer: return=representation
@@ -28,4 +28,3 @@ Prefer: return=representation
     }
   ]
 }
-
