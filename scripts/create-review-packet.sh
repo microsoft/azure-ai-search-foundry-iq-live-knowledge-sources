@@ -5,6 +5,8 @@ MODE=""
 INTENT="private review"
 E2E_REPORT=""
 OUTPUT=""
+RUN_LOCAL_VALIDATION=false
+LOCAL_VALIDATION_LOG=""
 NO_COLOR="${NO_COLOR:-}"
 
 usage() {
@@ -18,6 +20,8 @@ Options:
   --intent <text>        Review intent. Default: private review
   --e2e-report <path>    Ignored local E2E report path to reference.
                          The script records only the path, not report contents.
+  --run-local-validation Run bash scripts/validate-local.sh --no-color and record
+                         only PASS/FAIL and the ignored log path in the packet.
   --output <path>        Output markdown path.
                          Default: scratch/review-packets/review-packet-<timestamp>.local.md
   --no-color             Disable ANSI color output.
@@ -42,6 +46,10 @@ while [[ $# -gt 0 ]]; do
     --e2e-report)
       E2E_REPORT="${2:-}"
       shift 2
+      ;;
+    --run-local-validation)
+      RUN_LOCAL_VALIDATION=true
+      shift
       ;;
     --output)
       OUTPUT="${2:-}"
@@ -94,6 +102,23 @@ if [[ -z "$OUTPUT" ]]; then
   OUTPUT="scratch/review-packets/review-packet-${timestamp}.local.md"
 fi
 mkdir -p "$(dirname "$OUTPUT")"
+
+local_validation_result="not run"
+if [[ "$RUN_LOCAL_VALIDATION" == "true" ]]; then
+  mkdir -p .deployment
+  LOCAL_VALIDATION_LOG=".deployment/review-packet-validation-${timestamp}.log"
+  printf '%sRunning local validation:%s bash scripts/validate-local.sh --no-color\n' "$C_YELLOW" "$C_RESET"
+  set +e
+  bash scripts/validate-local.sh --no-color >"$LOCAL_VALIDATION_LOG" 2>&1
+  validation_status=$?
+  set -e
+
+  if [[ "$validation_status" -eq 0 ]] && grep -q "Local validation: PASS" "$LOCAL_VALIDATION_LOG"; then
+    local_validation_result="PASS"
+  else
+    local_validation_result="FAIL"
+  fi
+fi
 
 branch="$(git branch --show-current 2>/dev/null || true)"
 commit="$(git rev-parse --short HEAD)"
@@ -171,7 +196,8 @@ Generated: $(date '+%Y-%m-%d %H:%M %Z')
 
 ## Validation
 
-- Local validation: not run by this script; run \`bash scripts/validate-local.sh\`
+- Local validation: ${local_validation_result}
+- Local validation log, local only: \`${LOCAL_VALIDATION_LOG:-not generated}\`
 - GitHub Actions Validate: ${actions_result}
 - GitHub Actions URL: ${actions_url:-not available}
 - E2E report path, local only: \`${e2e_label}\`
