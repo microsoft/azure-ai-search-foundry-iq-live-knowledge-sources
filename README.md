@@ -337,6 +337,7 @@ scripts/
   e2e-test.sh                 Live create-call-load-delete test harness
   external-tenant-login.sh     Isolated Azure CLI login for external tenants
   postprovision.py            Creates KS/KB, sample index, smoke test, and summary
+  check-promotion-readiness.sh Non-pushing target-org promotion preflight
   create-review-packet.sh      Creates ignored local review packets
   summarize-e2e-evidence.py    Creates sanitized ignored E2E evidence summaries
   extract-review-evidence.py   Extracts safe review-packet bullets from sanitized summaries
