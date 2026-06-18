@@ -4,6 +4,7 @@ set -Eeuo pipefail
 MODE=""
 INTENT="private review"
 E2E_REPORT=""
+E2E_SUMMARY=""
 OUTPUT=""
 RUN_LOCAL_VALIDATION=false
 LOCAL_VALIDATION_LOG=""
@@ -20,6 +21,8 @@ Options:
   --intent <text>        Review intent. Default: private review
   --e2e-report <path>    Ignored local E2E report path to reference.
                          The script records only the path, not report contents.
+  --e2e-summary <path>   Ignored sanitized E2E summary path to reference.
+                         Generate it with scripts/summarize-e2e-evidence.py.
   --run-local-validation Run bash scripts/validate-local.sh --no-color and record
                          only PASS/FAIL and the ignored log path in the packet.
   --output <path>        Output markdown path.
@@ -45,6 +48,10 @@ while [[ $# -gt 0 ]]; do
       ;;
     --e2e-report)
       E2E_REPORT="${2:-}"
+      shift 2
+      ;;
+    --e2e-summary)
+      E2E_SUMMARY="${2:-}"
       shift 2
       ;;
     --run-local-validation)
@@ -143,6 +150,16 @@ if [[ -n "$E2E_REPORT" ]]; then
   fi
 fi
 
+e2e_summary_label="${E2E_SUMMARY:-not provided}"
+e2e_summary_state="not checked"
+if [[ -n "$E2E_SUMMARY" ]]; then
+  if [[ -f "$E2E_SUMMARY" ]]; then
+    e2e_summary_state="sanitized summary path exists; safe fields only, but still keep local"
+  else
+    e2e_summary_state="sanitized summary path was provided but file was not found"
+  fi
+fi
+
 actions_result="not checked"
 actions_url=""
 if command -v gh >/dev/null 2>&1 && [[ -n "$origin_url" ]]; then
@@ -202,6 +219,8 @@ Generated: $(date '+%Y-%m-%d %H:%M %Z')
 - GitHub Actions URL: ${actions_url:-not available}
 - E2E report path, local only: \`${e2e_label}\`
 - E2E report status: ${e2e_state}
+- Sanitized E2E summary path, local only: \`${e2e_summary_label}\`
+- Sanitized E2E summary status: ${e2e_summary_state}
 - Cleanup: PASS / FAIL / skipped, with reason
 
 ## Evidence Summary
