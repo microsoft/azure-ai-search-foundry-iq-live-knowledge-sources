@@ -153,6 +153,11 @@ function renderReadiness() {
   $('#status-pill-text').textContent = statusText(state.status);
   $('#status-checked').textContent = state.status.checkedAt ? `Last checked ${state.status.checkedAt}.` : 'Not checked yet.';
 
+  const deploymentMode = state.status.deploymentMode || 'mcp-only';
+  document.querySelectorAll('[data-mode-card]').forEach((card) => {
+    card.classList.toggle('is-current', card.dataset.modeCard === deploymentMode);
+  });
+
   $('#readiness').innerHTML = readiness
     .map(
       (item) => `
@@ -272,6 +277,16 @@ async function boot() {
 
   document.querySelectorAll('[data-run]').forEach((button) => {
     button.addEventListener('click', () => run(button.dataset.run));
+  });
+
+  document.querySelectorAll('[data-open-tab]').forEach((button) => {
+    button.addEventListener('click', async () => {
+      const tabName = button.dataset.openTab;
+      activateTab(tabName);
+      if (['mcp', 'fabric', 'combined'].includes(tabName)) {
+        await run(tabName);
+      }
+    });
   });
 
   $('#fabric-token').addEventListener('input', renderReadiness);
