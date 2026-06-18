@@ -9,13 +9,36 @@ Reusable sample accelerator for building Foundry IQ Knowledge Bases with two liv
 
 ![Deployment modes](assets/deployment-modes.svg)
 
-| Path | Use when | What you get | First command or file |
-| --- | --- | --- | --- |
-| `mcp-only` | You want the fastest first run without Fabric | Azure AI Search + Azure OpenAI + Microsoft Learn MCP Server KS + demo app | `bash scripts/deploy.sh --mode mcp-only ...` |
-| `byo-fabric` | You already have a Fabric workspace and ontology | Everything in `mcp-only`, plus Fabric Ontology KS and combined KB | `bash scripts/deploy.sh --mode byo-fabric ...` |
-| `full` | You want the greenfield platform story | Fabric capacity/workspace/lakehouse/ontology/GraphModel, then Azure AI Search + app + both KS paths | `bash scripts/deploy.sh --mode full ...` |
+If you are new to the repo, start with `mcp-only`. It proves the Azure AI Search MCP Server Knowledge Source path without requiring Fabric setup. Move to `byo-fabric` when you have Fabric workspace and ontology IDs. Use `full` when you want the greenfield platform story that creates the sample Fabric assets before deploying the Azure AI Search side.
 
-Recommended order for most readers:
+| Path | Use when | What gets created | Success signal |
+| --- | --- | --- | --- |
+| `mcp-only` | Fastest first run, no Fabric dependency | Azure AI Search, Azure OpenAI, Microsoft Learn MCP Server KS, MCP-only KB, Search index, demo app | MCP retrieve returns activity or references from `microsoft_docs_search`. |
+| `byo-fabric` | You already have Fabric semantic assets | Everything in `mcp-only`, plus Fabric Ontology KS and combined KB | Fabric retrieve works with delegated source authorization, or offline replay clearly explains what is missing. |
+| `full` | You want a zero-to-demo platform run | Fabric capacity, workspace, Lakehouse, ontology, GraphModel, then Azure AI Search, both KS paths, and demo app | Fabric IDs are generated, KS/KB assets are created, app loads, and cleanup evidence is recorded. |
+
+Recommended first commands:
+
+```bash
+# 1. Fastest path: validate MCP Server Knowledge Source.
+bash scripts/deploy.sh --mode mcp-only --env-name liveks-mcp --location eastus
+
+# 2. Primary Fabric live path: connect an existing Fabric ontology.
+bash scripts/deploy.sh \
+  --mode byo-fabric \
+  --env-file .env.external.local \
+  --env-name liveks-byo \
+  --location eastus
+
+# 3. Greenfield platform path: create Fabric sample assets first.
+bash scripts/deploy.sh \
+  --mode full \
+  --env-name liveks-full \
+  --location eastus \
+  --fabric-location westus3
+```
+
+Recommended learning order:
 
 1. Run `mcp-only` to validate the MCP Server Knowledge Source path.
 2. Run `byo-fabric` if you already have Fabric semantic assets.
@@ -48,9 +71,9 @@ If you are evaluating the repo for the first time, use this path:
    ```
 
 2. Read the mode selector in [docs/02-choose-a-pattern.md](docs/02-choose-a-pattern.md).
-3. Start with `mcp-only` if you do not have Fabric assets yet.
-4. Open the demo app after deployment and inspect the **Current Demo Flow** and **Source Trace** sections.
-5. Use [docs/12-reviewer-evidence.md](docs/12-reviewer-evidence.md) to understand what evidence proves a good run.
+3. Deploy `mcp-only` for the lowest-friction live path.
+4. Open the demo app after deployment and inspect **Current Demo Flow** and **Source Trace**.
+5. Use [docs/12-reviewer-evidence.md](docs/12-reviewer-evidence.md) to understand what proves a good run.
 6. Review [docs/13-public-preview-limitations.md](docs/13-public-preview-limitations.md) before making customer-facing or blog claims.
 7. Move to `byo-fabric` or `full` only after you are ready to validate Fabric workspace, ontology, region quota, and delegated auth.
 
