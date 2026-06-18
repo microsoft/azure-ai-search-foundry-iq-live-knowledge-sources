@@ -53,6 +53,7 @@ The repo includes a small synthetic Airline Operations sample dataset and ontolo
 - `full`: validated greenfield path in an external tenant; creates Fabric sample assets before `azd up`.
 - Demo app: Azure Static Web Apps + managed Functions API, with offline replay fallback.
 - Generated deployment summaries and E2E reports are written under ignored `deployments/` paths.
+- Reviewer evidence: sanitized E2E summaries and local review packets are generated under ignored `scratch/` paths.
 
 Before opening a PR or pushing to a Microsoft org repo, run:
 
@@ -74,8 +75,14 @@ If you are evaluating the repo for the first time, use this path:
 3. Deploy `mcp-only` for the lowest-friction live path.
 4. Open the demo app after deployment and inspect **Current Demo Flow** and **Source Trace**.
 5. Use [docs/12-reviewer-evidence.md](docs/12-reviewer-evidence.md) to understand what proves a good run.
-6. Review [docs/13-public-preview-limitations.md](docs/13-public-preview-limitations.md) before making customer-facing or blog claims.
-7. Move to `byo-fabric` or `full` only after you are ready to validate Fabric workspace, ontology, region quota, and delegated auth.
+6. If you are reviewing deployment evidence, generate a sanitized summary instead of copying raw reports:
+
+   ```bash
+   python3 scripts/summarize-e2e-evidence.py deployments/<env>/test-report.md
+   ```
+
+7. Review [docs/13-public-preview-limitations.md](docs/13-public-preview-limitations.md) before making customer-facing or blog claims.
+8. Move to `byo-fabric` or `full` only after you are ready to validate Fabric workspace, ontology, region quota, and delegated auth.
 
 ## Preview Notice
 
@@ -274,6 +281,17 @@ bash scripts/e2e-test.sh \
 
 The deployment creates Azure AI Search, Azure OpenAI, Storage, an Azure Static Web Apps demo with managed Functions API, MCP Knowledge Source, MCP-only Knowledge Base, a combined Knowledge Base skeleton, and an Airline Ops Search index for regulation-style sample documents.
 
+For private review, do not copy raw deployment reports into a PR, blog draft, or Teams note. Generate a sanitized evidence summary:
+
+```bash
+python3 scripts/summarize-e2e-evidence.py \
+  deployments/<mcp-env>/test-report.md \
+  deployments/<byo-fabric-env>/test-report.md \
+  deployments/<full-env>/test-report.md
+```
+
+The summary stays ignored under `scratch/review-packets/` and includes only safe fields, checklist names, and PASS/FAIL/SKIP counts.
+
 After provisioning, `scripts/postprovision.py` writes:
 
 ```text
@@ -304,6 +322,9 @@ docs/
   13-public-preview-limitations.md
   14-release-readiness-checklist.md
   15-repository-promotion.md
+  16-demo-walkthrough.md
+  17-storyline-and-safe-claims.md
+  18-private-review-workflow.md
   external-tenant-login.md
   fabric-ontology-prerequisites.md
 
@@ -316,6 +337,9 @@ scripts/
   e2e-test.sh                 Live create-call-load-delete test harness
   external-tenant-login.sh     Isolated Azure CLI login for external tenants
   postprovision.py            Creates KS/KB, sample index, smoke test, and summary
+  create-review-packet.sh      Creates ignored local review packets
+  summarize-e2e-evidence.py    Creates sanitized ignored E2E evidence summaries
+  validate-local.sh            Runs local source, sample, app, and Bicep validation
 
 static-app/
   Static Web Apps demo with managed Functions retrieve proxy routes
