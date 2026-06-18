@@ -134,7 +134,7 @@ The initial quickstart proves the MCP Server path. The Fabric path is added when
 | Release readiness | Checklist before broader review, workshops, blogs, or official sample promotion | [docs/14-release-readiness-checklist.md](docs/14-release-readiness-checklist.md) |
 | Repository promotion | Safe staging-to-target-org promotion flow for private review | [docs/15-repository-promotion.md](docs/15-repository-promotion.md) |
 | Demo walkthrough | Three-minute app walkthrough, workshop path, safety checks, and fallback plan | [docs/16-demo-walkthrough.md](docs/16-demo-walkthrough.md) |
-| Storyline and safe claims | Blog/presentation framing, approved claim shapes, and pre-publish checks | [docs/17-storyline-and-safe-claims.md](docs/17-storyline-and-safe-claims.md) |
+| Storyline and safe claims | Blog/presentation framing, evidence gates, visual promotion rules, and pre-publish checks | [docs/17-storyline-and-safe-claims.md](docs/17-storyline-and-safe-claims.md) |
 | Private review workflow | Sanitized review request flow, local packet generation, and feedback triage | [docs/18-private-review-workflow.md](docs/18-private-review-workflow.md) |
 | Offline replay | Trace inspection without live keys or tenant access | [samples/responses/README.md](samples/responses/README.md) |
 | One-command deployment | Azure resources, MCP KS/KB, demo app, and generated summary | `docs/10-one-command-deployment.md` |
