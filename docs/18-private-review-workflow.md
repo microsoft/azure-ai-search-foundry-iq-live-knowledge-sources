@@ -193,7 +193,21 @@ Notes:
 - This is review-only and not a public release request.
 ```
 
-## 7. What To Attach Or Link
+## 7. Route Reviewer Asks
+
+Use role-specific asks so reviewers can answer quickly.
+
+| Reviewer lane | Ask them to validate | Evidence to point at |
+| --- | --- | --- |
+| Azure AI Search / Knowledge Source | KS/KB REST shape, API version, retrieve trace wording, `activity` / `references` interpretation, MCP Server KS examples | `samples/rest/`, [MCP Server KS](03-mcp-server-ks.md), [Reviewer Evidence Guide](12-reviewer-evidence.md) |
+| Fabric / Ontology | Fabric workspace and ontology prerequisites, Fabric Ontology KS wording, delegated source authorization caveats, full-mode Fabric setup language | [Fabric Ontology KS](04-fabric-ontology-ks.md), [Fabric Prerequisites](fabric-ontology-prerequisites.md), [BYO Fabric Validation](11-fabric-live-byo-validation.md) |
+| Field / workshop owner | First-five-minutes flow, deployment-mode clarity, notebook usability, offline replay usefulness, failure fallback story | [Choose a Pattern](02-choose-a-pattern.md), `notebooks/`, [Demo Walkthrough](16-demo-walkthrough.md) |
+| Security / release hygiene | Ignored generated outputs, env handling, no-secret scan posture, synthetic data boundary, preview limitation language | [Security Governance](06-security-governance.md), [Release Readiness](14-release-readiness-checklist.md), [Public Preview Limitations](13-public-preview-limitations.md) |
+| Blog / presentation reviewer | Claims vs evidence, screenshots, architecture wording, customer-safe phrasing, call-to-action | [Storyline And Safe Claims](17-storyline-and-safe-claims.md), sanitized screenshots under ignored `scratch/` |
+
+Keep asks narrow. A private review is not a public release approval, and a terminology review is not proof that a live deployment has passed E2E.
+
+## 8. What To Attach Or Link
 
 Safe to link:
 
@@ -212,7 +226,7 @@ Do not attach:
 - raw live retrieve responses from private tenants,
 - screenshots containing tenant IDs, tokens, keys, private endpoints, or resource names.
 
-## 8. Review Triage
+## 9. Review Triage
 
 Sort feedback into:
 

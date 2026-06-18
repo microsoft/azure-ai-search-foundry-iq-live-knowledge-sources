@@ -223,6 +223,13 @@ Reviewer asks:
 - Public-preview caveats and safe claims
 - Security posture for generated outputs and tokens
 
+Suggested routing:
+- Azure AI Search / Knowledge Source: KS/KB REST shape, API version, retrieve trace wording
+- Fabric / Ontology: workspace and ontology prerequisites, delegated source authorization, full-mode Fabric setup language
+- Field / workshop owner: first-five-minutes flow, notebooks, offline replay, failure fallback story
+- Security / release hygiene: ignored generated outputs, env handling, no-secret posture, synthetic data boundary
+- Blog / presentation reviewer: claims vs evidence, screenshots, architecture wording, customer-safe phrasing
+
 Notes:
 - No customer data or tenant-specific values are included in tracked files.
 - Generated deployment reports, local env files, and screenshots remain ignored.
