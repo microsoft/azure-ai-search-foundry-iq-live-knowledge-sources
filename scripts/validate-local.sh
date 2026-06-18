@@ -138,6 +138,7 @@ run_required "Shell syntax" \
     scripts/no-secret-scan.sh \
     scripts/fabric-e2e-test.sh \
     scripts/create-review-packet.sh \
+    scripts/create-promotion-note.sh \
     scripts/check-promotion-readiness.sh \
     scripts/validate-local.sh
 

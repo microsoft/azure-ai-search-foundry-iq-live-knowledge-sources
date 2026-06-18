@@ -11,6 +11,7 @@ Clean source branch
   -> local validation
     -> optional E2E run
       -> local review packet
+        -> local promotion note
         -> sanitized PR / message
           -> reviewer feedback
 ```
@@ -144,7 +145,20 @@ scratch/review-packets/*.local.md
 
 The packet records source commit, remote names, local validation result, GitHub Actions status when available, optional local E2E report path, caveats, and reviewer asks. It does not copy raw deployment report contents.
 
-## 5. Send A Sanitized Review Request
+## 5. Generate A Local Promotion Note
+
+Before pushing to a target organization remote, generate a short local-only promotion note:
+
+```bash
+bash scripts/create-promotion-note.sh \
+  --target-remote microsoft \
+  --review-packet scratch/review-packets/review-packet-<timestamp>.local.md \
+  --e2e-summary scratch/review-packets/e2e-evidence-summary-<timestamp>.local.md
+```
+
+The generated note stays ignored under `scratch/review-packets/`. It records the current source commit, target remote, safe evidence paths, required preflight command, manual review-branch push command, and a reviewer message draft. It never pushes and never copies raw deployment report contents.
+
+## 6. Send A Sanitized Review Request
 
 Use this as a starting point:
 
@@ -179,7 +193,7 @@ Notes:
 - This is review-only and not a public release request.
 ```
 
-## 6. What To Attach Or Link
+## 7. What To Attach Or Link
 
 Safe to link:
 
@@ -198,7 +212,7 @@ Do not attach:
 - raw live retrieve responses from private tenants,
 - screenshots containing tenant IDs, tokens, keys, private endpoints, or resource names.
 
-## 7. Review Triage
+## 8. Review Triage
 
 Sort feedback into:
 
