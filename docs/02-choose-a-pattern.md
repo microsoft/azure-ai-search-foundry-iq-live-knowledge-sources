@@ -10,11 +10,31 @@
 
 ## Deployment Modes
 
-| Mode | Use when |
-| --- | --- |
-| `byo-fabric` | You already have a Fabric workspace and ontology and want the validated live Fabric path. |
-| `mcp-only` | You want the fastest Azure AI Search MCP Server KS validation without Fabric. |
-| `full` | You want a greenfield path that creates the Fabric sample stack and connects it to Azure AI Search. |
+Start with `mcp-only` unless you already have Fabric workspace and ontology IDs ready.
+
+| Mode | Use when | Success signal |
+| --- | --- | --- |
+| `mcp-only` | You want the fastest Azure AI Search MCP Server KS validation without Fabric. | MCP retrieve returns activity or references from `microsoft_docs_search`. |
+| `byo-fabric` | You already have a Fabric workspace and ontology and want the validated live Fabric path. | Fabric KS is created and live retrieve works with delegated source authorization, or offline replay explains what is missing. |
+| `full` | You want a greenfield path that creates the Fabric sample stack and connects it to Azure AI Search. | Fabric IDs are generated, KS/KB assets are created, app loads, and cleanup evidence is recorded. |
+
+Command shapes:
+
+```bash
+bash scripts/deploy.sh --mode mcp-only --env-name liveks-mcp --location eastus
+
+bash scripts/deploy.sh \
+  --mode byo-fabric \
+  --env-file .env.external.local \
+  --env-name liveks-byo \
+  --location eastus
+
+bash scripts/deploy.sh \
+  --mode full \
+  --env-name liveks-full \
+  --location eastus \
+  --fabric-location westus3
+```
 
 ## Recommended Order
 
