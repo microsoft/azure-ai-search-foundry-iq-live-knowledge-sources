@@ -1,0 +1,34 @@
+{
+  "response": [
+    {
+      "role": "assistant",
+      "content": [
+        {
+          "type": "text",
+          "text": "Alpine Air has the highest customer-care exposure in the sample Airline Ops ontology, followed by Nexus Airways, TransCoast Air, Cascade Airways, and Overland Air. The exposure is driven by controllable crew availability, maintenance, and late-aircraft delay events."
+        }
+      ]
+    }
+  ],
+  "activity": [
+    {
+      "type": "fabricOntology",
+      "knowledgeSourceName": "fabric-ontology-ks",
+      "count": 5,
+      "fabricOntologyArguments": {
+        "search": "Which airlines have the highest customer-care exposure this month?"
+      }
+    }
+  ],
+  "references": [
+    {
+      "type": "fabricOntology",
+      "knowledgeSourceName": "fabric-ontology-ks",
+      "title": "Airline Ops ontology customer-care exposure ranking",
+      "sourceData": {
+        "fabricAnswer": "Alpine Air ranks first with 6,800 USD in customer-care exposure across three controllable delay events. Nexus Airways ranks second with 4,200 USD. TransCoast Air ranks third with 2,700 USD. Cascade Airways ranks fourth with 2,100 USD. Overland Air has no customer-care exposure in the sample period.",
+        "fabricRawData": "airline_code,airline_name,customer_care_exposure_usd,controllable_delay_events\nALP,Alpine Air,6800,3\nNEX,Nexus Airways,4200,1\nTCA,TransCoast Air,2700,2\nCAS,Cascade Airways,2100,1\nOVR,Overland Air,0,0"
+      }
+    }
+  ]
+}

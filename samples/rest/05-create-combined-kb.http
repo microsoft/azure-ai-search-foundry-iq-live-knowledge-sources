@@ -7,6 +7,7 @@
 @azureOpenAIEndpoint = https://<azure-openai-or-foundry-resource>.openai.azure.com
 @azureOpenAIDeploymentId = <chat-completions-deployment-name>
 @azureOpenAIModelName = <model-name>
+@azureOpenAIApiKey = <azure-openai-api-key>
 
 ### Create a Knowledge Base with both live Knowledge Sources
 PUT {{searchEndpoint}}/knowledgebases/{{knowledgeBaseName}}?api-version={{apiVersion}}
@@ -21,7 +22,8 @@ Prefer: return=representation
     {
       "kind": "azureOpenAI",
       "azureOpenAIParameters": {
-        "resourceUrl": "{{azureOpenAIEndpoint}}",
+        "resourceUri": "{{azureOpenAIEndpoint}}",
+        "apiKey": "{{azureOpenAIApiKey}}",
         "deploymentId": "{{azureOpenAIDeploymentId}}",
         "modelName": "{{azureOpenAIModelName}}"
       }

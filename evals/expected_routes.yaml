@@ -6,3 +6,18 @@
   expected_knowledge_source: "fabric-ontology-ks"
   expected_reference_source_data: true
 
+- query: "Which airlines have the highest customer-care exposure this month?"
+  expected_knowledge_source: "fabric-ontology-ks"
+  expected_reference_source_data: true
+  expected_answer_hint: "Alpine Air"
+
+- query: "Using the Airline Ops ontology, identify the airline with the highest customer-care exposure this month. Also cite Microsoft Learn guidance for how I should validate activity, references, and sourceData in the Knowledge Base retrieve response."
+  expected_knowledge_sources:
+    - "fabric-ontology-ks"
+    - "microsoft-learn-mcp-ks"
+  expected_reference_source_data: true
+
+- query: "Which passenger-care policies or regulation topics explain the risk for the highest-exposure airline?"
+  expected_knowledge_source: "fabric-ontology-ks"
+  expected_answer_hint: "delay category"
+  expected_reference_source_data: true
