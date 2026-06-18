@@ -64,6 +64,17 @@ bash scripts/check-promotion-readiness.sh --target-remote microsoft --run-valida
 
 The preflight checks the current branch, clean tracked worktree state, untracked non-ignored files, ignored generated-output paths, local validation, no-secret scan, whitespace, target remote configuration, and the latest GitHub Actions `Validate` result for the current commit. It prints manual push commands but never pushes.
 
+To prepare a local human-readable handoff note before the target-org push, generate an ignored promotion note:
+
+```bash
+bash scripts/create-promotion-note.sh \
+  --target-remote microsoft \
+  --review-packet scratch/review-packets/review-packet-<timestamp>.local.md \
+  --e2e-summary scratch/review-packets/e2e-evidence-summary-<timestamp>.local.md
+```
+
+The note records the source commit, target remote, safe local evidence paths, required preflight command, manual review-branch push command, and reviewer message draft. It never pushes and never copies raw deployment report contents.
+
 Optional but recommended:
 
 ```bash

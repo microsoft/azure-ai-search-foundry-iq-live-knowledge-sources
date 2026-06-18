@@ -159,6 +159,17 @@ bash scripts/create-review-packet.sh \
 
 The script writes an ignored markdown file under `scratch/review-packets/`. It records the current commit, local worktree state, local validation result when requested, latest GitHub Actions `Validate` result when available, optional E2E report path, and optional sanitized E2E summary path. When a sanitized summary is provided, it pre-fills the packet's Evidence Summary from safe checklist names and PASS / FAIL / SKIP counts. It does not copy deployment report contents.
 
+Before target-organization promotion, create a short local handoff note:
+
+```bash
+bash scripts/create-promotion-note.sh \
+  --target-remote microsoft \
+  --review-packet scratch/review-packets/review-packet-<timestamp>.local.md \
+  --e2e-summary scratch/review-packets/e2e-evidence-summary-<timestamp>.local.md
+```
+
+The promotion note stays ignored under `scratch/review-packets/`. It captures the source commit, target remote, safe evidence references, required preflight command, manual review-branch push command, and reviewer message draft. It never pushes and never copies raw deployment reports.
+
 For multi-mode evidence, generate a sanitized E2E summary next to the packet:
 
 ```bash

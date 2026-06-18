@@ -292,6 +292,16 @@ python3 scripts/summarize-e2e-evidence.py \
 
 The summary stays ignored under `scratch/review-packets/` and includes only safe fields, checklist names, and PASS/FAIL/SKIP counts.
 
+Before pushing to a target organization repository, generate a local promotion note to capture the current commit, target remote, safe evidence paths, preflight command, and reviewer message draft:
+
+```bash
+bash scripts/create-promotion-note.sh \
+  --target-remote microsoft \
+  --e2e-summary scratch/review-packets/e2e-evidence-summary-<timestamp>.local.md
+```
+
+The note stays ignored under `scratch/review-packets/` and does not push or copy raw reports.
+
 After provisioning, `scripts/postprovision.py` writes:
 
 ```text
@@ -339,6 +349,7 @@ scripts/
   postprovision.py            Creates KS/KB, sample index, smoke test, and summary
   check-promotion-readiness.sh Non-pushing target-org promotion preflight
   check-sample-hygiene.py      Checks tracked/ignored sample packaging hygiene
+  create-promotion-note.sh     Creates ignored local target-org handoff notes
   create-review-packet.sh      Creates ignored local review packets
   summarize-e2e-evidence.py    Creates sanitized ignored E2E evidence summaries
   extract-review-evidence.py   Extracts safe review-packet bullets from sanitized summaries
