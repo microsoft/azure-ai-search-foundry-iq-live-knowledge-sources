@@ -99,6 +99,7 @@ The initial quickstart proves the MCP Server path. The Fabric path is added when
 | Reviewer evidence map | How to review local validation, E2E reports, offline traces, and cleanup evidence | [docs/12-reviewer-evidence.md](docs/12-reviewer-evidence.md) |
 | Preview limitations | Public-preview caveats, auth boundaries, quota expectations, and safe claims | [docs/13-public-preview-limitations.md](docs/13-public-preview-limitations.md) |
 | Release readiness | Checklist before broader review, workshops, blogs, or official sample promotion | [docs/14-release-readiness-checklist.md](docs/14-release-readiness-checklist.md) |
+| Repository promotion | Safe staging-to-target-org promotion flow for private review | [docs/15-repository-promotion.md](docs/15-repository-promotion.md) |
 | Offline replay | Trace inspection without live keys or tenant access | `docs/09-offline-replay.md` |
 | One-command deployment | Azure resources, MCP KS/KB, demo app, and generated summary | `docs/10-one-command-deployment.md` |
 
@@ -273,6 +274,7 @@ docs/
   12-reviewer-evidence.md
   13-public-preview-limitations.md
   14-release-readiness-checklist.md
+  15-repository-promotion.md
   external-tenant-login.md
   fabric-ontology-prerequisites.md
 

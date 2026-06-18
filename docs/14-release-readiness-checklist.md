@@ -114,6 +114,7 @@ A useful reviewer packet should include:
 
 ```text
 [ ] Local validation passes
+[ ] Repository promotion guide has been reviewed
 [ ] The intended deployment mode has current evidence
 [ ] The README first five minutes flow is accurate
 [ ] The sample can be explained without internal context
