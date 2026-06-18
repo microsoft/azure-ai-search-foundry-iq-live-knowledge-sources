@@ -23,6 +23,7 @@ Options:
                          The script records only the path, not report contents.
   --e2e-summary <path>   Ignored sanitized E2E summary path to reference.
                          Generate it with scripts/summarize-e2e-evidence.py.
+                         When present, the packet pre-fills Evidence Summary.
   --run-local-validation Run bash scripts/validate-local.sh --no-color and record
                          only PASS/FAIL and the ignored log path in the packet.
   --output <path>        Output markdown path.
@@ -160,6 +161,18 @@ if [[ -n "$E2E_SUMMARY" ]]; then
   fi
 fi
 
+evidence_summary_block="- MCP KS:
+- Fabric KS:
+- Knowledge Base:
+- Retrieve evidence:
+- App load:
+- Cleanup:
+- Offline replay used: yes/no, with reason"
+
+if [[ -n "$E2E_SUMMARY" && -f "$E2E_SUMMARY" ]]; then
+  evidence_summary_block="$(python3 scripts/extract-review-evidence.py "$E2E_SUMMARY")"
+fi
+
 actions_result="not checked"
 actions_url=""
 if command -v gh >/dev/null 2>&1 && [[ -n "$origin_url" ]]; then
@@ -225,19 +238,14 @@ Generated: $(date '+%Y-%m-%d %H:%M %Z')
 
 ## Evidence Summary
 
-- MCP KS:
-- Fabric KS:
-- Knowledge Base:
-- Retrieve evidence:
-- App load:
-- Offline replay used: yes/no, with reason
+${evidence_summary_block}
 
 ## Known Caveats
 
-- Preview API:
-- Fabric quota or tenant settings:
-- Delegated auth/token:
-- Region/model availability:
+- Preview API: Public preview APIs and request shapes can change; verify against the linked Learn manuals before broader sharing.
+- Fabric quota or tenant settings: \`full\` and Fabric live paths depend on Fabric capacity, region quota, tenant permissions, and GraphModel readiness.
+- Delegated auth/token: Fabric live retrieve requires delegated source authorization; keep raw tokens out of tracked files and reports.
+- Region/model availability: Azure OpenAI model availability, Static Web Apps regions, and Fabric capacity regions can differ by tenant/subscription.
 
 ## Reviewer Asks
 
