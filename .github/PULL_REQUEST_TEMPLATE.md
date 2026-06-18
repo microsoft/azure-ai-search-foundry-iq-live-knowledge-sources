@@ -23,6 +23,7 @@
 
 - [ ] `bash scripts/validate-local.sh`
 - [ ] `git diff --check`
+- [ ] GitHub Actions `Validate` workflow passes
 - [ ] E2E report reviewed when deployment behavior changed
 - [ ] Not applicable; docs-only or metadata-only change
 

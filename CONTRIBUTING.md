@@ -14,6 +14,7 @@ This repository is a reusable sample accelerator for Azure AI Search and Foundry
 
 - Run `bash scripts/validate-local.sh`.
 - Run `git diff --check`.
+- Wait for the GitHub Actions `Validate` workflow when opening a PR.
 - Validate JSON payloads.
 - Keep API versions explicit.
 - Update troubleshooting notes for known failure modes.
