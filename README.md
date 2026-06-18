@@ -7,6 +7,8 @@ Reusable sample accelerator for building Foundry IQ Knowledge Bases with two liv
 
 ## Start Here: Choose A Demo Path
 
+![Deployment modes](assets/deployment-modes.svg)
+
 | Path | Use when | What you get | First command or file |
 | --- | --- | --- | --- |
 | `mcp-only` | You want the fastest first run without Fabric | Azure AI Search + Azure OpenAI + Microsoft Learn MCP Server KS + demo app | `bash scripts/deploy.sh --mode mcp-only ...` |

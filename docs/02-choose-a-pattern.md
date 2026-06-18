@@ -1,5 +1,7 @@
 # Choose a Pattern
 
+![Deployment modes](../assets/deployment-modes.svg)
+
 | Pattern | Use when | Start here |
 | --- | --- | --- |
 | MCP Server KS | You need a low-friction public preview quickstart or tool-backed live retrieval | `samples/rest/01-create-mcp-server-ks.http` |
