@@ -94,6 +94,7 @@ The initial quickstart proves the MCP Server path. The Fabric path is added when
 | Trace inspection | You can verify source selection, tool calls, and references | `samples/rest/03-retrieve-mcp.http` |
 | Fabric Ontology grounding | A Knowledge Base can query governed Fabric semantics with end-user source authorization | `samples/rest/04-create-fabric-ontology-ks.http` |
 | Combined routing | One Knowledge Base can route across MCP and Fabric live sources | `samples/rest/05-create-combined-kb.http` |
+| Sample catalog | Data, ontology, REST, Python helpers, and offline responses | [samples/README.md](samples/README.md) |
 | REST sample sequence | Raw request order for MCP-only, BYO Fabric, and combined retrieval | [samples/rest/README.md](samples/rest/README.md) |
 | Notebook walkthroughs | Guided MCP and Fabric tutorials with offline replay defaults | [notebooks/README.md](notebooks/README.md) |
 | Airline Ops ontology contract | A concrete sample domain for Fabric BYO ontology validation | `docs/fabric-ontology-prerequisites.md` |
@@ -300,7 +301,13 @@ samples/data/airline-ops/
   Synthetic tutorial data for the Fabric ontology path
 
 samples/ontology/airline-ops/
+  README.md
   Ontology contract for BYO Fabric mapping
+
+samples/python/
+  README.md
+  build_payloads.py            Generates sample JSON payloads from reusable helpers
+  inspect_retrieve_response.py Summarizes activity and references from a saved response
 
 samples/rest/
   README.md
@@ -313,11 +320,8 @@ samples/rest/
   07-delete-resources.http
   08-retrieve-combined-airline-ops.http
 
-samples/python/
-  build_payloads.py            Generates sample JSON payloads from reusable helpers
-  inspect_retrieve_response.py Summarizes activity and references from a saved response
-
 samples/responses/
+  README.md
   Offline retrieve responses for MCP, Fabric, and combined traces
 
 notebooks/
