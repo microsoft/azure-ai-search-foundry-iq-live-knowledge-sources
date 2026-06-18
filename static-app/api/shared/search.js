@@ -19,6 +19,50 @@ function hasLiveSearchConfig() {
   return Boolean(process.env.AZURE_SEARCH_ENDPOINT && process.env.AZURE_SEARCH_API_KEY);
 }
 
+async function checkSearchReachability(timeoutMs = 2000) {
+  const status = runtimeStatus();
+  const checkedAt = new Date().toISOString();
+
+  if (!hasLiveSearchConfig()) {
+    return {
+      reachable: false,
+      checkedAt,
+      reachabilityStatus: 'offline',
+    };
+  }
+
+  const endpoint = process.env.AZURE_SEARCH_ENDPOINT.replace(/\/$/, '');
+  const url = `${endpoint}/servicestats?api-version=${status.searchApiVersion}`;
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), timeoutMs);
+
+  try {
+    const response = await fetch(url, {
+      method: 'GET',
+      headers: {
+        'api-key': process.env.AZURE_SEARCH_API_KEY,
+      },
+      signal: controller.signal,
+    });
+
+    return {
+      reachable: response.ok,
+      checkedAt,
+      reachabilityStatus: response.ok ? 'live' : 'unreachable',
+      statusCode: response.status,
+    };
+  } catch (error) {
+    return {
+      reachable: false,
+      checkedAt,
+      reachabilityStatus: 'unreachable',
+      error: error instanceof Error && error.name === 'AbortError' ? 'timeout' : 'request failed',
+    };
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
 function isFabricLiveEnabledMode() {
   return runtimeStatus().deploymentMode !== 'mcp-only';
 }
@@ -96,6 +140,7 @@ async function retrieveFromSearch(options) {
 }
 
 module.exports = {
+  checkSearchReachability,
   runtimeStatus,
   hasLiveSearchConfig,
   isFabricLiveEnabledMode,

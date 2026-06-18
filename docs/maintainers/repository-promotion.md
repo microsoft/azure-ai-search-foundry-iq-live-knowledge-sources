@@ -147,6 +147,20 @@ The PR should include:
 - known preview caveats,
 - reviewer asks.
 
+## Suggested GitHub Topics
+
+Set these in the target repository settings after promotion:
+
+```text
+azure-ai-search
+foundry-iq
+mcp
+microsoft-fabric
+rag
+agentic-retrieval
+knowledge-base
+```
+
 Use the template in [Reviewer Evidence Guide](reviewer-evidence.md#reviewer-packet-template) for the PR body, Teams note, or reviewer email.
 Use [Private Review Workflow](private-review-workflow.md) for the end-to-end sequence from clean source branch to sanitized review request.
 

@@ -9,9 +9,9 @@
 ![Python 3.11](https://img.shields.io/badge/python-3.11-blue)
 ![PRs welcome](https://img.shields.io/badge/PRs-welcome-brightgreen)
 
-![Demo trace](assets/demo-trace.gif)
+![Retrieve trace contract](assets/trace-contract.gif)
 
-Ask once, then inspect the trace: source activity, MCP tool calls, Fabric ontology grounding, references, and source data.
+Ask once, then inspect the contract: `activity` shows which source ran, `references` show the evidence, and `sourceData` shows what came back from the live source.
 
 ## What This Is
 
@@ -49,6 +49,8 @@ It shows Fabric Ontology activity for Airline Ops business data and MCP Server a
 
 Choose the path that matches your tenant state.
 
+![Deployment modes](assets/deployment-modes.svg)
+
 | Mode | Use when | Command |
 | --- | --- | --- |
 | `mcp-only` | You want the fastest live validation without Fabric. | `bash scripts/deploy.sh --mode mcp-only --env-name liveks-mcp --location eastus` |
@@ -59,11 +61,38 @@ Before deploying, install `azd`, `az`, `python3`, `node`, and `npm`, then sign i
 
 The default app is Azure Static Web Apps plus a managed Functions API. Browser code never receives Search admin keys or Azure OpenAI keys.
 
+![Demo trace viewer](assets/demo-trace.gif)
+
+The app is one way to view the same trace contract. It reveals the response in stages so you can explain query, answer, source activity, references, and source data during a demo.
+
+![Deploy progress](assets/deploy-progress.gif)
+
 ![Demo overview](assets/demo-overview.png)
 
 ## How It Works
 
 ![Architecture](assets/live-knowledge-sources-architecture.svg)
+
+The Knowledge Base composes the live sources. Each retrieve call can hint which sources to use through `knowledgeSourceParams`, then the response exposes `activity`, `references`, and `sourceData`.
+
+```mermaid
+flowchart TB
+  subgraph KB["Knowledge Base (outputMode: answerSynthesis)"]
+    KSref["knowledgeSources: [mcp, fabric]"]
+    Model["models: azureOpenAI"]
+  end
+  subgraph MCP["MCP Server KS - kind: mcpServer"]
+    M1["mcpServerParameters.serverURL"]
+    M2["tools[].name + outputParsing"]
+  end
+  subgraph FAB["Fabric Ontology KS - kind: fabricOntology"]
+    F1["fabricOntologyParameters.workspaceId"]
+    F2["ontologyId + source authorization"]
+  end
+  KSref --> MCP
+  KSref --> FAB
+  KB -->|"retrieve(knowledgeSourceParams)"| OUT["activity + references + sourceData"]
+```
 
 Every path follows the same loop:
 

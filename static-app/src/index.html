@@ -13,7 +13,10 @@
           <p class="eyebrow">Azure AI Search + Foundry IQ</p>
           <h1>Live Knowledge Sources Demo</h1>
         </div>
-        <div id="status-pill" class="status-pill">Loading</div>
+        <div id="status-pill" class="status-pill">
+          <span class="status-dot" aria-hidden="true"></span>
+          <span id="status-pill-text">Loading</span>
+        </div>
       </section>
 
       <nav class="tabs" aria-label="Demo sections">
@@ -117,7 +120,13 @@
       <section id="deployment" class="view">
         <div class="grid two">
           <article class="panel">
-            <h2>Runtime Status</h2>
+            <div class="section-heading">
+              <div>
+                <h2>Runtime Status</h2>
+                <p id="status-checked">Not checked yet.</p>
+              </div>
+              <button id="recheck-status" class="secondary" type="button">Re-check</button>
+            </div>
             <pre id="status-json" class="json-block">loading</pre>
           </article>
           <article class="panel">

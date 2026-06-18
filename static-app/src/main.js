@@ -70,6 +70,49 @@ function traceSummary(data) {
   `;
 }
 
+function sourceDataSummary(data) {
+  const references = Array.isArray(data?.references) ? data.references : [];
+  return references
+    .filter((item) => item && typeof item.sourceData === 'object' && item.sourceData !== null)
+    .map((item) => ({
+      type: item.type,
+      title: item.title,
+      knowledgeSourceName: item.knowledgeSourceName,
+      toolName: item.toolName,
+      sourceData: item.sourceData,
+    }));
+}
+
+function applyReveal(target) {
+  const elements = [...document.querySelectorAll(`${target} .reveal`)];
+  if (!elements.length) return;
+
+  const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  if (prefersReducedMotion) {
+    elements.forEach((item) => item.classList.add('is-in'));
+    return;
+  }
+
+  elements.forEach((item, index) => {
+    window.setTimeout(() => {
+      item.classList.add('is-in');
+    }, index * 180);
+  });
+}
+
+function statusClass(status) {
+  if (status.reachabilityStatus === 'live' || status.reachable) return 'is-live';
+  if (status.reachabilityStatus === 'unreachable') return 'is-error';
+  return 'is-offline';
+}
+
+function statusText(status) {
+  const deploymentMode = status.deploymentMode || 'mcp-only';
+  if (status.reachabilityStatus === 'live' || status.reachable) return `${deploymentMode} live`;
+  if (status.reachabilityStatus === 'unreachable') return `${deploymentMode} unreachable`;
+  return `${deploymentMode} offline-ready`;
+}
+
 function renderReadiness() {
   const readiness = [
     {
@@ -104,8 +147,12 @@ function renderReadiness() {
     },
   ];
 
-  const deploymentMode = state.status.deploymentMode || 'mcp-only';
-  $('#status-pill').textContent = state.status.hasSearchKey ? `${deploymentMode} configured` : `${deploymentMode} offline-ready`;
+  const pill = $('#status-pill');
+  pill.classList.remove('is-live', 'is-offline', 'is-error');
+  pill.classList.add(statusClass(state.status));
+  $('#status-pill-text').textContent = statusText(state.status);
+  $('#status-checked').textContent = state.status.checkedAt ? `Last checked ${state.status.checkedAt}.` : 'Not checked yet.';
+
   $('#readiness').innerHTML = readiness
     .map(
       (item) => `
@@ -139,7 +186,7 @@ function activateTab(tabName) {
 
 function renderTrace(target, data, query) {
   $(target).innerHTML = `
-    <article class="panel">
+    <article class="panel reveal">
       <div class="trace-header">
         <h3>Query</h3>
         <span class="${data?.mode === 'live' ? 'badge live' : 'badge offline'}">${escapeHtml(data?.mode || 'not run')}</span>
@@ -148,22 +195,27 @@ function renderTrace(target, data, query) {
       ${data?.reason ? `<p class="notice">${escapeHtml(data.reason)}</p>` : ''}
       ${data?.error ? `<p class="warning">${escapeHtml(data.error)}</p>` : ''}
     </article>
-    <article class="panel">
+    <article class="panel reveal">
       <h3>Answer</h3>
       <p>${escapeHtml(answerText(data))}</p>
     </article>
-    ${traceSummary(data)}
-    <article class="grid two">
-      <div class="panel">
+    <div class="reveal">${traceSummary(data)}</div>
+    <article class="grid two reveal">
+      <div class="panel trace-detail">
         <h3>Activity</h3>
         <pre class="json-block">${escapeHtml(pretty(data?.activity))}</pre>
       </div>
-      <div class="panel">
+      <div class="panel trace-detail">
         <h3>References</h3>
         <pre class="json-block">${escapeHtml(pretty(data?.references))}</pre>
       </div>
     </article>
+    <article class="panel reveal trace-detail">
+      <h3>Source Data</h3>
+      <pre class="json-block">${escapeHtml(pretty(sourceDataSummary(data)))}</pre>
+    </article>
   `;
+  applyReveal(target);
 }
 
 async function fetchJson(path, options = {}) {
@@ -201,6 +253,16 @@ async function run(kind) {
   }
 }
 
+async function refreshStatus() {
+  state.status = await fetchJson('/api/status').catch(() => ({
+    deploymentMode: 'mcp-only',
+    reachabilityStatus: 'offline',
+    reachable: false,
+  }));
+  renderReadiness();
+  renderJson();
+}
+
 async function boot() {
   document.querySelectorAll('[data-tab]').forEach((button) => {
     button.addEventListener('click', () => {
@@ -213,10 +275,17 @@ async function boot() {
   });
 
   $('#fabric-token').addEventListener('input', renderReadiness);
+  $('#recheck-status').addEventListener('click', async () => {
+    const button = $('#recheck-status');
+    button.disabled = true;
+    button.textContent = 'Checking...';
+    await refreshStatus();
+    button.disabled = false;
+    button.textContent = 'Re-check';
+  });
 
-  state.status = await fetchJson('/api/status').catch(() => ({}));
+  await refreshStatus();
   state.summary = await fetchJson('/api/deployment-summary').catch(() => null);
-  renderReadiness();
   renderJson();
 
   const params = new URLSearchParams(window.location.search);

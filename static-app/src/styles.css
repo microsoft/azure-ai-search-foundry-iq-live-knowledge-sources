@@ -93,6 +93,49 @@ p {
   font-weight: 700;
 }
 
+.status-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  transition:
+    border-color 0.2s ease,
+    background 0.2s ease,
+    color 0.2s ease;
+}
+
+.status-dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: #c4ccda;
+}
+
+.status-pill.is-live {
+  color: var(--green);
+  border-color: rgba(23, 133, 95, 0.38);
+  background: #eefaf5;
+}
+
+.status-pill.is-live .status-dot {
+  background: var(--green);
+}
+
+.status-pill.is-offline {
+  color: var(--muted);
+  border-color: rgba(99, 112, 131, 0.32);
+  background: #f8fafc;
+}
+
+.status-pill.is-error {
+  color: #b42318;
+  border-color: rgba(180, 35, 24, 0.35);
+  background: #fff1f1;
+}
+
+.status-pill.is-error .status-dot {
+  background: #b42318;
+}
+
 .badge.live {
   color: var(--green);
   border-color: rgba(23, 133, 95, 0.35);
@@ -111,9 +154,15 @@ p {
 }
 
 .tab,
-.primary {
+.primary,
+.secondary {
   border: 1px solid var(--line);
   cursor: pointer;
+  transition:
+    transform 0.2s ease,
+    border-color 0.2s ease,
+    background 0.2s ease,
+    color 0.2s ease;
 }
 
 .tab {
@@ -131,6 +180,12 @@ p {
   background: var(--blue);
 }
 
+.tab:hover,
+.primary:hover,
+.secondary:hover {
+  transform: translateY(-1px);
+}
+
 .primary {
   min-width: 108px;
   border-radius: 8px;
@@ -140,9 +195,20 @@ p {
   font-weight: 800;
 }
 
-.primary:disabled {
+.secondary {
+  min-width: 104px;
+  border-radius: 8px;
+  padding: 10px 14px;
+  color: var(--blue);
+  background: #eef5ff;
+  font-weight: 800;
+}
+
+.primary:disabled,
+.secondary:disabled {
   cursor: wait;
   opacity: 0.65;
+  transform: none;
 }
 
 .view {
@@ -177,6 +243,14 @@ p {
   padding: 20px;
   background: var(--panel);
   box-shadow: var(--shadow);
+  transition:
+    border-color 0.2s ease,
+    box-shadow 0.2s ease,
+    transform 0.2s ease;
+}
+
+.trace-detail {
+  border-color: rgba(19, 104, 216, 0.18);
 }
 
 .section-heading {
@@ -403,6 +477,34 @@ p {
   color: var(--muted);
   font-size: 13px;
   font-weight: 700;
+}
+
+.reveal {
+  opacity: 0;
+  transform: translateY(6px);
+}
+
+.reveal.is-in {
+  opacity: 1;
+  transform: translateY(0);
+  transition:
+    opacity 0.25s ease,
+    transform 0.25s ease;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    transition-duration: 0.001ms !important;
+    animation-duration: 0.001ms !important;
+  }
+
+  .reveal {
+    opacity: 1;
+    transform: none;
+  }
 }
 
 @media (max-width: 780px) {
