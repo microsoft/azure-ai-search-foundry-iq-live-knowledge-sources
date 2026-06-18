@@ -23,6 +23,7 @@ This script performs local, non-deploying validation:
 - offline response inspection
 - no-secret scan
 - Static Web Apps demo build
+- optional Next.js demo app build
 - Bicep build when Azure CLI is available
 USAGE
 }
@@ -70,7 +71,7 @@ fi
 
 cd "$(git rev-parse --show-toplevel)"
 
-TOTAL=10
+TOTAL=12
 CURRENT=0
 FAILED=false
 SKIPPED=0
@@ -180,6 +181,17 @@ fi
 
 run_required "Static app build" \
   npm --prefix static-app run build
+
+step "Demo app dependencies"
+if [[ -d demo-app/node_modules ]]; then
+  pass "Demo app dependencies already installed"
+else
+  npm --prefix demo-app ci
+  pass "Demo app dependencies installed"
+fi
+
+run_required "Demo app build" \
+  npm --prefix demo-app run build
 
 step "Bicep build"
 if command -v az >/dev/null 2>&1; then
