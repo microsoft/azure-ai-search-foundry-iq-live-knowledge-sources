@@ -18,6 +18,7 @@ Local validation: PASS
 ```
 
 The validation gate covers shell syntax, Python compile, notebook JSON parsing, Markdown local link checks, sample payload generation, offline response inspection, no-secret scan, Static Web Apps build, optional Next.js demo app build, and Bicep build when Azure CLI is available.
+It also checks GitHub issue template structure and sample packaging hygiene, including required ignored paths and `.env.sample` placeholder defaults.
 
 The GitHub Actions `Validate` workflow runs the same local validation gate on pull requests and pushes to `main`.
 
