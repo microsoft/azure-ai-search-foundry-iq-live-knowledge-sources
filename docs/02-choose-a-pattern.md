@@ -23,3 +23,14 @@
 3. Retrieve from MCP and inspect `activity`, `references`, and source data.
 4. Add Fabric Ontology KS with BYO Fabric IDs or run `--mode full` to create the sample Fabric assets.
 5. Create a combined Knowledge Base and repeat trace validation.
+
+## How To Review A Run
+
+Use [Reviewer Evidence Guide](12-reviewer-evidence.md) when you need to decide whether a run is good enough for private review, a workshop, or a blog/demo walkthrough.
+
+The short version:
+
+- local validation proves the repo shape,
+- E2E reports prove create-call-load-delete behavior,
+- retrieve traces prove source selection,
+- screenshots explain the experience but are not enough by themselves.
