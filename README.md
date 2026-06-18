@@ -29,6 +29,12 @@ The repo includes a small synthetic Airline Operations sample dataset and ontolo
 - Demo app: Azure Static Web Apps + managed Functions API, with offline replay fallback.
 - Generated deployment summaries and E2E reports are written under ignored `deployments/` paths.
 
+Before opening a PR or pushing to a Microsoft org repo, run:
+
+```bash
+bash scripts/validate-local.sh
+```
+
 ## Why This Repo Exists
 
 Classic retrieval samples usually start with ingestion: load documents, build an index, then query the index. These two preview Knowledge Sources are different. They let a Knowledge Base call live sources at retrieval time:
