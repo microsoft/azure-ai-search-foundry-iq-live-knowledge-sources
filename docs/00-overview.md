@@ -58,14 +58,8 @@ Use this map when you are reviewing the repo or deciding what to read next.
 | Inspect traces without live resources | [Offline Replay](09-offline-replay.md) |
 | Deploy the app and resources | [One-Command Demo Deployment](10-one-command-deployment.md) |
 | Connect existing Fabric assets | [Fabric Live BYO Validation](11-fabric-live-byo-validation.md) |
-| Prove a run for reviewers | [Reviewer Evidence Guide](12-reviewer-evidence.md) |
-| Compare full-run E2E expectations | [Full-Run Test Specifications](test-specs/README.md) |
 | Avoid unsafe preview claims | [Public Preview Limitations and Caveats](13-public-preview-limitations.md) |
-| Prepare for broader review | [Release Readiness Checklist](14-release-readiness-checklist.md) |
-| Promote to another repository | [Repository Promotion Guide](15-repository-promotion.md) |
 | Run a short demo | [Demo Walkthrough](16-demo-walkthrough.md) |
-| Prepare blog or presentation wording | [Storyline And Safe Claims](17-storyline-and-safe-claims.md) |
-| Ask for private review | [Private Review Workflow](18-private-review-workflow.md) |
 | Answer common setup questions | [FAQ](19-faq.md) |
 
 ## Validation Loop
@@ -111,6 +105,4 @@ Do not commit tenant IDs, tokens, keys, generated reports, private service URLs,
 
 Before sharing claims in a blog, presentation, or customer-facing demo, review:
 
-- [Reviewer Evidence Guide](12-reviewer-evidence.md)
 - [Public Preview Limitations and Caveats](13-public-preview-limitations.md)
-- [Storyline And Safe Claims](17-storyline-and-safe-claims.md)

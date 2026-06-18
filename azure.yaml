@@ -8,7 +8,7 @@ infra:
   path: infra
 
 services:
-  demo-app:
+  static-app:
     project: ./static-app
     dist: dist
     language: js

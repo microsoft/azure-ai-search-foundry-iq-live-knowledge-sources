@@ -129,7 +129,6 @@ Before sharing outside the working team:
 
 ```text
 [ ] README mode selector is current
-[ ] docs/12-reviewer-evidence.md matches test behavior
 [ ] scripts/validate-local.sh passes
 [ ] no-secret scan passes
 [ ] E2E report exists for the mode being shown
@@ -139,5 +138,4 @@ Before sharing outside the working team:
 [ ] Learn manual links and preview API version are current
 ```
 
-For evidence guidance, see [Reviewer Evidence Guide](12-reviewer-evidence.md).
-For blog and presentation wording, see [Storyline And Safe Claims](17-storyline-and-safe-claims.md).
+For setup and test guidance, see [One-Command Demo Deployment](10-one-command-deployment.md), [Test Queries](08-test-queries.md), and [Troubleshooting](07-troubleshooting.md).

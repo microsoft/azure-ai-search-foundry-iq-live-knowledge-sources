@@ -89,8 +89,6 @@ The default app path uses Azure Static Web Apps with managed Functions API becau
 
 The browser still never receives Search admin keys, Azure OpenAI keys, or long-lived Fabric user tokens. Retrieve calls stay behind the server-side API.
 
-`demo-app/` remains as an optional Next.js/App Service reference path for environments that prefer App Service and have quota.
-
 ## What evidence should I collect before a review or demo?
 
 At minimum:
@@ -106,7 +104,7 @@ At minimum:
 [ ] cleanup evidence exists for release rehearsal runs
 ```
 
-For private review, generate a sanitized evidence summary instead of pasting raw deployment reports.
+Share only summarized PASS / FAIL / SKIP counts and sanitized screenshots. Do not paste raw deployment reports into issues, PRs, docs, or presentations.
 
 ## What should not be committed?
 
@@ -130,6 +128,5 @@ The repo intentionally keeps generated evidence under ignored paths.
 | Pick a mode | [Choose a Pattern](02-choose-a-pattern.md) |
 | Understand architecture | [Architecture](01-architecture.md) |
 | Deploy the sample | [One-Command Deployment](10-one-command-deployment.md) |
-| Validate evidence | [Reviewer Evidence Guide](12-reviewer-evidence.md) |
 | Prepare a short demo | [Demo Walkthrough](16-demo-walkthrough.md) |
-| Check safe claims | [Public Preview Limitations](13-public-preview-limitations.md) |
+| Check preview caveats | [Public Preview Limitations](13-public-preview-limitations.md) |
