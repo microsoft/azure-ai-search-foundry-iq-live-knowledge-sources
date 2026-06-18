@@ -39,6 +39,7 @@ The GitHub Actions `Validate` workflow runs the same local validation gate on pu
 
 ```text
 [ ] GitHub Actions Validate workflow passes
+[ ] Dependabot configuration is present for GitHub Actions and tracked npm apps
 [ ] REST samples keep the preview API version explicit
 [ ] notebooks run in dry-run/offline mode without live tenant values
 [ ] offline response samples are synthetic and safe to commit
