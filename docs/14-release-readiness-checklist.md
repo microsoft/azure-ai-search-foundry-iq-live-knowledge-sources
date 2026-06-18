@@ -26,6 +26,7 @@ The GitHub Actions `Validate` workflow runs the same local validation gate on pu
 
 ```text
 [ ] README explains the three modes: mcp-only, byo-fabric, full
+[ ] README First Five Minutes flow links mode selection, FAQ, reviewer evidence, and preview limitations
 [ ] README links official Learn manuals
 [ ] README links reviewer evidence and preview limitations
 [ ] docs/02-choose-a-pattern.md matches the current deployment modes
@@ -34,6 +35,7 @@ The GitHub Actions `Validate` workflow runs the same local validation gate on pu
 [ ] docs/13-public-preview-limitations.md captures current caveats
 [ ] docs/17-storyline-and-safe-claims.md matches the README and demo walkthrough
 [ ] docs/18-private-review-workflow.md matches the promotion and reviewer evidence flow
+[ ] docs/19-faq.md answers first-run mode choice, offline replay, Fabric source authorization, MCP endpoint requirements, and evidence collection
 [ ] Markdown links resolve locally
 [ ] troubleshooting includes auth, quota, GraphModel readiness, and hosting fallback notes
 ```
@@ -42,6 +44,7 @@ The GitHub Actions `Validate` workflow runs the same local validation gate on pu
 
 ```text
 [ ] GitHub Actions Validate workflow passes
+[ ] GitHub Actions Validate is green for the exact commit being reviewed
 [ ] Dependabot configuration is present for GitHub Actions and tracked npm apps
 [ ] Static Web Apps demo and optional Next.js demo app both build
 [ ] REST samples keep the preview API version explicit
@@ -70,6 +73,17 @@ Expected evidence:
 | `full` | Fabric capacity/workspace/lakehouse/ontology/GraphModel preparation, Azure deploy, KS/KB creation, app load, cleanup. |
 
 Do not commit the report itself. Summarize only sanitized evidence in PRs or review notes.
+
+Before sharing a multi-mode claim, generate an ignored sanitized summary:
+
+```bash
+python3 scripts/summarize-e2e-evidence.py \
+  deployments/<mcp-env>/test-report.md \
+  deployments/<byo-fabric-env>/test-report.md \
+  deployments/<full-env>/test-report.md
+```
+
+Keep the generated summary under `scratch/review-packets/` and copy only safe PASS / FAIL / SKIP counts and checklist names into reviewer messages.
 
 ## Security And Privacy Gate
 
@@ -111,19 +125,41 @@ A useful reviewer packet should include:
 - commit or branch name,
 - deployment mode tested,
 - local validation result,
+- GitHub Actions result for the same commit,
 - sanitized E2E summary,
 - screenshots only if they do not expose sensitive values,
 - known caveats or skipped checks,
 - links to `docs/12-reviewer-evidence.md` and `docs/13-public-preview-limitations.md`.
 
+Generate the local packet and promotion note after the last source commit you plan to share:
+
+```bash
+bash scripts/create-review-packet.sh \
+  --mode full \
+  --intent "private review" \
+  --run-local-validation \
+  --e2e-summary scratch/review-packets/e2e-evidence-summary-<timestamp>.local.md
+
+bash scripts/create-promotion-note.sh \
+  --target-remote microsoft \
+  --review-packet scratch/review-packets/review-packet-<timestamp>.local.md \
+  --e2e-summary scratch/review-packets/e2e-evidence-summary-<timestamp>.local.md
+```
+
+If any tracked file changes after generating these files, regenerate them. A stale packet is worse than no packet because it makes reviewers chase the wrong commit.
+
 ## Final Go / No-Go
 
 ```text
 [ ] Local validation passes
+[ ] GitHub Actions Validate passes for the exact commit being shared
+[ ] Promotion readiness preflight passes if pushing to a target org remote
 [ ] Repository promotion guide has been reviewed
 [ ] Private review workflow has been reviewed if requesting product or target-org feedback
 [ ] The intended deployment mode has current evidence
 [ ] The README first five minutes flow is accurate
+[ ] FAQ answers the expected first-run questions
+[ ] Local review packet and promotion note are regenerated from the current commit
 [ ] The sample can be explained without internal context
 [ ] Preview limitations are visible
 [ ] No generated or sensitive files are staged
