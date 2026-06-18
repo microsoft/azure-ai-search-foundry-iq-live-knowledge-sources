@@ -78,23 +78,7 @@ These capabilities use the `2026-05-01-preview` REST API. Preview behavior and s
 
 ## What You Will Build
 
-```mermaid
-flowchart LR
-  User["User or app question"]
-  Agent["Foundry Agent or custom app"]
-  KB["Foundry IQ Knowledge Base<br/>Azure AI Search"]
-  MCP["MCP Server KS<br/>Microsoft Learn MCP or custom HTTPS MCP"]
-  Fabric["Fabric Ontology KS<br/>Workspace + ontology item"]
-  Data["Airline Ops sample data<br/>ontology contract"]
-  Trace["Retrieve response<br/>activity + references + sourceData"]
-
-  User --> Agent --> KB
-  KB --> MCP
-  KB --> Fabric
-  Data -. maps to .-> Fabric
-  MCP --> Trace
-  Fabric --> Trace
-```
+![Live Knowledge Sources Architecture](assets/live-knowledge-sources-architecture.svg)
 
 The initial quickstart proves the MCP Server path. The Fabric path is added when your Fabric workspace and ontology item IDs are ready. The combined path shows how a Knowledge Base can use both live grounding sources behind one retrieval endpoint.
 
@@ -332,7 +316,7 @@ evals/
   Source routing evaluation skeleton
 
 assets/
-  Mermaid architecture diagrams
+  Architecture diagrams and presentation visuals
 ```
 
 ## Python Helpers
