@@ -11,6 +11,7 @@
 ## Deployment Modes
 
 Start with `mcp-only` unless you already have Fabric workspace and ontology IDs ready.
+If you are choosing between `byo-fabric` and `full`, skim the [FAQ](19-faq.md) before deploying. It calls out the most common points of confusion: offline replay, Fabric source authorization, Fabric quota, and MCP endpoint requirements.
 
 | Mode | Use when | Success signal |
 | --- | --- | --- |
