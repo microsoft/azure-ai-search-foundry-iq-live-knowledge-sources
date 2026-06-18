@@ -46,6 +46,36 @@ Recommended learning order:
 
 The repo includes a small synthetic Airline Operations sample dataset and ontology contract. Fabric examples use fictional carrier names and real airport geography, so they are safe for public sample usage while still showing realistic semantic joins and trace behavior.
 
+## Before You Deploy
+
+Install or confirm these tools before running the deployment scripts:
+
+```text
+azd, az, python3, node, npm
+```
+
+Authenticate to the Azure tenant you want to use:
+
+```bash
+azd auth login
+az login --tenant <tenant-id>
+```
+
+If you use a separate external tenant for Fabric testing, keep it isolated with an ignored env file and the helper in [docs/external-tenant-login.md](docs/external-tenant-login.md):
+
+```bash
+cp .env.sample .env.external.local
+scripts/external-tenant-login.sh --env-file .env.external.local
+```
+
+Mode-specific requirements:
+
+| Mode | Extra setup before deploy |
+| --- | --- |
+| `mcp-only` | None beyond Azure login and quota for Search/OpenAI/Static Web Apps. |
+| `byo-fabric` | Set `FABRIC_WORKSPACE_ID` and `FABRIC_ONTOLOGY_ID` in an ignored env file. Add a raw `FABRIC_USER_SEARCH_TOKEN` only for private live Fabric retrieve tests. |
+| `full` | Confirm Fabric capacity quota, `FABRIC_LOCATION`, and `FABRIC_CAPACITY_ADMIN`. Use `--fabric-location` for a region where capacity creation is allowed. |
+
 ## Current Status
 
 - `mcp-only`: first-run validation path.

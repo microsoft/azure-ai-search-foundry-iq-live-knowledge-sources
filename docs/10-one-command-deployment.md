@@ -12,6 +12,33 @@ The goal is to give a field engineer or customer a working platform demo with an
 | `mcp-only` | Azure AI Search, Azure OpenAI, MCP KS/KB, Search index, demo app | Skips Fabric KS creation | First MCP validation or tenants without Fabric |
 | `full` | Azure/Foundry/Search/MCP/app resources plus Fabric capacity/workspace/lakehouse/ontology | Creates sample Airline Ops Fabric assets, then connects Fabric Ontology KS | Greenfield end-to-end sample path |
 
+## Prerequisites
+
+Install or confirm:
+
+```text
+azd, az, python3, node, npm
+```
+
+Sign in before deploying:
+
+```bash
+azd auth login
+az login --tenant <tenant-id>
+```
+
+For isolated external-tenant testing, create an ignored `.env.external.local` file from `.env.sample`, set `EXTERNAL_TENANT_ID` and `EXTERNAL_AZURE_CONFIG_DIR`, then run:
+
+```bash
+scripts/external-tenant-login.sh --env-file .env.external.local
+```
+
+For Fabric paths:
+
+- `byo-fabric`: provide `FABRIC_WORKSPACE_ID` and `FABRIC_ONTOLOGY_ID`.
+- `full`: confirm Fabric capacity quota and choose `--fabric-location` for a region where capacity creation is allowed.
+- live Fabric retrieve: provide a raw user token only in ignored local env/app settings or transient UI input; do not commit it.
+
 The wrapper requires a mode unless `DEPLOYMENT_MODE` is already set in the loaded env file or the selected azd environment:
 
 ```bash
