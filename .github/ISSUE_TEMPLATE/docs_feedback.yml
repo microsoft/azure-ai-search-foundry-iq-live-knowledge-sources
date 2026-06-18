@@ -1,0 +1,47 @@
+name: Documentation feedback
+description: Suggest an improvement to docs, notebooks, diagrams, or sample walkthroughs.
+title: "[Docs]: "
+labels:
+  - documentation
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Use this form for docs, notebooks, diagrams, or walkthrough clarity. Do not include tenant-specific values, customer data, or live deployment reports.
+  - type: dropdown
+    id: doc-area
+    attributes:
+      label: Documentation area
+      options:
+        - README
+        - Deployment guide
+        - MCP Server KS walkthrough
+        - Fabric Ontology KS walkthrough
+        - Notebook
+        - Demo app copy
+        - Troubleshooting
+        - Preview limitations
+        - Other
+    validations:
+      required: true
+  - type: textarea
+    id: current
+    attributes:
+      label: Current behavior or wording
+      description: Link to a file/section or describe what is confusing.
+    validations:
+      required: true
+  - type: textarea
+    id: suggestion
+    attributes:
+      label: Suggested improvement
+      description: Explain what would make the sample easier to understand or reuse.
+    validations:
+      required: true
+  - type: checkboxes
+    id: safety
+    attributes:
+      label: Safety confirmation
+      options:
+        - label: This feedback does not include secrets, tenant-specific IDs, private endpoints, or customer data.
+          required: true
