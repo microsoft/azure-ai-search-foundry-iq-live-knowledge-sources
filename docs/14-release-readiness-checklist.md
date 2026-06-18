@@ -32,6 +32,7 @@ The GitHub Actions `Validate` workflow runs the same local validation gate on pu
 [ ] docs/12-reviewer-evidence.md matches E2E report behavior
 [ ] docs/13-public-preview-limitations.md captures current caveats
 [ ] docs/17-storyline-and-safe-claims.md matches the README and demo walkthrough
+[ ] docs/18-private-review-workflow.md matches the promotion and reviewer evidence flow
 [ ] Markdown links resolve locally
 [ ] troubleshooting includes auth, quota, GraphModel readiness, and hosting fallback notes
 ```
@@ -119,6 +120,7 @@ A useful reviewer packet should include:
 ```text
 [ ] Local validation passes
 [ ] Repository promotion guide has been reviewed
+[ ] Private review workflow has been reviewed if requesting product or target-org feedback
 [ ] The intended deployment mode has current evidence
 [ ] The README first five minutes flow is accurate
 [ ] The sample can be explained without internal context

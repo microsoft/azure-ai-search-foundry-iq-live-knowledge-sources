@@ -124,6 +124,7 @@ The PR should include:
 - reviewer asks.
 
 Use the template in [Reviewer Evidence Guide](12-reviewer-evidence.md#reviewer-packet-template) for the PR body, Teams note, or reviewer email.
+Use [Private Review Workflow](18-private-review-workflow.md) for the end-to-end sequence from clean source branch to sanitized review request.
 
 Do not paste generated reports, tokens, tenant IDs, service URLs, or private screenshots into the PR.
 
