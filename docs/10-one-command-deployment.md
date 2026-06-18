@@ -61,6 +61,8 @@ deployments/<env>/test-report.md
 
 The report is ignored by git and includes a checklist, progress bar, resource names, app URL, and pass/fail notes.
 
+Use [Reviewer Evidence Guide](12-reviewer-evidence.md) to interpret which checks matter for Microsoft org review, customer workshops, and blog/demo walkthroughs.
+
 Full-run test specs:
 
 - `docs/test-specs/e2e-byo-fabric.md`
