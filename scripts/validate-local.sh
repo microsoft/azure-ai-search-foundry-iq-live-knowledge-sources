@@ -18,6 +18,7 @@ This script performs local, non-deploying validation:
 - shell syntax
 - Python compile
 - notebook JSON parse
+- GitHub issue template structure check
 - Markdown local link check
 - sample payload generation
 - offline response inspection
@@ -71,7 +72,7 @@ fi
 
 cd "$(git rev-parse --show-toplevel)"
 
-TOTAL=12
+TOTAL=13
 CURRENT=0
 FAILED=false
 SKIPPED=0
@@ -157,6 +158,24 @@ from pathlib import Path
 
 for path in sorted(Path("notebooks").glob("*.ipynb")):
     json.loads(path.read_text(encoding="utf-8"))
+    print(f"ok {path}")
+PY
+
+run_required "GitHub issue template structure" \
+  python3 - <<'PY'
+from pathlib import Path
+
+paths = sorted(Path(".github/ISSUE_TEMPLATE").glob("*.yml"))
+paths += sorted(Path(".github/ISSUE_TEMPLATE").glob("*.yaml"))
+for path in paths:
+    text = path.read_text(encoding="utf-8")
+    if "\t" in text:
+        raise SystemExit(f"{path}: tabs are not allowed in GitHub issue templates")
+    if path.name != "config.yml":
+        required = ("name:", "description:", "title:", "body:")
+        missing = [key for key in required if key not in text]
+        if missing:
+            raise SystemExit(f"{path}: missing required keys: {', '.join(missing)}")
     print(f"ok {path}")
 PY
 
