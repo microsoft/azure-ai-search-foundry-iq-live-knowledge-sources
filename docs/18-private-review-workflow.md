@@ -256,6 +256,8 @@ Then regenerate the local review packet.
 [ ] Generated reports remain ignored
 [ ] Sanitized E2E evidence summary generated when deployment claims are included
 [ ] Review packet generated under scratch/
+[ ] Promotion note generated under scratch/
+[ ] Promotion readiness preflight passes with the current review packet and promotion note paths
 [ ] Review request includes only sanitized facts
 [ ] Preview caveats are linked
 [ ] Public release is not implied

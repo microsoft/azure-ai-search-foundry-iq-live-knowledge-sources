@@ -3,6 +3,8 @@ set -Eeuo pipefail
 
 TARGET_REMOTE="microsoft"
 RUN_VALIDATION=false
+REVIEW_PACKET=""
+PROMOTION_NOTE=""
 NO_COLOR="${NO_COLOR:-}"
 
 usage() {
@@ -12,6 +14,8 @@ Usage:
 
 Options:
   --target-remote <name>   Target organization remote to inspect. Default: microsoft
+  --review-packet <path>   Optional local ignored review packet to verify.
+  --promotion-note <path>  Optional local ignored promotion note to verify.
   --run-validation         Run local validation, no-secret scan, and whitespace checks.
                            Without this flag, the script reports commands to run.
   --no-color               Disable ANSI color output.
@@ -26,6 +30,14 @@ while [[ $# -gt 0 ]]; do
   case "$1" in
     --target-remote)
       TARGET_REMOTE="${2:-}"
+      shift 2
+      ;;
+    --review-packet)
+      REVIEW_PACKET="${2:-}"
+      shift 2
+      ;;
+    --promotion-note)
+      PROMOTION_NOTE="${2:-}"
       shift 2
       ;;
     --run-validation)
@@ -98,6 +110,36 @@ run_check() {
   fi
 }
 
+check_local_artifact() {
+  local label="$1"
+  local path="$2"
+  local commit="$3"
+
+  if [[ -z "$path" ]]; then
+    info "${label} was not provided; skipped local artifact freshness check."
+    return
+  fi
+
+  if [[ -f "$path" ]]; then
+    pass "${label} exists: ${path}"
+  else
+    fail "${label} was provided but does not exist: ${path}"
+    return
+  fi
+
+  if git check-ignore -q "$path" 2>/dev/null; then
+    pass "${label} is ignored by git."
+  else
+    fail "${label} is not ignored by git: ${path}"
+  fi
+
+  if grep -q "$commit" "$path"; then
+    pass "${label} references current commit ${commit}."
+  else
+    fail "${label} does not reference current commit ${commit}. Regenerate it after the latest source commit."
+  fi
+}
+
 cat <<'BANNER'
 
 +---------------------------------------------------------------+
@@ -159,6 +201,9 @@ for path in "${ignored_paths[@]}"; do
   fi
 done
 
+check_local_artifact "Review packet" "$REVIEW_PACKET" "$commit"
+check_local_artifact "Promotion note" "$PROMOTION_NOTE" "$commit"
+
 if [[ "$RUN_VALIDATION" == "true" ]]; then
   run_check "Local validation" bash scripts/validate-local.sh --no-color
   run_check "No-secret scan" bash scripts/no-secret-scan.sh
@@ -211,6 +256,7 @@ Manual promotion commands, only after PASS:
 
   git status -sb
   git remote get-url ${TARGET_REMOTE}
+  bash scripts/check-promotion-readiness.sh --target-remote ${TARGET_REMOTE} --run-validation --review-packet <packet.local.md> --promotion-note <promotion-note.local.md>
   git push ${TARGET_REMOTE} ${branch:-main}:review/live-knowledge-sources
 
 Do not push raw deployment reports, .env files, scratch notes, local screenshots,

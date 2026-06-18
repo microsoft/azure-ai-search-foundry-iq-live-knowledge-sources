@@ -175,7 +175,11 @@ Run:
 
 \`\`\`bash
 git status -sb
-bash scripts/check-promotion-readiness.sh --target-remote ${TARGET_REMOTE} --run-validation
+bash scripts/check-promotion-readiness.sh \\
+  --target-remote ${TARGET_REMOTE} \\
+  --run-validation \\
+  --review-packet ${REVIEW_PACKET:-<packet.local.md>} \\
+  --promotion-note ${OUTPUT}
 \`\`\`
 
 Expected:
