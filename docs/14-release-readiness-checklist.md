@@ -31,6 +31,7 @@ The GitHub Actions `Validate` workflow runs the same local validation gate on pu
 [ ] docs/10-one-command-deployment.md matches script behavior
 [ ] docs/12-reviewer-evidence.md matches E2E report behavior
 [ ] docs/13-public-preview-limitations.md captures current caveats
+[ ] docs/17-storyline-and-safe-claims.md matches the README and demo walkthrough
 [ ] Markdown links resolve locally
 [ ] troubleshooting includes auth, quota, GraphModel readiness, and hosting fallback notes
 ```
@@ -99,6 +100,7 @@ Before writing a README update, blog, or presentation:
 ```
 
 Use [Public Preview Limitations and Caveats](13-public-preview-limitations.md) as the source for safe wording.
+Use [Storyline And Safe Claims](17-storyline-and-safe-claims.md) for blog, presentation, and reviewer-summary phrasing.
 
 ## Reviewer Packet
 
