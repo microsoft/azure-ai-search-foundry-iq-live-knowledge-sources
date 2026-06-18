@@ -18,6 +18,7 @@ This script performs local, non-deploying validation:
 - shell syntax
 - Python compile
 - notebook JSON parse
+- Markdown local link check
 - sample payload generation
 - offline response inspection
 - no-secret scan
@@ -69,7 +70,7 @@ fi
 
 cd "$(git rev-parse --show-toplevel)"
 
-TOTAL=9
+TOTAL=10
 CURRENT=0
 FAILED=false
 SKIPPED=0
@@ -137,6 +138,7 @@ run_required "Shell syntax" \
 
 run_required "Python compile" \
   python3 -m py_compile \
+    scripts/check-doc-links.py \
     scripts/postprovision.py \
     scripts/fabric-provision.py \
     scripts/fabric-destroy.py \
@@ -152,6 +154,9 @@ for path in sorted(Path("notebooks").glob("*.ipynb")):
     json.loads(path.read_text(encoding="utf-8"))
     print(f"ok {path}")
 PY
+
+run_required "Markdown links" \
+  python3 scripts/check-doc-links.py
 
 run_required "Sample payload generation" \
   bash -c 'python3 samples/python/build_payloads.py >/dev/null'
