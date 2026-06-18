@@ -162,13 +162,14 @@ Promote a visual into tracked `assets/` only when:
 
 Recommended visual order:
 
-1. Three deployment paths: `mcp-only`, `byo-fabric`, `full`.
-2. Architecture: Knowledge Base with MCP Server KS and Fabric Ontology KS.
-3. App overview: current mode and live/offline status.
-4. MCP trace: MCP activity or Microsoft Learn references.
-5. Fabric trace: Fabric activity or offline replay clearly labeled.
-6. Combined trace: source badges or activity from the intended sources.
-7. Deployment evidence: sanitized summary or flow diagram, not raw deployment output.
+1. Current demo flow: `assets/current-demo-flow.svg`.
+2. Three deployment paths: `assets/deployment-modes.svg`.
+3. Architecture: Knowledge Base with MCP Server KS and Fabric Ontology KS.
+4. App overview: current mode and live/offline status.
+5. MCP trace: MCP activity or Microsoft Learn references.
+6. Fabric trace: Fabric activity or offline replay clearly labeled.
+7. Combined trace: source badges or activity from the intended sources.
+8. Deployment evidence: sanitized summary or flow diagram, not raw deployment output.
 
 ## Final Pre-Publish Check
 
