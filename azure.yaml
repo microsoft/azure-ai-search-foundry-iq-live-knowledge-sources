@@ -1,0 +1,31 @@
+name: azure-ai-search-foundry-iq-live-knowledge-sources
+resourceGroup: ${AZURE_RESOURCE_GROUP}
+metadata:
+  template: azure-ai-search-foundry-iq-live-knowledge-sources@0.1.0
+
+infra:
+  provider: bicep
+  path: infra
+
+services:
+  demo-app:
+    project: ./static-app
+    dist: dist
+    language: js
+    host: staticwebapp
+    hooks:
+      postdeploy:
+        shell: sh
+        run: bash -c 'if [ -f ../scripts/deploy-static-webapp-api.sh ]; then bash ../scripts/deploy-static-webapp-api.sh; else bash ./scripts/deploy-static-webapp-api.sh; fi'
+
+hooks:
+  preprovision:
+    shell: sh
+    run: ./scripts/ensure-azd-defaults.sh
+    interactive: false
+    continueOnError: false
+  postprovision:
+    shell: sh
+    run: ./scripts/postprovision.sh
+    interactive: true
+    continueOnError: false

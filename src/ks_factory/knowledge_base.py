@@ -12,6 +12,7 @@ def create_knowledge_base(
     azure_openai_endpoint: str | None = None,
     azure_openai_deployment_id: str | None = None,
     azure_openai_model_name: str | None = None,
+    azure_openai_api_key: str | None = None,
     description: str = "Knowledge Base with live Knowledge Sources.",
     retrieval_instructions: str | None = "Use the configured live Knowledge Sources to answer with references.",
     reasoning_effort: str = "low",
@@ -35,9 +36,10 @@ def create_knowledge_base(
             {
                 "kind": "azureOpenAI",
                 "azureOpenAIParameters": {
-                    "resourceUrl": azure_openai_endpoint.rstrip("/"),
+                    "resourceUri": azure_openai_endpoint.rstrip("/"),
                     "deploymentId": azure_openai_deployment_id,
                     "modelName": azure_openai_model_name,
+                    **({"apiKey": azure_openai_api_key} if azure_openai_api_key else {}),
                 },
             }
         ]

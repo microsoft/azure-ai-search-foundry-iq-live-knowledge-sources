@@ -5,7 +5,7 @@
 @fabricOntologyKnowledgeSourceName = fabric-ontology-ks
 @userSearchToken = <raw-entra-user-token-for-https://search.azure.com/.default>
 
-### Test query 1: retrieve governed business semantics with delegated user context
+### Test query 1: retrieve Airline Ops customer-care exposure with delegated user context
 POST {{searchEndpoint}}/knowledgebases/{{knowledgeBaseName}}/retrieve?api-version={{apiVersion}}
 api-key: {{searchApiKey}}
 x-ms-query-source-authorization: {{userSearchToken}}
@@ -18,7 +18,7 @@ Content-Type: application/json
       "content": [
         {
           "type": "text",
-          "text": "Use the governed ontology to summarize relevant business entities and relationships."
+          "text": "Which airlines have the highest customer-care exposure this month?"
         }
       ]
     }
@@ -39,7 +39,7 @@ Content-Type: application/json
   "maxRuntimeInSeconds": 60
 }
 
-### Test query 2: inspect ontology answer and raw grounding data
+### Test query 2: inspect Airline Ops delay categories and raw grounding data
 POST {{searchEndpoint}}/knowledgebases/{{knowledgeBaseName}}/retrieve?api-version={{apiVersion}}
 api-key: {{searchApiKey}}
 x-ms-query-source-authorization: {{userSearchToken}}
@@ -52,7 +52,7 @@ Content-Type: application/json
       "content": [
         {
           "type": "text",
-          "text": "Which ontology entities, definitions, and relationships are most relevant to this business question?"
+          "text": "Which delay categories are controllable and driving customer-care exposure?"
         }
       ]
     }

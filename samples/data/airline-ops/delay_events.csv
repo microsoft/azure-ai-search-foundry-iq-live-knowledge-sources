@@ -1,0 +1,11 @@
+delay_event_id,flight_id,delay_category,delay_minutes,controllable,customer_care_exposure_usd,summary
+D-0001,F-0002,late_aircraft,35,true,1200,Inbound aircraft arrived late and caused a gate hold.
+D-0002,F-0003,weather,42,false,0,Thunderstorm activity slowed arrivals into Denver.
+D-0003,F-0005,maintenance,58,true,2100,Maintenance inspection extended after boarding.
+D-0004,F-0006,air_traffic_control,22,false,0,Flow control delayed departure clearance.
+D-0005,F-0007,crew_availability,70,true,3200,Reserve crew reassignment delayed departure.
+D-0006,F-0009,late_aircraft,45,true,1800,Inbound aircraft delay propagated to outbound segment.
+D-0007,F-0010,weather,44,false,0,Low visibility reduced arrival rate into San Francisco.
+D-0008,F-0012,maintenance,46,true,2400,Cabin equipment issue required repair before pushback.
+D-0009,F-0013,crew_availability,90,true,4200,Crew legality issue required replacement crew.
+D-0010,F-0014,late_aircraft,31,true,900,Previous segment arrived behind schedule.

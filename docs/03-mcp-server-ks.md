@@ -21,6 +21,10 @@ https://learn.microsoft.com/api/mcp
 - Per-request credentials should use query-time header passthrough.
 - Remote MCP servers must be vetted before enterprise use.
 
+## Notebook Walkthrough
+
+Use `notebooks/01-mcp-server-ks-quickstart.ipynb` for the guided MCP path. It builds the MCP Knowledge Source payload, creates an MCP-only Knowledge Base payload, optionally performs live retrieve, and inspects an offline MCP trace.
+
 ## Quickstart
 
 Run these files in order:

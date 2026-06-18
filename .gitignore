@@ -4,6 +4,13 @@
 !.env.sample
 *.log
 *.tmp
+*.local.md
+
+# Generated deployment outputs
+deployments/
+.deployment/
+deployment-summary.md
+deployment-summary.*.md
 
 # Python
 .venv/
@@ -17,6 +24,8 @@ node_modules/
 dist/
 build/
 coverage/
+.next/
+out/
 
 # Notebook runtime output
 .ipynb_checkpoints/
@@ -35,6 +44,7 @@ _worklog/
 _worklogs/
 scratch/
 _scratch/
+assets/scrum-*.svg
 
 # Local editor and OS files
 .idea/

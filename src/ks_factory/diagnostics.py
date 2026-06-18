@@ -8,27 +8,41 @@ from typing import Any
 def summarize_activity(response: dict[str, Any]) -> list[dict[str, Any]]:
     """Return a compact view of retrieve activity records."""
     activity = response.get("activity", [])
-    return [
-        {
+    summary: list[dict[str, Any]] = []
+
+    for item in activity:
+        record = {
             "type": item.get("type"),
             "knowledgeSourceName": item.get("knowledgeSourceName"),
             "toolName": item.get("toolName"),
         }
-        for item in activity
-    ]
+        if "count" in item:
+            record["count"] = item.get("count")
+        if "mcpServerArguments" in item:
+            record["mcpServerArguments"] = item.get("mcpServerArguments")
+        if "fabricOntologyArguments" in item:
+            record["fabricOntologyArguments"] = item.get("fabricOntologyArguments")
+        summary.append(record)
+
+    return summary
 
 
 def summarize_references(response: dict[str, Any]) -> list[dict[str, Any]]:
     """Return a compact view of retrieve references."""
     references = response.get("references", [])
-    return [
-        {
+    summary: list[dict[str, Any]] = []
+
+    for item in references:
+        source_data = item.get("sourceData")
+        record = {
             "type": item.get("type"),
             "title": item.get("title"),
             "knowledgeSourceName": item.get("knowledgeSourceName"),
             "toolName": item.get("toolName"),
             "hasSourceData": "sourceData" in item,
         }
-        for item in references
-    ]
+        if isinstance(source_data, dict):
+            record["sourceDataKeys"] = sorted(source_data.keys())
+        summary.append(record)
 
+    return summary

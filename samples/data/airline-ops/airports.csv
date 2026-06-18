@@ -1,0 +1,9 @@
+airport_code,airport_name,city,state,country,hub_tier
+ATL,Hartsfield-Jackson Atlanta International Airport,Atlanta,GA,USA,large_hub
+DEN,Denver International Airport,Denver,CO,USA,large_hub
+DFW,Dallas Fort Worth International Airport,Dallas-Fort Worth,TX,USA,large_hub
+JFK,John F. Kennedy International Airport,New York,NY,USA,large_hub
+LAX,Los Angeles International Airport,Los Angeles,CA,USA,large_hub
+ORD,O'Hare International Airport,Chicago,IL,USA,large_hub
+SEA,Seattle-Tacoma International Airport,Seattle,WA,USA,large_hub
+SFO,San Francisco International Airport,San Francisco,CA,USA,large_hub

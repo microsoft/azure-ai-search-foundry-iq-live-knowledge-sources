@@ -1,0 +1,132 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Foundry IQ Live Knowledge Sources</title>
+    <link rel="stylesheet" href="/styles.css?v=20260618" />
+  </head>
+  <body>
+    <main class="shell">
+      <section class="topbar">
+        <div>
+          <p class="eyebrow">Azure AI Search + Foundry IQ</p>
+          <h1>Live Knowledge Sources Demo</h1>
+        </div>
+        <div id="status-pill" class="status-pill">Loading</div>
+      </section>
+
+      <nav class="tabs" aria-label="Demo sections">
+        <button class="tab active" data-tab="overview">overview</button>
+        <button class="tab" data-tab="mcp">mcp</button>
+        <button class="tab" data-tab="fabric">fabric</button>
+        <button class="tab" data-tab="combined">combined</button>
+        <button class="tab" data-tab="deployment">deployment</button>
+      </nav>
+
+      <section id="overview" class="view active">
+        <article class="panel">
+          <div class="section-heading">
+            <div>
+              <h2>Current Demo Flow</h2>
+              <p>Choose the path that matches the tenant state before you run the sample.</p>
+            </div>
+          </div>
+          <div class="mode-grid">
+            <div class="mode-card mode-full">
+              <strong>full</strong>
+              <span>Zero-base path</span>
+              <p>Creates Fabric sample assets, then deploys Azure AI Search, both KS paths, KBs, and the app.</p>
+            </div>
+            <div class="mode-card mode-byo">
+              <strong>byo-fabric</strong>
+              <span>Existing Fabric path</span>
+              <p>Uses your Fabric workspace and ontology, then creates the Foundry IQ side and combined KB.</p>
+            </div>
+            <div class="mode-card mode-mcp">
+              <strong>mcp-only</strong>
+              <span>Fast validation path</span>
+              <p>Validates Microsoft Learn MCP Server KS without Fabric tenant setup.</p>
+            </div>
+          </div>
+        </article>
+        <div class="grid two overview-grid">
+          <article class="panel">
+            <h2>Deployment Readiness</h2>
+            <div id="readiness" class="readiness-list"></div>
+          </article>
+          <article class="panel">
+            <h2>What This Shows</h2>
+            <div class="flow">
+              <div>MCP Server KS</div>
+              <span>+</span>
+              <div>Fabric Ontology KS</div>
+              <span>→</span>
+              <div>Knowledge Base trace</div>
+            </div>
+            <p>
+              MCP runs live against Microsoft Learn after deployment. If Fabric workspace and ontology IDs were provided
+              before deployment, the combined Knowledge Base includes Fabric; live Fabric retrieve still needs delegated
+              user context.
+            </p>
+          </article>
+        </div>
+      </section>
+
+      <section id="mcp" class="view">
+        <article class="panel hero-panel">
+          <div>
+            <h2>MCP Live</h2>
+            <p>Calls the Microsoft Learn MCP Server Knowledge Source through Azure AI Search Knowledge Base retrieve.</p>
+          </div>
+          <button class="primary" data-run="mcp">Run</button>
+        </article>
+        <div id="mcp-result" class="stack"></div>
+      </section>
+
+      <section id="fabric" class="view">
+        <article class="panel">
+          <h2>Fabric Delegated Token</h2>
+          <p>
+            Optional. Paste a raw token for <code>https://search.azure.com/.default</code> to test live Fabric retrieval.
+            The token is sent once to the serverless API and is not stored by this app.
+          </p>
+          <input id="fabric-token" class="token-input" type="password" placeholder="raw delegated token, no Bearer prefix" />
+        </article>
+        <article class="panel hero-panel">
+          <div>
+            <h2>Fabric Ontology</h2>
+            <p>Shows Airline Ops ontology grounding. Without delegated Fabric auth, this panel returns offline replay.</p>
+          </div>
+          <button class="primary" data-run="fabric">Run</button>
+        </article>
+        <div id="fabric-result" class="stack"></div>
+      </section>
+
+      <section id="combined" class="view">
+        <article class="panel hero-panel">
+          <div>
+            <h2>Combined Trace</h2>
+            <p>Shows Fabric business grounding and MCP implementation guidance in one Knowledge Base trace.</p>
+          </div>
+          <button class="primary" data-run="combined">Run</button>
+        </article>
+        <div id="combined-result" class="stack"></div>
+      </section>
+
+      <section id="deployment" class="view">
+        <div class="grid two">
+          <article class="panel">
+            <h2>Runtime Status</h2>
+            <pre id="status-json" class="json-block">loading</pre>
+          </article>
+          <article class="panel">
+            <h2>Deployment Summary</h2>
+            <pre id="summary-json" class="json-block">loading</pre>
+          </article>
+        </div>
+      </section>
+    </main>
+    <script type="module" src="/main.js?v=20260618"></script>
+  </body>
+</html>

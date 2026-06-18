@@ -1,0 +1,202 @@
+name: airline-operations-ontology
+version: 0.1.0
+description: >
+  Reader-facing contract for a Fabric ontology that supports the Airline Ops
+  Knowledge Source tutorial. Create or map equivalent entities in your own
+  Fabric tenant before running the Fabric Ontology KS live path.
+
+source_data:
+  folder: samples/data/airline-ops
+  expected_counts:
+    airlines: 5
+    airports: 8
+    routes: 8
+    flights: 15
+    delayed_flights_over_15_minutes: 10
+    delay_events: 10
+    passenger_care_policies: 4
+    regulatory_references: 4
+
+entities:
+  Airline:
+    primary_key: airline_code
+    source: airlines.csv
+    fields:
+      - airline_code
+      - airline_name
+      - region
+      - alliance
+      - customer_care_tier
+    natural_language_examples:
+      - airline
+      - carrier
+      - operating airline
+  Airport:
+    primary_key: airport_code
+    source: airports.csv
+    fields:
+      - airport_code
+      - airport_name
+      - city
+      - state
+      - country
+      - hub_tier
+    natural_language_examples:
+      - airport
+      - origin
+      - destination
+      - hub
+  Route:
+    primary_key: route_id
+    source: routes.csv
+    fields:
+      - route_id
+      - origin_airport_code
+      - destination_airport_code
+      - distance_miles
+      - market
+    natural_language_examples:
+      - route
+      - origin destination market
+      - flight segment
+  Flight:
+    primary_key: flight_id
+    source: flights.csv
+    fields:
+      - flight_id
+      - flight_date
+      - airline_code
+      - flight_number
+      - route_id
+      - origin_airport_code
+      - destination_airport_code
+      - scheduled_departure
+      - actual_departure
+      - scheduled_arrival
+      - actual_arrival
+      - arrival_delay_minutes
+      - cancelled
+      - diverted
+    natural_language_examples:
+      - flight
+      - delayed flight
+      - arrival delay
+      - cancellation
+  DelayEvent:
+    primary_key: delay_event_id
+    source: delay_events.csv
+    fields:
+      - delay_event_id
+      - flight_id
+      - delay_category
+      - delay_minutes
+      - controllable
+      - customer_care_exposure_usd
+      - summary
+    natural_language_examples:
+      - delay cause
+      - controllable delay
+      - customer care exposure
+      - disruption
+  PassengerCarePolicy:
+    primary_key: policy_id
+    source: passenger_care_policies.csv
+    fields:
+      - policy_id
+      - policy_name
+      - applicable_airline_code
+      - applicable_delay_category
+      - trigger_condition
+      - care_action
+      - source_type
+    natural_language_examples:
+      - passenger care
+      - disruption policy
+      - refund review
+      - status update
+  RegulatoryReference:
+    primary_key: reference_id
+    source: regulatory_references.csv
+    fields:
+      - reference_id
+      - reference_title
+      - applicable_scope
+      - applicable_delay_category
+      - trigger_condition
+      - summary
+      - source_type
+    natural_language_examples:
+      - regulation
+      - passenger rights
+      - controllable delay guidance
+      - status update obligation
+
+relationships:
+  - name: Airline_operates_Flight
+    from_entity: Airline
+    from_field: airline_code
+    to_entity: Flight
+    to_field: airline_code
+  - name: Route_has_origin_Airport
+    from_entity: Route
+    from_field: origin_airport_code
+    to_entity: Airport
+    to_field: airport_code
+  - name: Route_has_destination_Airport
+    from_entity: Route
+    from_field: destination_airport_code
+    to_entity: Airport
+    to_field: airport_code
+  - name: Flight_uses_Route
+    from_entity: Flight
+    from_field: route_id
+    to_entity: Route
+    to_field: route_id
+  - name: Flight_has_DelayEvent
+    from_entity: Flight
+    from_field: flight_id
+    to_entity: DelayEvent
+    to_field: flight_id
+  - name: DelayEvent_matches_PassengerCarePolicy
+    from_entity: DelayEvent
+    from_field: delay_category
+    to_entity: PassengerCarePolicy
+    to_field: applicable_delay_category
+    note: >
+      Use category and trigger logic for semantic join demos. Do not rely on
+      real airline names appearing in policy text.
+  - name: DelayEvent_matches_RegulatoryReference
+    from_entity: DelayEvent
+    from_field: delay_category
+    to_entity: RegulatoryReference
+    to_field: applicable_delay_category
+    note: >
+      Regulation-style references are carrier-neutral. Join by delay category,
+      trigger condition, and scope instead of airline brand names.
+
+measures:
+  delayed_flight_count:
+    expression: count(Flight where arrival_delay_minutes > 15)
+    expected_value: 10
+  average_arrival_delay_minutes:
+    expression: average(Flight.arrival_delay_minutes)
+    expected_value: 37.93
+  customer_care_exposure_usd:
+    expression: sum(DelayEvent.customer_care_exposure_usd)
+    expected_value: 15800
+  controllable_delay_event_count:
+    expression: count(DelayEvent where controllable == true)
+    expected_value: 7
+
+validation_queries:
+  - query: Which airlines have the highest customer-care exposure this month?
+    expected_answer_shape: airline ranking with exposure totals
+    expected_top_entity: Alpine Air
+  - query: Which routes have the most delayed flights over 15 minutes?
+    expected_answer_shape: route ranking with delayed flight counts
+  - query: Which delay categories are controllable and driving customer-care exposure?
+    expected_answer_shape: delay category summary
+  - query: Which passenger-care policies or regulation topics explain the risk for the highest-exposure airline?
+    expected_answer_shape: semantic join through delay category and trigger condition, not airline-name matching
+  - query: List delayed flights from the transcontinental market and explain the related route and airline.
+    expected_answer_shape: joined Flight, Route, Airline, and DelayEvent details

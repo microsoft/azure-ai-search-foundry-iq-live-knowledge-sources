@@ -47,13 +47,20 @@ samples/rest/04-create-fabric-ontology-ks.http
 samples/rest/05-create-combined-kb.http
 ```
 
-Replace the sample wording with a real entity, metric, or process from your ontology.
+For this repo, map the Airline Ops sample contract first:
+
+```text
+samples/data/airline-ops/
+samples/ontology/airline-ops/ontology-contract.yaml
+docs/fabric-ontology-prerequisites.md
+```
 
 | Test query | Expected source | What to check |
 | --- | --- | --- |
-| Use the governed ontology to summarize relevant business entities and relationships. | `fabric-ontology-ks` | `activity[*].type == "fabricOntology"` |
-| Which ontology entities, definitions, and relationships are most relevant to this business question? | `fabric-ontology-ks` | `references[*].sourceData.fabricAnswer` and `references[*].sourceData.fabricRawData` are present |
-| Which KPI, business term, or entity definition should I use for this scenario? | `fabric-ontology-ks` | The answer uses ontology semantics instead of free-form document text |
+| Which airlines have the highest customer-care exposure this month? | `fabric-ontology-ks` | `activity[*].type == "fabricOntology"` and Alpine Air appears first |
+| Which routes have the most delayed flights over 15 minutes? | `fabric-ontology-ks` | The answer joins Route and Flight, and delayed flights over 15 minutes total 10 |
+| Which delay categories are controllable and driving customer-care exposure? | `fabric-ontology-ks` | `references[*].sourceData.fabricAnswer` and `references[*].sourceData.fabricRawData` are present |
+| Which passenger-care policies or regulation topics explain the risk for the highest-exposure airline? | `fabric-ontology-ks` | The answer joins through delay category and trigger condition rather than airline-name matching |
 
 Good Fabric trace:
 
@@ -86,8 +93,8 @@ Run `samples/rest/05-create-combined-kb.http` after both Knowledge Sources exist
 | Test query | Expected source behavior | What to check |
 | --- | --- | --- |
 | What must be configured to connect a remote MCP server as a Knowledge Source? | MCP should provide the answer | `activity` contains an `mcpServer` call with `count > 0`; other sources can appear with `count == 0` |
-| Use the governed ontology to explain the relevant business entities for this scenario. | Fabric should provide the answer | `activity` contains `fabricOntology`; use a Fabric-only KB if you need deterministic source isolation |
-| Explain the governed business entity from the ontology and cite Microsoft Learn guidance for how the Knowledge Base should inspect references. | Mixed or source-selected | Confirm whether one or both sources were selected; do not assume both will always be called |
+| Which airlines have the highest customer-care exposure this month? | Fabric should provide the answer | `activity` contains `fabricOntology`; use a Fabric-only KB if you need deterministic source isolation |
+| Using the Airline Ops ontology, identify the airline with the highest customer-care exposure this month. Also cite Microsoft Learn guidance for how I should validate activity, references, and sourceData in the Knowledge Base retrieve response. | Mixed or source-selected | Confirm whether one or both sources were selected; do not assume both will always be called |
 
 When routing does not match your expectation, improve:
 
@@ -97,6 +104,16 @@ When routing does not match your expectation, improve:
 - separate single-source Knowledge Bases for controlled tests
 
 `knowledgeSourceParams` configures runtime options for a source, but it isn't a strict allow-list in combined Knowledge Bases. During live validation, MCP Server KS rejected `alwaysQuerySource`, so use a single-source KB when you need deterministic MCP-only or Fabric-only behavior.
+
+## Offline Replay
+
+Use the checked-in responses to validate trace inspection without live keys:
+
+```bash
+python samples/python/inspect_retrieve_response.py samples/responses/mcp-retrieve.sample.json
+python samples/python/inspect_retrieve_response.py samples/responses/fabric-airline-ops-retrieve.sample.json
+python samples/python/inspect_retrieve_response.py samples/responses/combined-airline-ops-retrieve.sample.json
+```
 
 ## Pass/Fail Checklist
 

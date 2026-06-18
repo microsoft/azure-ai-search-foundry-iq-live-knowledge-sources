@@ -1,0 +1,54 @@
+{
+  "response": [
+    {
+      "role": "assistant",
+      "content": [
+        {
+          "type": "text",
+          "text": "The sample ontology identifies Alpine Air as the highest customer-care exposure carrier, with crew availability and maintenance as key controllable drivers. For validation, inspect the Knowledge Base retrieve response activity and references to confirm that Fabric Ontology supplied the business data and Microsoft Learn MCP supplied implementation guidance."
+        }
+      ]
+    }
+  ],
+  "activity": [
+    {
+      "type": "fabricOntology",
+      "knowledgeSourceName": "fabric-ontology-ks",
+      "count": 5,
+      "fabricOntologyArguments": {
+        "search": "Which airlines have the highest customer-care exposure this month?"
+      }
+    },
+    {
+      "type": "mcpServer",
+      "knowledgeSourceName": "microsoft-learn-mcp-ks",
+      "count": 2,
+      "toolName": "microsoft_docs_search",
+      "mcpServerArguments": {
+        "toolName": "microsoft_docs_search",
+        "query": "Azure AI Search knowledge base retrieve activity references sourceData"
+      }
+    }
+  ],
+  "references": [
+    {
+      "type": "fabricOntology",
+      "knowledgeSourceName": "fabric-ontology-ks",
+      "title": "Airline Ops ontology customer-care exposure ranking",
+      "sourceData": {
+        "fabricAnswer": "The ontology ranks Alpine Air first by customer-care exposure in the sample period. Controllable delay categories contributing exposure include crew availability, maintenance, and late aircraft.",
+        "fabricRawData": "airline_code,airline_name,customer_care_exposure_usd\nALP,Alpine Air,6800\nNEX,Nexus Airways,4200\nTCA,TransCoast Air,2700\nCAS,Cascade Airways,2100\nOVR,Overland Air,0"
+      }
+    },
+    {
+      "type": "mcpServer",
+      "knowledgeSourceName": "microsoft-learn-mcp-ks",
+      "toolName": "microsoft_docs_search",
+      "title": "Query a knowledge base",
+      "sourceData": {
+        "title": "Query a knowledge base",
+        "content": "Synthetic offline excerpt. In a live run, Microsoft Learn MCP returns documentation snippets that help validate activity, references, and sourceData from the retrieve response."
+      }
+    }
+  ]
+}

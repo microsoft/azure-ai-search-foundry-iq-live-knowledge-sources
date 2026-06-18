@@ -1,0 +1,6 @@
+airline_code,airline_name,region,alliance,customer_care_tier
+ALP,Alpine Air,North America,sample-network-a,standard
+CAS,Cascade Airways,North America,sample-network-a,standard
+OVR,Overland Air,North America,sample-network-b,premium
+NEX,Nexus Airways,North America,sample-network-b,premium
+TCA,TransCoast Air,North America,none,standard

@@ -1,0 +1,47 @@
+@searchEndpoint = https://<search-service>.search.windows.net
+@apiVersion = 2026-05-01-preview
+@searchApiKey = <search-query-or-admin-key>
+@knowledgeBaseName = live-knowledge-sources-kb
+@mcpKnowledgeSourceName = microsoft-learn-mcp-ks
+@fabricOntologyKnowledgeSourceName = fabric-ontology-ks
+@userSearchToken = <raw-entra-user-token-for-https://search.azure.com/.default>
+
+### Combined query: Airline Ops ontology + Microsoft Learn MCP trace guidance
+POST {{searchEndpoint}}/knowledgebases/{{knowledgeBaseName}}/retrieve?api-version={{apiVersion}}
+api-key: {{searchApiKey}}
+x-ms-query-source-authorization: {{userSearchToken}}
+Content-Type: application/json
+
+{
+  "messages": [
+    {
+      "role": "user",
+      "content": [
+        {
+          "type": "text",
+          "text": "Using the Airline Ops ontology, identify the airline with the highest customer-care exposure this month. Also cite Microsoft Learn guidance for how I should validate activity, references, and sourceData in the Knowledge Base retrieve response."
+        }
+      ]
+    }
+  ],
+  "includeActivity": true,
+  "knowledgeSourceParams": [
+    {
+      "kind": "fabricOntology",
+      "knowledgeSourceName": "{{fabricOntologyKnowledgeSourceName}}",
+      "includeReferences": true,
+      "includeReferenceSourceData": true
+    },
+    {
+      "kind": "mcpServer",
+      "knowledgeSourceName": "{{mcpKnowledgeSourceName}}",
+      "includeReferences": true,
+      "includeReferenceSourceData": true
+    }
+  ],
+  "outputMode": "answerSynthesis",
+  "retrievalReasoningEffort": {
+    "kind": "low"
+  },
+  "maxRuntimeInSeconds": 90
+}

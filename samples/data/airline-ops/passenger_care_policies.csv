@@ -1,0 +1,5 @@
+policy_id,policy_name,applicable_airline_code,applicable_delay_category,trigger_condition,care_action,source_type
+P-001,Controllable Delay Meal Support,ALL,controllable_delay,controllable_delay_minutes >= 120,offer meal support or equivalent care,synthetic_internal_policy
+P-002,Overnight Disruption Hotel Support,ALL,controllable_delay,controllable_delay_causes_overnight_disruption == true,offer lodging support where available,synthetic_internal_policy
+P-003,Cancellation Refund Review,ALL,cancellation,flight_cancelled == true,review refund and rebooking options,synthetic_policy_summary
+P-004,Operational Delay Status Update,ALL,delay,arrival_delay_minutes > 15,provide timely status update to affected passengers,synthetic_policy_summary
