@@ -94,13 +94,15 @@ The initial quickstart proves the MCP Server path. The Fabric path is added when
 | Trace inspection | You can verify source selection, tool calls, and references | `samples/rest/03-retrieve-mcp.http` |
 | Fabric Ontology grounding | A Knowledge Base can query governed Fabric semantics with end-user source authorization | `samples/rest/04-create-fabric-ontology-ks.http` |
 | Combined routing | One Knowledge Base can route across MCP and Fabric live sources | `samples/rest/05-create-combined-kb.http` |
+| REST sample sequence | Raw request order for MCP-only, BYO Fabric, and combined retrieval | [samples/rest/README.md](samples/rest/README.md) |
+| Notebook walkthroughs | Guided MCP and Fabric tutorials with offline replay defaults | [notebooks/README.md](notebooks/README.md) |
 | Airline Ops ontology contract | A concrete sample domain for Fabric BYO ontology validation | `docs/fabric-ontology-prerequisites.md` |
 | Fabric live BYO validation | Two-minute path for existing Fabric workspace/ontology IDs | `docs/11-fabric-live-byo-validation.md` |
 | Reviewer evidence map | How to review local validation, E2E reports, offline traces, and cleanup evidence | [docs/12-reviewer-evidence.md](docs/12-reviewer-evidence.md) |
 | Preview limitations | Public-preview caveats, auth boundaries, quota expectations, and safe claims | [docs/13-public-preview-limitations.md](docs/13-public-preview-limitations.md) |
 | Release readiness | Checklist before broader review, workshops, blogs, or official sample promotion | [docs/14-release-readiness-checklist.md](docs/14-release-readiness-checklist.md) |
 | Repository promotion | Safe staging-to-target-org promotion flow for private review | [docs/15-repository-promotion.md](docs/15-repository-promotion.md) |
-| Offline replay | Trace inspection without live keys or tenant access | `docs/09-offline-replay.md` |
+| Offline replay | Trace inspection without live keys or tenant access | [samples/responses/README.md](samples/responses/README.md) |
 | One-command deployment | Azure resources, MCP KS/KB, demo app, and generated summary | `docs/10-one-command-deployment.md` |
 
 ## Integration Flow
@@ -301,6 +303,7 @@ samples/ontology/airline-ops/
   Ontology contract for BYO Fabric mapping
 
 samples/rest/
+  README.md
   01-create-mcp-server-ks.http
   02-create-mcp-only-kb.http
   03-retrieve-mcp.http
@@ -318,6 +321,7 @@ samples/responses/
   Offline retrieve responses for MCP, Fabric, and combined traces
 
 notebooks/
+  README.md
   01-mcp-server-ks-quickstart.ipynb       Guided MCP Server KS tutorial
   02-fabric-ontology-ks-airline-ops.ipynb Guided Fabric Ontology KS tutorial
 
