@@ -77,6 +77,48 @@ Suggested flow:
 8. Caveats: preview API, Fabric quota, delegated auth, region/model availability.
 9. Call to action: start with `mcp-only`, then move to `byo-fabric` or `full`.
 
+## Blog Evidence Gate
+
+Before sending a blog draft, conference abstract, or broad internal post for review, produce a local evidence set and keep it ignored:
+
+```bash
+python3 scripts/summarize-e2e-evidence.py \
+  deployments/<mcp-env>/test-report.md \
+  deployments/<byo-fabric-env>/test-report.md \
+  deployments/<full-env>/test-report.md \
+  --output scratch/review-packets/e2e-evidence-summary-blog.local.md
+
+bash scripts/create-review-packet.sh \
+  --mode full \
+  --intent "blog terminology review" \
+  --run-local-validation \
+  --e2e-summary scratch/review-packets/e2e-evidence-summary-blog.local.md \
+  --output scratch/review-packets/blog-review-packet.local.md
+```
+
+Use the generated packet as the source for review notes. Do not paste raw deployment reports into a blog draft.
+
+Evidence tiering:
+
+| Tier | Use for | Source |
+| --- | --- | --- |
+| Official Learn-backed | Product capability wording and API behavior | Linked Learn manuals, rechecked before publishing. |
+| Sample-validated | What this repo demonstrated in a specific tenant/run | Sanitized E2E summary and local review packet. |
+| Offline replay | Trace shape and teaching flow without live credentials | `samples/responses/*.json` and app offline mode. |
+| Local-only | Screenshots, deployment reports, private endpoints, logs | Ignored `scratch/`, `deployments/`, and `.deployment/` paths only. |
+
+Claim-to-evidence examples:
+
+| Draft claim | Required evidence |
+| --- | --- |
+| "The repo provides three reusable paths." | README mode selector plus docs for `mcp-only`, `byo-fabric`, and `full`. |
+| "MCP Server KS is the fastest first run." | `mcp-only` E2E PASS or offline quickstart evidence plus no Fabric dependency. |
+| "BYO Fabric validates live Fabric Ontology KS." | Fabric KS creation plus live retrieve evidence with delegated source authorization. |
+| "Full mode is a greenfield platform story." | Fabric asset creation, Azure deploy, app load, retrieve checks, and cleanup evidence. |
+| "The app demonstrates trace inspection." | App route checks plus screenshots or offline replay showing `activity`, `references`, and source data. |
+
+If the evidence is offline replay only, say "offline replay" explicitly. Do not let an offline screenshot imply live Fabric retrieval.
+
 ## Presentation Flow
 
 Use this when you have three to five minutes:
@@ -104,6 +146,30 @@ Please review:
 - whether any statement reads as production guidance instead of a preview sample
 ```
 
+## Visual Asset Gate
+
+Keep screenshots and local captures under ignored `scratch/` until they pass review.
+
+Promote a visual into tracked `assets/` only when:
+
+```text
+[ ] It contains no tenant ID, token, key, private endpoint, resource group, or customer data
+[ ] It uses fictional or sample data only
+[ ] It supports a claim that is also backed by evidence
+[ ] It is readable without exposing raw service URLs
+[ ] It has a clear caption and can survive public preview wording changes
+```
+
+Recommended visual order:
+
+1. Three deployment paths: `mcp-only`, `byo-fabric`, `full`.
+2. Architecture: Knowledge Base with MCP Server KS and Fabric Ontology KS.
+3. App overview: current mode and live/offline status.
+4. MCP trace: MCP activity or Microsoft Learn references.
+5. Fabric trace: Fabric activity or offline replay clearly labeled.
+6. Combined trace: source badges or activity from the intended sources.
+7. Deployment evidence: sanitized summary or flow diagram, not raw deployment output.
+
 ## Final Pre-Publish Check
 
 Before publishing a blog or external presentation:
@@ -111,6 +177,8 @@ Before publishing a blog or external presentation:
 ```text
 [ ] Learn manual links are current
 [ ] API version is stated as 2026-05-01-preview where relevant
+[ ] Sanitized E2E summary exists for deployment claims
+[ ] Review packet exists and pre-fills Evidence Summary from sanitized evidence
 [ ] Fabric live claims are backed by Fabric activity or source data
 [ ] Offline replay is clearly labeled
 [ ] Screenshots are sanitized
