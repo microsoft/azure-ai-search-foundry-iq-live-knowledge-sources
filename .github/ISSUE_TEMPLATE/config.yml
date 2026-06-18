@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Azure AI Search documentation
+    url: https://learn.microsoft.com/azure/search/
+    about: Use Microsoft Learn for product documentation and conceptual guidance.
+  - name: Azure support
+    url: https://azure.microsoft.com/support/
+    about: Use Azure support for subscription, service, or tenant-specific support requests.

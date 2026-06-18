@@ -1,0 +1,86 @@
+name: Bug report
+description: Report a reproducible issue in a sample, script, notebook, or demo app.
+title: "[Bug]: "
+labels:
+  - bug
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for helping improve this sample. Do not include API keys, bearer tokens, tenant IDs, private endpoints, customer data, or unredacted deployment reports.
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      options:
+        - MCP Server Knowledge Source
+        - Fabric Ontology Knowledge Source
+        - Combined Knowledge Base
+        - Deployment automation
+        - Static Web Apps demo
+        - Notebook
+        - Documentation
+        - Other
+    validations:
+      required: true
+  - type: dropdown
+    id: mode
+    attributes:
+      label: Deployment mode
+      options:
+        - mcp-only
+        - byo-fabric
+        - full
+        - local/offline only
+        - not sure
+    validations:
+      required: true
+  - type: input
+    id: api-version
+    attributes:
+      label: Azure AI Search API version
+      placeholder: "2026-05-01-preview"
+    validations:
+      required: false
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      description: Include commands or file names. Redact resource names and tenant-specific values.
+      placeholder: |
+        1. Run ...
+        2. Open ...
+        3. Observe ...
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+    validations:
+      required: true
+  - type: textarea
+    id: observed
+    attributes:
+      label: Observed behavior
+      description: Summarize errors. Do not paste raw tokens, keys, tenant IDs, endpoints, or generated reports.
+    validations:
+      required: true
+  - type: textarea
+    id: validation
+    attributes:
+      label: Validation evidence
+      description: Summarize `scripts/validate-local.sh` or E2E report results without pasting sensitive output.
+      placeholder: |
+        validate-local: PASS / FAIL
+        E2E report path: deployments/<env>/test-report.md
+        Key failing check: ...
+    validations:
+      required: false
+  - type: checkboxes
+    id: safety
+    attributes:
+      label: Safety confirmation
+      options:
+        - label: I removed secrets, bearer tokens, tenant-specific IDs, private endpoints, and customer data from this issue.
+          required: true

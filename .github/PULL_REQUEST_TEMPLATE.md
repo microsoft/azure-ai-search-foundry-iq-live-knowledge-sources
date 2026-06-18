@@ -43,6 +43,7 @@ Do not paste raw tokens, tenant IDs, service URLs, customer data, or generated d
 - [ ] Fabric live claims are backed by live Fabric activity or clearly described as offline replay.
 - [ ] MCP examples use remote HTTPS MCP servers, not local stdio servers.
 - [ ] Public-facing claims follow `docs/13-public-preview-limitations.md`.
+- [ ] Broader review or release candidates follow `docs/14-release-readiness-checklist.md`.
 
 ## Reviewer Notes
 
