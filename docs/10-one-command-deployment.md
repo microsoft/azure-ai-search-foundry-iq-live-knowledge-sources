@@ -146,27 +146,30 @@ The Knowledge Base model configuration uses Azure OpenAI through Search managed 
 
 ## Local Validation
 
-Before deploying:
+Before deploying or pushing to a Microsoft org repo, run the local validation gate:
 
 ```bash
-bash -n scripts/deploy.sh scripts/e2e-test.sh scripts/destroy.sh scripts/postprovision.sh scripts/deploy-static-webapp-api.sh
-python3 -m py_compile scripts/postprovision.py scripts/fabric-provision.py scripts/fabric-destroy.py
-az bicep build --file infra/main.bicep --outfile .deployment/main.bicep.validate.json
-python3 scripts/postprovision.py --dry-run
-python3 samples/python/build_payloads.py
-python3 samples/python/inspect_retrieve_response.py samples/responses/combined-airline-ops-retrieve.sample.json
-bash scripts/no-secret-scan.sh
+bash scripts/validate-local.sh
 ```
 
-For the default Static Web Apps path:
+Use strict mode when you want missing optional tools, such as Azure CLI for Bicep validation, to fail instead of skip:
 
 ```bash
-cd static-app
-npm install
-npm run build
+bash scripts/validate-local.sh --strict
 ```
 
-Before pushing to a Microsoft org repo, run the no-secret scan from the repo root:
+The validation script runs:
+
+- shell syntax checks
+- Python compile checks
+- notebook JSON validation
+- sample payload generation
+- offline response inspection
+- no-secret scan
+- Static Web Apps demo build
+- Bicep build when Azure CLI is available
+
+You can also run the no-secret scan directly:
 
 ```bash
 bash scripts/no-secret-scan.sh
