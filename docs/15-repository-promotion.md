@@ -56,6 +56,14 @@ bash scripts/validate-local.sh
 git diff --check
 ```
 
+Or run the non-pushing promotion preflight:
+
+```bash
+bash scripts/check-promotion-readiness.sh --target-remote microsoft --run-validation
+```
+
+The preflight checks the current branch, clean tracked worktree state, untracked non-ignored files, ignored generated-output paths, local validation, no-secret scan, whitespace, target remote configuration, and the latest GitHub Actions `Validate` result for the current commit. It prints manual push commands but never pushes.
+
 Optional but recommended:
 
 ```bash
