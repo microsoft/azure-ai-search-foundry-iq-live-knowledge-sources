@@ -1,0 +1,5 @@
+reference_id,reference_title,applicable_scope,applicable_delay_category,trigger_condition,summary,source_type
+RREF-001,Passenger Care For Controllable Delays,all_carriers,controllable_delay,delay is within carrier control,Carrier-facing sample guidance for evaluating passenger care when delays are controllable.,synthetic_regulatory_summary
+RREF-002,Timely Status Updates For Delayed Flights,all_carriers,delay,arrival_delay_minutes > 15,Carrier-facing sample guidance for communicating flight status updates during operational disruptions.,synthetic_regulatory_summary
+RREF-003,Refund And Rebooking Review For Cancellations,all_carriers,cancellation,flight_cancelled == true,Carrier-facing sample guidance for reviewing passenger options when a flight is cancelled.,synthetic_regulatory_summary
+RREF-004,Operational Control Classification,all_carriers,late_aircraft|maintenance|crew_availability,delay_category is controllable,Carrier-facing sample guidance for distinguishing controllable operational delays from weather or air traffic control delays.,synthetic_regulatory_summary

@@ -25,6 +25,7 @@ def main() -> None:
         "azure_openai_endpoint": "https://<azure-openai-or-foundry-resource>.openai.azure.com",
         "azure_openai_deployment_id": "<chat-completions-deployment-name>",
         "azure_openai_model_name": "<model-name>",
+        "azure_openai_api_key": "<azure-openai-api-key>",
     }
 
     mcp_source = create_mcp_server_knowledge_source(

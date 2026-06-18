@@ -1,0 +1,9 @@
+route_id,origin_airport_code,destination_airport_code,distance_miles,market
+R-ATL-DFW,ATL,DFW,731,Southeast-Texas
+R-ATL-JFK,ATL,JFK,760,Southeast-Northeast
+R-DEN-SEA,DEN,SEA,1024,Mountain-Pacific Northwest
+R-DFW-LAX,DFW,LAX,1235,Texas-West Coast
+R-JFK-LAX,JFK,LAX,2475,Transcontinental
+R-LAX-SFO,LAX,SFO,337,California
+R-ORD-DEN,ORD,DEN,888,Midwest-Mountain
+R-SEA-SFO,SEA,SFO,679,Pacific Northwest-California

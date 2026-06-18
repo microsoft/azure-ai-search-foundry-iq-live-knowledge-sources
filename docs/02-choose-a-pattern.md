@@ -6,10 +6,18 @@
 | Fabric Ontology KS | You need governed business semantics from Microsoft Fabric | `samples/rest/04-create-fabric-ontology-ks.http` |
 | Combined KB | You need to validate multi-source routing and trace behavior | `samples/rest/05-create-combined-kb.http` |
 
+## Deployment Modes
+
+| Mode | Use when |
+| --- | --- |
+| `byo-fabric` | You already have a Fabric workspace and ontology and want the validated live Fabric path. |
+| `mcp-only` | You want the fastest Azure AI Search MCP Server KS validation without Fabric. |
+| `full` | You want a greenfield path that creates the Fabric sample stack and connects it to Azure AI Search. |
+
 ## Recommended Order
 
 1. Create the MCP Server KS.
 2. Create the MCP-only Knowledge Base.
 3. Retrieve from MCP and inspect `activity`, `references`, and source data.
-4. Add Fabric Ontology KS after your Fabric workspace and ontology are ready.
+4. Add Fabric Ontology KS with BYO Fabric IDs or run `--mode full` to create the sample Fabric assets.
 5. Create a combined Knowledge Base and repeat trace validation.

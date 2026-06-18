@@ -5,7 +5,29 @@ Reusable sample accelerator for building Foundry IQ Knowledge Bases with two liv
 - **MCP Server Knowledge Source** for remote HTTPS MCP tools
 - **Fabric Ontology Knowledge Source** for governed business semantics in Microsoft Fabric
 
-The fastest path in this repo uses the public Microsoft Learn MCP endpoint, so you can create a working live Knowledge Source before you have tenant-specific Fabric assets ready.
+## Start Here: Choose A Demo Path
+
+| Path | Use when | What you get | First command or file |
+| --- | --- | --- | --- |
+| `mcp-only` | You want the fastest first run without Fabric | Azure AI Search + Azure OpenAI + Microsoft Learn MCP Server KS + demo app | `bash scripts/deploy.sh --mode mcp-only ...` |
+| `byo-fabric` | You already have a Fabric workspace and ontology | Everything in `mcp-only`, plus Fabric Ontology KS and combined KB | `bash scripts/deploy.sh --mode byo-fabric ...` |
+| `full` | You want the greenfield platform story | Fabric capacity/workspace/lakehouse/ontology/GraphModel, then Azure AI Search + app + both KS paths | `bash scripts/deploy.sh --mode full ...` |
+
+Recommended order for most readers:
+
+1. Run `mcp-only` to validate the MCP Server Knowledge Source path.
+2. Run `byo-fabric` if you already have Fabric semantic assets.
+3. Use `full` for the end-to-end platform demo after quota, region, and delegated auth expectations are clear.
+
+The repo includes a small synthetic Airline Operations sample dataset and ontology contract. Fabric examples use fictional carrier names and real airport geography, so they are safe for public sample usage while still showing realistic semantic joins and trace behavior.
+
+## Current Status
+
+- `mcp-only`: first-run validation path.
+- `byo-fabric`: primary customer/field live path when Fabric assets already exist.
+- `full`: validated greenfield path in an external tenant; creates Fabric sample assets before `azd up`.
+- Demo app: Azure Static Web Apps + managed Functions API, with offline replay fallback.
+- Generated deployment summaries and E2E reports are written under ignored `deployments/` paths.
 
 ## Why This Repo Exists
 
@@ -14,6 +36,7 @@ Classic retrieval samples usually start with ingestion: load documents, build an
 - MCP Server KS can call explicitly allowed tools on a remote MCP-compatible HTTPS server.
 - Fabric Ontology KS can query a Fabric ontology on behalf of the signed-in user.
 - A single Knowledge Base can route across both sources and return `activity`, `references`, and source-specific data for validation.
+- Offline replay samples show the expected trace shape before you have live keys or Fabric access.
 
 That makes this repo useful as a field-ready starting point for demos, customer workshops, hackathons, and reusable platform assets.
 
@@ -37,11 +60,13 @@ flowchart LR
   KB["Foundry IQ Knowledge Base<br/>Azure AI Search"]
   MCP["MCP Server KS<br/>Microsoft Learn MCP or custom HTTPS MCP"]
   Fabric["Fabric Ontology KS<br/>Workspace + ontology item"]
+  Data["Airline Ops sample data<br/>ontology contract"]
   Trace["Retrieve response<br/>activity + references + sourceData"]
 
   User --> Agent --> KB
   KB --> MCP
   KB --> Fabric
+  Data -. maps to .-> Fabric
   MCP --> Trace
   Fabric --> Trace
 ```
@@ -56,6 +81,10 @@ The initial quickstart proves the MCP Server path. The Fabric path is added when
 | Trace inspection | You can verify source selection, tool calls, and references | `samples/rest/03-retrieve-mcp.http` |
 | Fabric Ontology grounding | A Knowledge Base can query governed Fabric semantics with delegated user context | `samples/rest/04-create-fabric-ontology-ks.http` |
 | Combined routing | One Knowledge Base can route across MCP and Fabric live sources | `samples/rest/05-create-combined-kb.http` |
+| Airline Ops ontology contract | A concrete sample domain for Fabric BYO ontology validation | `docs/fabric-ontology-prerequisites.md` |
+| Fabric live BYO validation | Two-minute path for existing Fabric workspace/ontology IDs | `docs/11-fabric-live-byo-validation.md` |
+| Offline replay | Trace inspection without live keys or tenant access | `docs/09-offline-replay.md` |
+| One-command deployment | Azure resources, MCP KS/KB, demo app, and generated summary | `docs/10-one-command-deployment.md` |
 
 ## Integration Flow
 
@@ -71,7 +100,31 @@ Create Knowledge Source
 The REST files show the raw API calls. The notebook gives the same flow as a guided tutorial:
 
 - `notebooks/01-mcp-server-ks-quickstart.ipynb`
+- `notebooks/02-fabric-ontology-ks-airline-ops.ipynb`
 - `docs/08-test-queries.md`
+
+## Airline Ops Demo Data
+
+The Fabric tutorial uses a small synthetic Airline Operations domain:
+
+```text
+samples/data/airline-ops/
+samples/ontology/airline-ops/ontology-contract.yaml
+docs/fabric-ontology-prerequisites.md
+```
+
+Expected validation facts:
+
+| Validation item | Expected value |
+| --- | ---: |
+| Airlines | 5 |
+| Airports | 8 |
+| Flights | 15 |
+| Delayed flights over 15 minutes | 10 |
+| Delay events | 10 |
+| Customer-care exposure | 15800 USD |
+
+Use `byo-fabric` when you already have a Fabric workspace and ontology. Use `full` when you want the sample to create the Fabric capacity, workspace, Lakehouse tables, and ontology before it connects Azure AI Search.
 
 ## Quickstart: MCP Server KS
 
@@ -102,13 +155,88 @@ For private local testing, you can point the notebook at an untracked env file b
 
 Fabric Ontology KS requires tenant-specific Fabric assets and delegated user context.
 
-1. Prepare a Fabric workspace and ontology item.
-2. Set `@fabricWorkspaceId` and `@fabricOntologyId` in `samples/rest/04-create-fabric-ontology-ks.http`.
-3. Run `samples/rest/04-create-fabric-ontology-ks.http`.
-4. Run `samples/rest/05-create-combined-kb.http` to update the Knowledge Base with both MCP and Fabric sources.
-5. Acquire an end-user token scoped to `https://search.azure.com/.default`.
-6. Set `@userSearchToken` in `samples/rest/06-retrieve-fabric-ontology.http` as the raw token value, without a `Bearer` prefix.
-7. Run the retrieve request and inspect `sourceData.fabricAnswer` and `sourceData.fabricRawData`.
+1. Review `docs/fabric-ontology-prerequisites.md`.
+2. Load or map the sample Airline Ops data into your Fabric workspace.
+3. Create an ontology item that matches `samples/ontology/airline-ops/ontology-contract.yaml`.
+4. Validate the sample natural-language questions in Fabric.
+5. Set `@fabricWorkspaceId` and `@fabricOntologyId` in `samples/rest/04-create-fabric-ontology-ks.http`.
+6. Run `samples/rest/04-create-fabric-ontology-ks.http`.
+7. Run `samples/rest/05-create-combined-kb.http` to update the Knowledge Base with both MCP and Fabric sources.
+8. Acquire an end-user token scoped to `https://search.azure.com/.default`.
+9. Set `@userSearchToken` in `samples/rest/06-retrieve-fabric-ontology.http` as the raw token value, without a `Bearer` prefix.
+10. Run the retrieve request and inspect `sourceData.fabricAnswer` and `sourceData.fabricRawData`.
+
+To test the combined path, run `samples/rest/08-retrieve-combined-airline-ops.http`.
+
+## Deploy The Demo App
+
+The deployment uses Azure Developer CLI, Bicep, and post-provision scripts:
+
+Choose the deployment path explicitly:
+
+| Mode | Use when | Command shape |
+| --- | --- | --- |
+| `byo-fabric` | You already have a Fabric workspace and ontology | `bash scripts/deploy.sh --mode byo-fabric ...` |
+| `mcp-only` | You want to validate MCP Server KS first, without Fabric | `bash scripts/deploy.sh --mode mcp-only ...` |
+| `full` | You want a greenfield path that also creates Fabric sample assets | `bash scripts/deploy.sh --mode full ...` |
+
+Recommended validated path:
+
+```bash
+bash scripts/deploy.sh \
+  --mode byo-fabric \
+  --env-file .env.external.local \
+  --env-name liveks-byo \
+  --location eastus
+```
+
+`byo-fabric` creates the Azure AI Search, Azure OpenAI, MCP KS/KB, sample Search index, and demo app resources, then connects the existing Fabric ontology from `FABRIC_WORKSPACE_ID` and `FABRIC_ONTOLOGY_ID`.
+
+For MCP-only validation:
+
+```bash
+bash scripts/deploy.sh \
+  --mode mcp-only \
+  --env-name liveks-mcp \
+  --location eastus
+```
+
+For the full greenfield path:
+
+```bash
+bash scripts/deploy.sh \
+  --mode full \
+  --env-name liveks-full \
+  --location eastus \
+  --fabric-location westus3
+```
+
+`full` creates an F2 Fabric capacity, Fabric workspace, Airline Ops Lakehouse, Airline Ops ontology, and ontology-backed GraphModel before `azd up`, then deploys Azure AI Search, Azure OpenAI, MCP KS/KB, Fabric KS/KB, the Search index, and the demo app. Use `--fabric-location` for a region where your subscription has Fabric quota. If you already have Fabric assets, use `byo-fabric` or set `FABRIC_WORKSPACE_ID` and `FABRIC_ONTOLOGY_ID`.
+
+`deploy.sh` adds a clear ASCII progress view, preflight checks, local app validation, post-provision smoke tests, and an ignored deployment log under `.deployment/`. Running `bash scripts/deploy.sh` without `--mode` only works when `DEPLOYMENT_MODE` is already set in the env file or selected azd environment; otherwise it stops and prints the available paths.
+
+For a full create-call-load-delete rehearsal:
+
+```bash
+bash scripts/e2e-test.sh \
+  --mode byo-fabric \
+  --env-file .env.external.local \
+  --env-name ext-liveks-e2e-20260616 \
+  --location eastus \
+  --cleanup
+```
+
+The deployment creates Azure AI Search, Azure OpenAI, Storage, an Azure Static Web Apps demo with managed Functions API, MCP Knowledge Source, MCP-only Knowledge Base, a combined Knowledge Base skeleton, and an Airline Ops Search index for regulation-style sample documents.
+
+After provisioning, `scripts/postprovision.py` writes:
+
+```text
+deployments/<env>/deployment-summary.md
+```
+
+This generated file is ignored by git and contains the app URL, endpoints, resource names, notebook values, and MCP smoke-test status without secrets.
+
+See `docs/10-one-command-deployment.md`.
 
 ## Repository Layout
 
@@ -122,6 +250,34 @@ docs/
   05-combined-kb-routing.md   Multi-source routing guidance
   06-security-governance.md   Auth, boundaries, and governance notes
   07-troubleshooting.md       Common setup and retrieve issues
+  08-test-queries.md          Validation queries and expected traces
+  09-offline-replay.md        Offline response inspection
+  10-one-command-deployment.md
+  11-fabric-live-byo-validation.md
+  external-tenant-login.md
+  fabric-ontology-prerequisites.md
+
+infra/
+  Bicep deployment for Azure AI Search, Azure OpenAI, Storage, and demo hosting
+
+scripts/
+  deploy.sh                   azd wrapper with progress output
+  destroy.sh                  azd cleanup wrapper
+  e2e-test.sh                 Live create-call-load-delete test harness
+  external-tenant-login.sh     Isolated Azure CLI login for external tenants
+  postprovision.py            Creates KS/KB, sample index, smoke test, and summary
+
+static-app/
+  Static Web Apps demo with managed Functions retrieve proxy routes
+
+demo-app/
+  Optional Next.js/App Service reference implementation
+
+samples/data/airline-ops/
+  Synthetic tutorial data for the Fabric ontology path
+
+samples/ontology/airline-ops/
+  Ontology contract for BYO Fabric mapping
 
 samples/rest/
   01-create-mcp-server-ks.http
@@ -131,13 +287,18 @@ samples/rest/
   05-create-combined-kb.http
   06-retrieve-fabric-ontology.http
   07-delete-resources.http
+  08-retrieve-combined-airline-ops.http
 
 samples/python/
   build_payloads.py            Generates sample JSON payloads from reusable helpers
   inspect_retrieve_response.py Summarizes activity and references from a saved response
 
+samples/responses/
+  Offline retrieve responses for MCP, Fabric, and combined traces
+
 notebooks/
-  01-mcp-server-ks-quickstart.ipynb Guided MCP Server KS tutorial
+  01-mcp-server-ks-quickstart.ipynb       Guided MCP Server KS tutorial
+  02-fabric-ontology-ks-airline-ops.ipynb Guided Fabric Ontology KS tutorial
 
 src/ks_factory/
   Reusable Python payload builders for Knowledge Sources and Knowledge Bases
@@ -161,6 +322,8 @@ Inspect a saved retrieve response:
 
 ```bash
 python samples/python/inspect_retrieve_response.py samples/responses/mcp-retrieve.sample.json
+python samples/python/inspect_retrieve_response.py samples/responses/fabric-airline-ops-retrieve.sample.json
+python samples/python/inspect_retrieve_response.py samples/responses/combined-airline-ops-retrieve.sample.json
 ```
 
 The helper code is intentionally small. It is here to make payload shape reusable, not to hide the REST contract.
