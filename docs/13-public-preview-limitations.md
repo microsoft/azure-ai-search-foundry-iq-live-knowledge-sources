@@ -140,3 +140,4 @@ Before sharing outside the working team:
 ```
 
 For evidence guidance, see [Reviewer Evidence Guide](12-reviewer-evidence.md).
+For blog and presentation wording, see [Storyline And Safe Claims](17-storyline-and-safe-claims.md).
