@@ -64,6 +64,7 @@ Use this map when you are reviewing the repo or deciding what to read next.
 | Promote to another repository | [Repository Promotion Guide](15-repository-promotion.md) |
 | Run a short demo | [Demo Walkthrough](16-demo-walkthrough.md) |
 | Prepare blog or presentation wording | [Storyline And Safe Claims](17-storyline-and-safe-claims.md) |
+| Ask for private review | [Private Review Workflow](18-private-review-workflow.md) |
 
 ## Validation Loop
 
