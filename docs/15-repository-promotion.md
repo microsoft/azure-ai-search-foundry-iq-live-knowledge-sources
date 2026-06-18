@@ -123,6 +123,8 @@ The PR should include:
 - known preview caveats,
 - reviewer asks.
 
+Use the template in [Reviewer Evidence Guide](12-reviewer-evidence.md#reviewer-packet-template) for the PR body, Teams note, or reviewer email.
+
 Do not paste generated reports, tokens, tenant IDs, service URLs, or private screenshots into the PR.
 
 ## Suggested Reviewer Ask
