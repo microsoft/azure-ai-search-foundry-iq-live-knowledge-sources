@@ -1,0 +1,76 @@
+name: Private review request
+description: Request terminology, preview caveat, deployment-mode, or sample-readiness review.
+title: "[Review]: "
+labels:
+  - review
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Use this form for private review before broader sharing, blog publication, workshops, or target-org promotion.
+
+        Do not include API keys, bearer tokens, tenant IDs, private endpoints, customer data, generated deployment reports, or raw live responses.
+  - type: dropdown
+    id: review-scope
+    attributes:
+      label: Review scope
+      options:
+        - Azure AI Search terminology and REST shape
+        - MCP Server Knowledge Source
+        - Fabric Ontology Knowledge Source
+        - Deployment modes
+        - Security and generated-output hygiene
+        - Blog or presentation safe claims
+        - Full sample readiness
+    validations:
+      required: true
+  - type: checkboxes
+    id: modes
+    attributes:
+      label: Deployment modes involved
+      options:
+        - label: mcp-only
+        - label: byo-fabric
+        - label: full
+        - label: docs/offline only
+  - type: textarea
+    id: summary
+    attributes:
+      label: Summary
+      description: Describe what changed or what you want reviewed.
+      placeholder: |
+        Review intent:
+        Key files:
+        Expected reviewer focus:
+    validations:
+      required: true
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Sanitized evidence
+      description: Paste only sanitized facts from a local review packet or E2E evidence summary.
+      placeholder: |
+        Commit:
+        Local validation: PASS / FAIL / not run
+        GitHub Actions Validate: PASS / FAIL / not run
+        Sanitized E2E summary: PASS / FAIL / SKIP counts only
+        Cleanup: PASS / FAIL / skipped
+    validations:
+      required: true
+  - type: textarea
+    id: questions
+    attributes:
+      label: Reviewer questions
+      placeholder: |
+        - Is the Knowledge Source terminology correct?
+        - Are preview caveats clear enough?
+        - Does any sentence read as production guidance?
+    validations:
+      required: true
+  - type: checkboxes
+    id: safety
+    attributes:
+      label: Safety confirmation
+      options:
+        - label: I removed secrets, bearer tokens, tenant-specific IDs, private endpoints, customer data, generated deployment reports, and raw live responses.
+          required: true
