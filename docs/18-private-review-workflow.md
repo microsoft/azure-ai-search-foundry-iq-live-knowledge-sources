@@ -124,6 +124,16 @@ bash scripts/create-review-packet.sh \
   --e2e-report deployments/<env>/test-report.md
 ```
 
+With a sanitized multi-mode E2E summary:
+
+```bash
+bash scripts/create-review-packet.sh \
+  --mode full \
+  --intent "private review" \
+  --run-local-validation \
+  --e2e-summary scratch/review-packets/e2e-evidence-summary-<timestamp>.local.md
+```
+
 The generated packet stays ignored:
 
 ```text

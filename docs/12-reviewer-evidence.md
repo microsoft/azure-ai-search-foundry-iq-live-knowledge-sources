@@ -147,6 +147,16 @@ bash scripts/create-review-packet.sh \
   --intent "private review"
 ```
 
+With a sanitized E2E summary:
+
+```bash
+bash scripts/create-review-packet.sh \
+  --mode full \
+  --intent "private review" \
+  --run-local-validation \
+  --e2e-summary scratch/review-packets/e2e-evidence-summary-<timestamp>.local.md
+```
+
 The script writes an ignored markdown file under `scratch/review-packets/`. It records the current commit, local worktree state, local validation result when requested, latest GitHub Actions `Validate` result when available, and optional E2E report path. It does not copy deployment report contents.
 
 For multi-mode evidence, generate a sanitized E2E summary next to the packet:
@@ -171,6 +181,7 @@ Validation:
 - Local validation: PASS / FAIL / not run
 - GitHub Actions Validate: PASS / FAIL / not run
 - E2E report path, local only: deployments/<env>/test-report.md
+- Sanitized E2E summary path, local only: scratch/review-packets/e2e-evidence-summary-*.local.md
 - Cleanup: PASS / FAIL / skipped, with reason
 
 Evidence summary:
