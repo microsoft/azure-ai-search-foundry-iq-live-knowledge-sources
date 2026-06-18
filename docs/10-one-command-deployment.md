@@ -64,7 +64,7 @@ The report is ignored by git and includes a checklist, progress bar, resource na
 Use [Reviewer Evidence Guide](12-reviewer-evidence.md) to interpret which checks matter for Microsoft org review, customer workshops, and blog/demo walkthroughs.
 Use [Public Preview Limitations and Caveats](13-public-preview-limitations.md) before turning deployment results into customer-facing or blog claims.
 
-Full-run test specs:
+Full-run test specs are indexed in [Full-Run Test Specifications](test-specs/README.md):
 
 - `docs/test-specs/e2e-byo-fabric.md`
 - `docs/test-specs/e2e-mcp-only.md`

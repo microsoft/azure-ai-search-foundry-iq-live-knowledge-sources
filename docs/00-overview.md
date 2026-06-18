@@ -59,6 +59,7 @@ Use this map when you are reviewing the repo or deciding what to read next.
 | Deploy the app and resources | [One-Command Demo Deployment](10-one-command-deployment.md) |
 | Connect existing Fabric assets | [Fabric Live BYO Validation](11-fabric-live-byo-validation.md) |
 | Prove a run for reviewers | [Reviewer Evidence Guide](12-reviewer-evidence.md) |
+| Compare full-run E2E expectations | [Full-Run Test Specifications](test-specs/README.md) |
 | Avoid unsafe preview claims | [Public Preview Limitations and Caveats](13-public-preview-limitations.md) |
 | Prepare for broader review | [Release Readiness Checklist](14-release-readiness-checklist.md) |
 | Promote to another repository | [Repository Promotion Guide](15-repository-promotion.md) |
