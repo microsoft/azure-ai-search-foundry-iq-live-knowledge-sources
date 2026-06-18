@@ -1,0 +1,60 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="900" viewBox="0 0 1600 900" role="img" aria-labelledby="title desc">
+  <title id="title">Deployment modes for Azure AI Search Foundry IQ Live Knowledge Sources</title>
+  <desc id="desc">Three deployment modes: MCP-only for fastest validation, BYO Fabric for existing Fabric semantic assets, and full for greenfield Fabric plus Azure deployment.</desc>
+  <rect width="1600" height="900" fill="#F8FAFC"/>
+
+  <text x="88" y="92" font-family="Arial, sans-serif" font-size="48" font-weight="700" fill="#0F172A">Choose a Demo Path</text>
+  <text x="90" y="130" font-family="Arial, sans-serif" font-size="22" fill="#475569">Start small, then add Fabric semantics or run the full greenfield platform story.</text>
+
+  <rect x="98" y="186" width="420" height="392" rx="28" fill="#FFFFFF" stroke="#FDBA74" stroke-width="4"/>
+  <rect x="98" y="186" width="420" height="112" rx="28" fill="#D83B01"/>
+  <rect x="98" y="256" width="420" height="42" fill="#D83B01"/>
+  <text x="134" y="243" font-family="Arial, sans-serif" font-size="34" font-weight="700" fill="#FFFFFF">mcp-only</text>
+  <text x="136" y="276" font-family="Arial, sans-serif" font-size="17" font-weight="700" fill="#FFF7ED">FASTEST FIRST RUN</text>
+  <text x="136" y="350" font-family="Arial, sans-serif" font-size="22" fill="#1F2937">Validate Microsoft Learn MCP</text>
+  <text x="136" y="382" font-family="Arial, sans-serif" font-size="22" fill="#1F2937">Server KS without Fabric setup.</text>
+  <rect x="136" y="432" width="138" height="36" rx="18" fill="#FFEDD5" stroke="#FDBA74"/>
+  <text x="164" y="456" font-family="Consolas, monospace" font-size="16" font-weight="700" fill="#9A3412">MCP KS</text>
+  <rect x="290" y="432" width="154" height="36" rx="18" fill="#FFEDD5" stroke="#FDBA74"/>
+  <text x="319" y="456" font-family="Consolas, monospace" font-size="16" font-weight="700" fill="#9A3412">No Fabric</text>
+  <text x="136" y="520" font-family="Arial, sans-serif" font-size="18" fill="#475569">Use first when you want a</text>
+  <text x="136" y="546" font-family="Arial, sans-serif" font-size="18" fill="#475569">low-friction live-source check.</text>
+
+  <rect x="590" y="186" width="420" height="392" rx="28" fill="#FFFFFF" stroke="#86EFAC" stroke-width="4"/>
+  <rect x="590" y="186" width="420" height="112" rx="28" fill="#107C10"/>
+  <rect x="590" y="256" width="420" height="42" fill="#107C10"/>
+  <text x="626" y="243" font-family="Arial, sans-serif" font-size="34" font-weight="700" fill="#FFFFFF">byo-fabric</text>
+  <text x="628" y="276" font-family="Arial, sans-serif" font-size="17" font-weight="700" fill="#F0FDF4">EXISTING FABRIC ASSET</text>
+  <text x="628" y="350" font-family="Arial, sans-serif" font-size="22" fill="#1F2937">Connect an existing Fabric</text>
+  <text x="628" y="382" font-family="Arial, sans-serif" font-size="22" fill="#1F2937">workspace and ontology.</text>
+  <rect x="628" y="432" width="176" height="36" rx="18" fill="#DCFCE7" stroke="#86EFAC"/>
+  <text x="654" y="456" font-family="Consolas, monospace" font-size="16" font-weight="700" fill="#166534">Workspace</text>
+  <rect x="820" y="432" width="136" height="36" rx="18" fill="#DCFCE7" stroke="#86EFAC"/>
+  <text x="848" y="456" font-family="Consolas, monospace" font-size="16" font-weight="700" fill="#166534">Ontology</text>
+  <text x="628" y="520" font-family="Arial, sans-serif" font-size="18" fill="#475569">Use when a tenant already has</text>
+  <text x="628" y="546" font-family="Arial, sans-serif" font-size="18" fill="#475569">governed Fabric semantics.</text>
+
+  <rect x="1082" y="186" width="420" height="392" rx="28" fill="#FFFFFF" stroke="#93C5FD" stroke-width="4"/>
+  <rect x="1082" y="186" width="420" height="112" rx="28" fill="#0F6CBD"/>
+  <rect x="1082" y="256" width="420" height="42" fill="#0F6CBD"/>
+  <text x="1118" y="243" font-family="Arial, sans-serif" font-size="34" font-weight="700" fill="#FFFFFF">full</text>
+  <text x="1120" y="276" font-family="Arial, sans-serif" font-size="17" font-weight="700" fill="#EFF6FF">GREENFIELD PLATFORM STORY</text>
+  <text x="1120" y="350" font-family="Arial, sans-serif" font-size="22" fill="#1F2937">Create Fabric sample assets,</text>
+  <text x="1120" y="382" font-family="Arial, sans-serif" font-size="22" fill="#1F2937">then deploy the Azure side.</text>
+  <rect x="1120" y="432" width="142" height="36" rx="18" fill="#DBEAFE" stroke="#93C5FD"/>
+  <text x="1150" y="456" font-family="Consolas, monospace" font-size="16" font-weight="700" fill="#1D4ED8">Fabric</text>
+  <rect x="1278" y="432" width="134" height="36" rx="18" fill="#DBEAFE" stroke="#93C5FD"/>
+  <text x="1310" y="456" font-family="Consolas, monospace" font-size="16" font-weight="700" fill="#1D4ED8">Azure</text>
+  <text x="1120" y="520" font-family="Arial, sans-serif" font-size="18" fill="#475569">Use after quota, region, and</text>
+  <text x="1120" y="546" font-family="Arial, sans-serif" font-size="18" fill="#475569">source authorization are clear.</text>
+
+  <line x1="518" y1="382" x2="580" y2="382" stroke="#64748B" stroke-width="3"/>
+  <polygon points="580,382 564,373 564,391" fill="#64748B"/>
+  <line x1="1010" y1="382" x2="1072" y2="382" stroke="#64748B" stroke-width="3"/>
+  <polygon points="1072,382 1056,373 1056,391" fill="#64748B"/>
+
+  <rect x="192" y="650" width="1216" height="132" rx="28" fill="#FFFFFF" stroke="#CBD5E1" stroke-width="2"/>
+  <text x="242" y="700" font-family="Arial, sans-serif" font-size="26" font-weight="700" fill="#111827">Recommended reader journey</text>
+  <text x="242" y="736" font-family="Arial, sans-serif" font-size="19" fill="#475569">Run local validation, start with MCP-only, add BYO Fabric when IDs exist,</text>
+  <text x="242" y="766" font-family="Arial, sans-serif" font-size="19" fill="#475569">and use full mode for platform demos after quota and auth expectations are clear.</text>
+</svg>
