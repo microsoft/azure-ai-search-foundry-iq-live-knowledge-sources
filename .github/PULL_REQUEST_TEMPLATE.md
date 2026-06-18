@@ -26,8 +26,18 @@
 - [ ] GitHub Actions `Validate` workflow passes
 - [ ] E2E report reviewed when deployment behavior changed
 - [ ] Sanitized E2E summary generated when deployment behavior is claimed
-- [ ] `bash scripts/check-promotion-readiness.sh --target-remote <remote> --run-validation --review-packet scratch/review-packets/<packet>.local.md --promotion-note scratch/review-packets/<promotion-note>.local.md`
+- [ ] Promotion readiness preflight run when preparing target-org review or release candidate
 - [ ] Not applicable; docs-only or metadata-only change
+
+Promotion readiness command, when applicable:
+
+```bash
+bash scripts/check-promotion-readiness.sh \
+  --target-remote <remote> \
+  --run-validation \
+  --review-packet scratch/review-packets/<packet>.local.md \
+  --promotion-note scratch/review-packets/<promotion-note>.local.md
+```
 
 If E2E was run, summarize the ignored report path and result:
 
