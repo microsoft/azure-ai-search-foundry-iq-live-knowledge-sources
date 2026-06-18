@@ -65,6 +65,7 @@ Use this map when you are reviewing the repo or deciding what to read next.
 | Run a short demo | [Demo Walkthrough](16-demo-walkthrough.md) |
 | Prepare blog or presentation wording | [Storyline And Safe Claims](17-storyline-and-safe-claims.md) |
 | Ask for private review | [Private Review Workflow](18-private-review-workflow.md) |
+| Answer common setup questions | [FAQ](19-faq.md) |
 
 ## Validation Loop
 
@@ -83,16 +84,17 @@ The final answer alone is not enough. Good evidence shows which source was selec
 ## First-Time Reader Path
 
 1. Read the mode selector in [README.md](../README.md).
-2. Run:
+2. Use [Choose a Pattern](02-choose-a-pattern.md) to pick a path, and keep [FAQ](19-faq.md) open for mode, auth, offline replay, and endpoint questions.
+3. Run:
 
    ```bash
    bash scripts/validate-local.sh
    ```
 
-3. Start with `mcp-only`.
-4. Open the demo app and inspect source trace evidence.
-5. Move to `byo-fabric` when Fabric workspace and ontology IDs are ready.
-6. Use `full` only when Fabric quota, tenant settings, region, and delegated auth expectations are clear.
+4. Start with `mcp-only`.
+5. Open the demo app and inspect source trace evidence.
+6. Move to `byo-fabric` when Fabric workspace and ontology IDs are ready.
+7. Use `full` only when Fabric quota, tenant settings, region, and delegated auth expectations are clear.
 
 ## Evidence And Safety
 
