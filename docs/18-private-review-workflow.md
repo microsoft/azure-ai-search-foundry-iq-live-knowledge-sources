@@ -92,6 +92,17 @@ deployments/<env>/test-report.md
 
 Summarize the result. Do not paste the raw report unless it has been reviewed and redacted.
 
+For a safer reviewer artifact, generate a sanitized summary:
+
+```bash
+python3 scripts/summarize-e2e-evidence.py \
+  deployments/<mcp-env>/test-report.md \
+  deployments/<byo-fabric-env>/test-report.md \
+  deployments/<full-env>/test-report.md
+```
+
+This writes an ignored file under `scratch/review-packets/` and copies only safe fields plus checklist status/check names. It intentionally omits raw notes, app URLs, Search endpoints, resource group names, subscription IDs, tenant IDs, keys, and tokens.
+
 ## 4. Generate A Local Review Packet
 
 Use:
@@ -203,6 +214,7 @@ Then regenerate the local review packet.
 [ ] Local validation PASS
 [ ] GitHub Actions Validate PASS
 [ ] Generated reports remain ignored
+[ ] Sanitized E2E evidence summary generated when deployment claims are included
 [ ] Review packet generated under scratch/
 [ ] Review request includes only sanitized facts
 [ ] Preview caveats are linked

@@ -11,6 +11,7 @@ The important point: do not judge the sample only by final answer text. A good r
 | Local validation gate | Terminal output from `bash scripts/validate-local.sh` | No | The repo builds, notebooks parse, payloads generate, offline traces inspect, no-secret scan passes, and Bicep compiles when Azure CLI is available. |
 | Deployment summary | `deployments/<env>/deployment-summary.md` | No | The deployed app URL, resource names, endpoints, Knowledge Source names, Knowledge Base names, and smoke-test status. |
 | E2E test report | `deployments/<env>/test-report.md` | No | Create-call-load-delete checks with PASS, FAIL, or SKIP per deployment mode. |
+| Sanitized E2E evidence summary | `scratch/review-packets/e2e-evidence-summary-*.local.md` | No | PASS, FAIL, and SKIP counts plus checklist names without raw report notes, endpoints, tenant IDs, or resource names. |
 | Offline replay samples | `samples/responses/*.json` | Yes | Expected retrieve trace shape without live tenant dependencies. |
 | Test specifications | `docs/test-specs/*.md` | Yes | The expected checks and pass criteria for each full-run path. |
 | Demo app screens | Running app or local screenshots under ignored `scratch/` | No | The user-facing explanation of MCP, Fabric, combined trace, and deployment status. |
@@ -94,6 +95,23 @@ deployments/<env>/test-report.md
 
 The report is intentionally ignored by git.
 
+Generate a sanitized summary before sharing evidence:
+
+```bash
+python3 scripts/summarize-e2e-evidence.py \
+  deployments/ext-liveks-mcp-e2e/test-report.md \
+  deployments/ext-liveks-byo-e2e/test-report.md \
+  deployments/ext-liveks-full-e2e/test-report.md
+```
+
+The generated summary is written under:
+
+```text
+scratch/review-packets/e2e-evidence-summary-*.local.md
+```
+
+It copies only safe fields and checklist status/check names. It does not copy checklist notes, app URLs, Search endpoints, resource group names, subscription IDs, tenant IDs, keys, or tokens.
+
 ## Evidence By Mode
 
 | Mode | Required evidence | Expected result |
@@ -130,6 +148,17 @@ bash scripts/create-review-packet.sh \
 ```
 
 The script writes an ignored markdown file under `scratch/review-packets/`. It records the current commit, local worktree state, local validation result when requested, latest GitHub Actions `Validate` result when available, and optional E2E report path. It does not copy deployment report contents.
+
+For multi-mode evidence, generate a sanitized E2E summary next to the packet:
+
+```bash
+python3 scripts/summarize-e2e-evidence.py \
+  deployments/<mcp-env>/test-report.md \
+  deployments/<byo-fabric-env>/test-report.md \
+  deployments/<full-env>/test-report.md
+```
+
+Use that summary as the source for private review notes. Keep the generated summary local and ignored.
 
 ```text
 Review scope:
