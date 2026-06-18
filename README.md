@@ -400,7 +400,10 @@ evals/
   Source routing evaluation skeleton
 
 assets/
-  Architecture diagrams and presentation visuals
+  README.md
+  current-demo-flow.svg
+  deployment-modes.svg
+  live-knowledge-sources-architecture.svg
 ```
 
 ## Python Helpers
