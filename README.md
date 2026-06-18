@@ -138,6 +138,7 @@ The initial quickstart proves the MCP Server path. The Fabric path is added when
 | Storyline and safe claims | Blog/presentation framing, evidence gates, visual promotion rules, and pre-publish checks | [docs/17-storyline-and-safe-claims.md](docs/17-storyline-and-safe-claims.md) |
 | Private review workflow | Sanitized review request flow, local packet generation, and feedback triage | [docs/18-private-review-workflow.md](docs/18-private-review-workflow.md) |
 | FAQ | Short answers for mode selection, offline replay, Fabric auth, MCP endpoint requirements, and evidence collection | [docs/19-faq.md](docs/19-faq.md) |
+| Full-run test specs | Expected checks and pass criteria for MCP-only, BYO Fabric, Fabric greenfield, and full greenfield runs | [docs/test-specs/README.md](docs/test-specs/README.md) |
 | Offline replay | Trace inspection without live keys or tenant access | [samples/responses/README.md](samples/responses/README.md) |
 | One-command deployment | Azure resources, MCP KS/KB, demo app, and generated summary | `docs/10-one-command-deployment.md` |
 
