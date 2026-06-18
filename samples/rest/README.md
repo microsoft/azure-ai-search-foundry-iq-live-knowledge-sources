@@ -9,10 +9,10 @@ Use these files when you want to see the exact request shapes without the deploy
 | Step | File | Purpose |
 | --- | --- | --- |
 | 1 | [01-create-mcp-server-ks.http](01-create-mcp-server-ks.http) | Create the Microsoft Learn MCP Server Knowledge Source. |
-| 2 | [02-create-mcp-only-kb.http](02-create-mcp-only-kb.http) | Create a Knowledge Base that uses only the MCP source. |
-| 3 | [03-retrieve-mcp.http](03-retrieve-mcp.http) | Retrieve from the MCP-only Knowledge Base and inspect activity, references, and sourceData. |
+| 2 | [02-create-mcp-only-kb.http](02-create-mcp-only-kb.http) | Create `live-knowledge-sources-mcp-kb`, a Knowledge Base that uses only the MCP source. |
+| 3 | [03-retrieve-mcp.http](03-retrieve-mcp.http) | Retrieve from `live-knowledge-sources-mcp-kb` and inspect activity, references, and sourceData. |
 | 4 | [04-create-fabric-ontology-ks.http](04-create-fabric-ontology-ks.http) | Create the Fabric Ontology Knowledge Source after Fabric workspace and ontology IDs are ready. |
-| 5 | [05-create-combined-kb.http](05-create-combined-kb.http) | Attach both MCP Server KS and Fabric Ontology KS to one Knowledge Base. |
+| 5 | [05-create-combined-kb.http](05-create-combined-kb.http) | Create `live-knowledge-sources-kb`, the combined Knowledge Base that references both sources. |
 | 6 | [06-retrieve-fabric-ontology.http](06-retrieve-fabric-ontology.http) | Retrieve from Fabric Ontology KS with delegated source authorization. |
 | 7 | [08-retrieve-combined-airline-ops.http](08-retrieve-combined-airline-ops.http) | Run the combined Airline Ops + Microsoft Learn trace query. |
 | Cleanup | [07-delete-resources.http](07-delete-resources.http) | Delete the Knowledge Base and Knowledge Sources created by the REST samples. |
@@ -34,7 +34,10 @@ Common variables:
 @apiVersion
 @searchApiKey
 @knowledgeBaseName
+@mcpOnlyKnowledgeBaseName
 ```
+
+Use `@mcpOnlyKnowledgeBaseName` for files `02` and `03`. Use `@knowledgeBaseName` for the combined and Fabric paths in files `05`, `06`, and `08`.
 
 Model variables:
 
