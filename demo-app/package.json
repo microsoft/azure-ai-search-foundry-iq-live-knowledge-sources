@@ -14,10 +14,10 @@
     "react-dom": "^19.2.7"
   },
   "devDependencies": {
-    "@types/node": "^20.19.21",
+    "@types/node": "^25.9.3",
     "@types/react": "^19.2.17",
     "@types/react-dom": "^19.2.3",
-    "typescript": "^5.9.3"
+    "typescript": "^6.0.3"
   },
   "overrides": {
     "postcss": "^8.5.10"
