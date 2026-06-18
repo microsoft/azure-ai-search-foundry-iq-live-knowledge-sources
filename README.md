@@ -72,17 +72,18 @@ If you are evaluating the repo for the first time, use this path:
    ```
 
 2. Read the mode selector in [docs/02-choose-a-pattern.md](docs/02-choose-a-pattern.md).
-3. Deploy `mcp-only` for the lowest-friction live path.
-4. Open the demo app after deployment and inspect **Current Demo Flow** and **Source Trace**.
-5. Use [docs/12-reviewer-evidence.md](docs/12-reviewer-evidence.md) to understand what proves a good run.
-6. If you are reviewing deployment evidence, generate a sanitized summary instead of copying raw reports:
+3. Skim [docs/19-faq.md](docs/19-faq.md) if you are unsure about `full`, offline replay, Fabric source authorization, or MCP endpoint requirements.
+4. Deploy `mcp-only` for the lowest-friction live path.
+5. Open the demo app after deployment and inspect **Current Demo Flow** and **Source Trace**.
+6. Use [docs/12-reviewer-evidence.md](docs/12-reviewer-evidence.md) to understand what proves a good run.
+7. If you are reviewing deployment evidence, generate a sanitized summary instead of copying raw reports:
 
    ```bash
    python3 scripts/summarize-e2e-evidence.py deployments/<env>/test-report.md
    ```
 
-7. Review [docs/13-public-preview-limitations.md](docs/13-public-preview-limitations.md) before making customer-facing or blog claims.
-8. Move to `byo-fabric` or `full` only after you are ready to validate Fabric workspace, ontology, region quota, and delegated auth.
+8. Review [docs/13-public-preview-limitations.md](docs/13-public-preview-limitations.md) before making customer-facing or blog claims.
+9. Move to `byo-fabric` or `full` only after you are ready to validate Fabric workspace, ontology, region quota, and delegated auth.
 
 ## Preview Notice
 
