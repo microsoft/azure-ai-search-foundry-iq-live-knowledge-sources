@@ -26,7 +26,7 @@ module.exports = async function retrieveCombined(context, req) {
       body: {
         ...offlineCombinedResponse,
         mode: 'offline',
-        reason: 'Combined live mode requires Search config plus delegated Fabric user context; showing replay.',
+        reason: 'Combined live mode requires Search config plus Fabric source authorization; showing replay.',
       },
     };
     return;

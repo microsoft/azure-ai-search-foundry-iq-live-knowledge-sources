@@ -23,7 +23,7 @@ module.exports = async function retrieveFabric(context, req) {
       body: {
         ...offlineFabricResponse,
         mode: 'offline',
-        reason: 'Fabric live mode requires Search config and a delegated Fabric user token.',
+        reason: 'Fabric live mode requires Search config and a raw end-user Search token for source authorization.',
       },
     };
     return;

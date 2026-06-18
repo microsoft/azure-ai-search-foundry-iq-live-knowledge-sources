@@ -26,7 +26,7 @@ Optional values if an existing Fabric ontology should be connected instead of cr
 ```bash
 FABRIC_WORKSPACE_ID=<fabric-workspace-guid>
 FABRIC_ONTOLOGY_ID=<fabric-ontology-guid>
-FABRIC_USER_SEARCH_TOKEN=<optional raw delegated token>
+FABRIC_USER_SEARCH_TOKEN=<optional raw end-user Search token>
 ```
 
 ## Command
@@ -112,7 +112,7 @@ All generated files must be git ignored and must not contain secrets.
 | Combined KB exists | PASS |
 | Airline Ops index has docs | PASS |
 | MCP retrieve | PASS |
-| Fabric live retrieve | PASS when delegated token is available; SKIP only if token minting fails |
+| Fabric live retrieve | PASS when an end-user Search token is available; SKIP only if token minting fails |
 | App root HTTP 200 | PASS |
 | `/api/status` | PASS and shows `deploymentMode=full` |
 | `/api/retrieve/mcp` | PASS |

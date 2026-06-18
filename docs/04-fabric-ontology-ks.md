@@ -4,7 +4,7 @@ Primary manual: https://learn.microsoft.com/azure/search/agentic-knowledge-sourc
 
 ## What It Demonstrates
 
-Fabric Ontology KS lets a Knowledge Base ground responses in Fabric IQ ontology semantics, including business definitions, entities, and relationships.
+Fabric Ontology KS lets a Knowledge Base ground responses in Fabric ontology semantics, including business definitions, entities, and relationships.
 
 This repo uses an Airline Ops sample contract so the Fabric path has a concrete business shape even before you have production data ready:
 
@@ -20,17 +20,15 @@ Use `notebooks/02-fabric-ontology-ks-airline-ops.ipynb` for the guided Fabric pa
 
 - Search service and Fabric workspace must align with tenant requirements.
 - The knowledge source needs Fabric workspace and ontology item IDs.
-- Retrieve calls require delegated user context.
-- Pass the raw user access token with `x-ms-query-source-authorization`.
+- Retrieve calls require end-user source authorization.
+- Pass the raw end-user Search access token with `x-ms-query-source-authorization`.
 - Use `includeReferenceSourceData` during validation to inspect returned source data.
 - Validate data handling when Search and Fabric resources are in different regions.
-- Treat the ontology as a tenant-owned prerequisite in Phase 1; this repo does not automate Fabric ontology creation yet.
+- In `byo-fabric`, treat the ontology as a tenant-owned prerequisite. In `full`, the sample provisions a small Airline Ops ontology for greenfield validation.
 
 ## Reasoning Effort
 
-Use `low` or `medium` retrieval reasoning effort for this pattern.
-
-Fabric Ontology KS doesn't support `minimal`, so the Knowledge Base should include an Azure OpenAI model block when you use `low` or `medium` reasoning effort.
+This repo uses `low` retrieval reasoning effort consistently across the Fabric and MCP walkthroughs so answer synthesis and trace inspection behave the same way. Keep the Azure OpenAI model block in the Knowledge Base definition when using `low` or `medium` reasoning effort.
 
 ## Airline Ops Validation
 

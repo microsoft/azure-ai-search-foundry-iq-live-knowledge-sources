@@ -104,7 +104,7 @@ The initial quickstart proves the MCP Server path. The Fabric path is added when
 | --- | --- | --- |
 | MCP Server quickstart | Azure AI Search can call a remote MCP tool at retrieve time | `samples/rest/01-create-mcp-server-ks.http` |
 | Trace inspection | You can verify source selection, tool calls, and references | `samples/rest/03-retrieve-mcp.http` |
-| Fabric Ontology grounding | A Knowledge Base can query governed Fabric semantics with delegated user context | `samples/rest/04-create-fabric-ontology-ks.http` |
+| Fabric Ontology grounding | A Knowledge Base can query governed Fabric semantics with end-user source authorization | `samples/rest/04-create-fabric-ontology-ks.http` |
 | Combined routing | One Knowledge Base can route across MCP and Fabric live sources | `samples/rest/05-create-combined-kb.http` |
 | Airline Ops ontology contract | A concrete sample domain for Fabric BYO ontology validation | `docs/fabric-ontology-prerequisites.md` |
 | Fabric live BYO validation | Two-minute path for existing Fabric workspace/ontology IDs | `docs/11-fabric-live-byo-validation.md` |
@@ -178,7 +178,7 @@ For private local testing, you can point the notebook at an untracked env file b
 
 ## Add Fabric Ontology KS
 
-Fabric Ontology KS requires tenant-specific Fabric assets and delegated user context.
+Fabric Ontology KS requires tenant-specific Fabric assets and end-user source authorization for live retrieval.
 
 1. Review `docs/fabric-ontology-prerequisites.md`.
 2. Load or map the sample Airline Ops data into your Fabric workspace.
@@ -187,7 +187,7 @@ Fabric Ontology KS requires tenant-specific Fabric assets and delegated user con
 5. Set `@fabricWorkspaceId` and `@fabricOntologyId` in `samples/rest/04-create-fabric-ontology-ks.http`.
 6. Run `samples/rest/04-create-fabric-ontology-ks.http`.
 7. Run `samples/rest/05-create-combined-kb.http` to update the Knowledge Base with both MCP and Fabric sources.
-8. Acquire an end-user token scoped to `https://search.azure.com/.default`.
+8. Acquire an end-user access token scoped to `https://search.azure.com/.default`.
 9. Set `@userSearchToken` in `samples/rest/06-retrieve-fabric-ontology.http` as the raw token value, without a `Bearer` prefix.
 10. Run the retrieve request and inspect `sourceData.fabricAnswer` and `sourceData.fabricRawData`.
 
@@ -360,9 +360,9 @@ The helper code is intentionally small. It is here to make payload shape reusabl
 - MCP Server KS requires a remote HTTPS MCP server. Local stdio MCP servers cannot be attached directly.
 - MCP tools must be explicitly allowed in the Knowledge Source definition.
 - Query-time MCP header passthrough is the right pattern for per-user or rotating credentials.
-- Fabric Ontology KS uses delegated user context. Pass the end-user token separately with `x-ms-query-source-authorization`.
-- Pass the raw user token in `x-ms-query-source-authorization`; don't prefix it with `Bearer`.
-- Knowledge Bases that use `low` or `medium` retrieval reasoning effort need an Azure OpenAI model block. Fabric Ontology KS doesn't support `minimal`.
+- Fabric Ontology KS uses on-behalf-of source authorization. Pass the raw end-user Search access token separately with `x-ms-query-source-authorization`.
+- Pass the raw token in `x-ms-query-source-authorization`; don't prefix it with `Bearer`.
+- MCP Server KS retrieve requests don't support `minimal` retrieval reasoning effort; this sample uses `low` and includes the model block required for answer synthesis.
 - Do not commit customer data, tenant IDs, service URLs, API keys, live retrieve outputs, or internal planning docs.
 
 ## What Good Looks Like
