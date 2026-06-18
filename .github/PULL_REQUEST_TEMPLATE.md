@@ -25,6 +25,8 @@
 - [ ] `git diff --check`
 - [ ] GitHub Actions `Validate` workflow passes
 - [ ] E2E report reviewed when deployment behavior changed
+- [ ] Sanitized E2E summary generated when deployment behavior is claimed
+- [ ] `bash scripts/check-promotion-readiness.sh --target-remote <remote> --run-validation`
 - [ ] Not applicable; docs-only or metadata-only change
 
 If E2E was run, summarize the ignored report path and result:
@@ -32,6 +34,7 @@ If E2E was run, summarize the ignored report path and result:
 ```text
 deployments/<env>/test-report.md
 Result: PASS / FAIL / SKIP summary
+Sanitized summary: scratch/review-packets/e2e-evidence-summary-*.local.md
 ```
 
 Do not paste raw tokens, tenant IDs, service URLs, customer data, or generated deployment reports into this PR.
@@ -49,3 +52,11 @@ Do not paste raw tokens, tenant IDs, service URLs, customer data, or generated d
 ## Reviewer Notes
 
 <!-- Link or summarize any specific evidence a reviewer should inspect. -->
+
+Suggested reviewer asks:
+
+- Azure AI Search Knowledge Source terminology and REST shape
+- MCP Server KS request/response shape and trace wording
+- Fabric Ontology KS setup and delegated source authorization wording
+- deployment-mode clarity: `mcp-only`, `byo-fabric`, `full`
+- public-preview caveats and safe claims
