@@ -1,11 +1,11 @@
 @searchEndpoint = https://<search-service>.search.windows.net
 @apiVersion = 2026-05-01-preview
 @searchApiKey = <search-query-or-admin-key>
-@knowledgeBaseName = live-knowledge-sources-kb
+@mcpOnlyKnowledgeBaseName = live-knowledge-sources-mcp-kb
 @mcpKnowledgeSourceName = microsoft-learn-mcp-ks
 
 ### Test query 1: explain the MCP Server Knowledge Source setup
-POST {{searchEndpoint}}/knowledgebases/{{knowledgeBaseName}}/retrieve?api-version={{apiVersion}}
+POST {{searchEndpoint}}/knowledgebases/{{mcpOnlyKnowledgeBaseName}}/retrieve?api-version={{apiVersion}}
 api-key: {{searchApiKey}}
 Content-Type: application/json
 
@@ -38,7 +38,7 @@ Content-Type: application/json
 }
 
 ### Test query 2: ask for trace and citation guidance
-POST {{searchEndpoint}}/knowledgebases/{{knowledgeBaseName}}/retrieve?api-version={{apiVersion}}
+POST {{searchEndpoint}}/knowledgebases/{{mcpOnlyKnowledgeBaseName}}/retrieve?api-version={{apiVersion}}
 api-key: {{searchApiKey}}
 Content-Type: application/json
 

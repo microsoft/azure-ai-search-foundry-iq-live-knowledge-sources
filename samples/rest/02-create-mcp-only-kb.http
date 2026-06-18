@@ -1,7 +1,7 @@
 @searchEndpoint = https://<search-service>.search.windows.net
 @apiVersion = 2026-05-01-preview
 @searchApiKey = <search-admin-key>
-@knowledgeBaseName = live-knowledge-sources-kb
+@mcpOnlyKnowledgeBaseName = live-knowledge-sources-mcp-kb
 @mcpKnowledgeSourceName = microsoft-learn-mcp-ks
 @azureOpenAIEndpoint = https://<azure-openai-or-foundry-resource>.openai.azure.com
 @azureOpenAIDeploymentId = <chat-completions-deployment-name>
@@ -9,13 +9,13 @@
 @azureOpenAIApiKey = <azure-openai-api-key>
 
 ### Create a Knowledge Base with only the MCP Server Knowledge Source
-PUT {{searchEndpoint}}/knowledgebases/{{knowledgeBaseName}}?api-version={{apiVersion}}
+PUT {{searchEndpoint}}/knowledgebases/{{mcpOnlyKnowledgeBaseName}}?api-version={{apiVersion}}
 api-key: {{searchApiKey}}
 Content-Type: application/json
 Prefer: return=representation
 
 {
-  "name": "{{knowledgeBaseName}}",
+  "name": "{{mcpOnlyKnowledgeBaseName}}",
   "description": "Knowledge Base for validating MCP Server live grounding before adding tenant-specific sources.",
   "models": [
     {
