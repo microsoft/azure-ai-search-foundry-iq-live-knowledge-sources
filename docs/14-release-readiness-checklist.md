@@ -17,7 +17,7 @@ Required result:
 Local validation: PASS
 ```
 
-The validation gate covers shell syntax, Python compile, notebook JSON parsing, sample payload generation, offline response inspection, no-secret scan, Static Web Apps build, and Bicep build when Azure CLI is available.
+The validation gate covers shell syntax, Python compile, notebook JSON parsing, Markdown local link checks, sample payload generation, offline response inspection, no-secret scan, Static Web Apps build, and Bicep build when Azure CLI is available.
 
 ## Documentation Gate
 
@@ -29,6 +29,7 @@ The validation gate covers shell syntax, Python compile, notebook JSON parsing, 
 [ ] docs/10-one-command-deployment.md matches script behavior
 [ ] docs/12-reviewer-evidence.md matches E2E report behavior
 [ ] docs/13-public-preview-limitations.md captures current caveats
+[ ] Markdown links resolve locally
 [ ] troubleshooting includes auth, quota, GraphModel readiness, and hosting fallback notes
 ```
 
