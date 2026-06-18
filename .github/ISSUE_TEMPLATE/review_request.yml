@@ -53,6 +53,9 @@ body:
         Commit:
         Local validation: PASS / FAIL / not run
         GitHub Actions Validate: PASS / FAIL / not run
+        Review packet: scratch/review-packets/<packet>.local.md
+        Promotion note: scratch/review-packets/<promotion-note>.local.md
+        Promotion readiness: PASS / FAIL / not run
         Sanitized E2E summary: PASS / FAIL / SKIP counts only
         Cleanup: PASS / FAIL / skipped
     validations:
@@ -73,4 +76,6 @@ body:
       label: Safety confirmation
       options:
         - label: I removed secrets, bearer tokens, tenant-specific IDs, private endpoints, customer data, generated deployment reports, and raw live responses.
+          required: true
+        - label: Local review packet, promotion note, screenshots, and deployment reports remain ignored and are not attached directly.
           required: true
