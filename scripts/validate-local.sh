@@ -136,6 +136,7 @@ run_required "Shell syntax" \
     scripts/no-secret-scan.sh \
     scripts/fabric-e2e-test.sh \
     scripts/create-review-packet.sh \
+    scripts/check-promotion-readiness.sh \
     scripts/validate-local.sh
 
 run_required "Python compile" \
