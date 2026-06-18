@@ -145,6 +145,7 @@ run_required "Python compile" \
     scripts/fabric-provision.py \
     scripts/fabric-destroy.py \
     scripts/summarize-e2e-evidence.py \
+    scripts/extract-review-evidence.py \
     samples/python/build_payloads.py \
     samples/python/inspect_retrieve_response.py
 

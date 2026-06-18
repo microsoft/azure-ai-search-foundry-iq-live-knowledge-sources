@@ -157,7 +157,7 @@ bash scripts/create-review-packet.sh \
   --e2e-summary scratch/review-packets/e2e-evidence-summary-<timestamp>.local.md
 ```
 
-The script writes an ignored markdown file under `scratch/review-packets/`. It records the current commit, local worktree state, local validation result when requested, latest GitHub Actions `Validate` result when available, and optional E2E report path. It does not copy deployment report contents.
+The script writes an ignored markdown file under `scratch/review-packets/`. It records the current commit, local worktree state, local validation result when requested, latest GitHub Actions `Validate` result when available, optional E2E report path, and optional sanitized E2E summary path. When a sanitized summary is provided, it pre-fills the packet's Evidence Summary from safe checklist names and PASS / FAIL / SKIP counts. It does not copy deployment report contents.
 
 For multi-mode evidence, generate a sanitized E2E summary next to the packet:
 

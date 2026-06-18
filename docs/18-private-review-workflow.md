@@ -134,6 +134,8 @@ bash scripts/create-review-packet.sh \
   --e2e-summary scratch/review-packets/e2e-evidence-summary-<timestamp>.local.md
 ```
 
+When `--e2e-summary` is provided, the packet pre-fills its Evidence Summary from safe checklist names and PASS / FAIL / SKIP counts. It still keeps the generated packet local and ignored.
+
 The generated packet stays ignored:
 
 ```text
