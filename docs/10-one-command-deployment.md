@@ -99,7 +99,7 @@ Fabric deployment is mode-dependent:
 - `mcp-only` ignores Fabric IDs and creates only the MCP path.
 - `full` creates or reuses a Fabric capacity before `azd up`, creates a Fabric workspace, creates a Lakehouse, uploads the Airline Ops CSV files, loads Delta tables, creates an ontology definition, updates the ontology-backed GraphModel definition, waits for a passing GraphModel probe, writes generated Fabric IDs into `azd env`, and then creates the Azure AI Search Fabric Ontology Knowledge Source.
 - If your subscription has no Fabric quota in the chosen region, set `--fabric-location` to a region with quota or use `byo-fabric`.
-- Fabric live retrieval requires delegated user context. The demo app uses offline replay unless `FABRIC_USER_SEARCH_TOKEN` or a transient user token is provided.
+- Fabric live retrieval requires an end-user Search access token for source authorization. The demo app uses offline replay unless `FABRIC_USER_SEARCH_TOKEN` or a transient raw user token is provided.
 - SharePoint PDF upload is not automated. Use the local synthetic regulatory documents for v1. Add Microsoft Graph upload later when tenant/admin consent and content governance are clear.
 
 ## Generated Summary
@@ -137,7 +137,7 @@ Required API routes:
 | `GET /api/status` | Show runtime configuration without secrets. |
 | `GET /api/deployment-summary` | Show generated/deployed resource metadata. |
 | `POST /api/retrieve/mcp` | Run MCP-only retrieve or offline replay fallback. |
-| `POST /api/retrieve/fabric` | Run Fabric retrieve when delegated token exists; otherwise offline replay. |
+| `POST /api/retrieve/fabric` | Run Fabric retrieve when source authorization exists; otherwise offline replay. |
 | `POST /api/retrieve/combined` | Run combined retrieve when Fabric live config exists; otherwise offline replay. |
 
 All live retrieve calls go through server-side API routes.
@@ -197,7 +197,7 @@ The cleanup wrapper calls `azd down --purge --force` after confirmation and writ
 To test Fabric live mode in the demo app, configure one of these:
 
 - server-side app setting `FABRIC_USER_SEARCH_TOKEN`, for a private demo only,
-- or paste a transient raw delegated token in the Fabric tab.
+- or paste a transient raw end-user Search token in the Fabric tab.
 
 The token must be scoped to:
 
@@ -211,5 +211,5 @@ Do not prefix the token with `Bearer`.
 
 - Fabric ontology authoring automation if public APIs and PM guidance are stable.
 - Microsoft Graph upload for SharePoint-hosted policy PDFs.
-- OBO delegated auth for user-specific Fabric live retrieval.
+- Production app token acquisition and OBO plumbing for user-specific Fabric live retrieval.
 - Optional Search Index Knowledge Source path for indexed regulation documents.

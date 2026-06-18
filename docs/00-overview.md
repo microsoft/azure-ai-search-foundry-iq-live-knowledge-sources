@@ -19,10 +19,9 @@ MCP Server KS
 
 ## Why These Two Belong Together
 
-Both are live/federated Knowledge Source patterns:
+Both are live, query-time Knowledge Source patterns:
 
 - They are invoked at query time.
 - They require explicit source configuration and security design.
 - They expose activity and references that should be inspected during validation.
 - They can be reused by Foundry Agents, custom apps, and demo experiences through the same Knowledge Base.
-

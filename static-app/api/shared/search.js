@@ -75,7 +75,7 @@ async function retrieveFromSearch(options) {
   if (options.kind !== 'mcp') {
     const fabricToken = options.fabricUserSearchToken || process.env.FABRIC_USER_SEARCH_TOKEN;
     if (!fabricToken) {
-      throw new Error('Fabric delegated token is not configured. Use offline replay or provide a transient token.');
+      throw new Error('Fabric source authorization token is not configured. Use offline replay or provide a transient raw end-user Search token.');
     }
     headers['x-ms-query-source-authorization'] = fabricToken;
   }

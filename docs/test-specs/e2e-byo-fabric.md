@@ -24,7 +24,7 @@ FABRIC_ONTOLOGY_ID=<fabric-ontology-guid>
 Optional for live Fabric retrieve:
 
 ```bash
-FABRIC_USER_SEARCH_TOKEN=<raw delegated token for https://search.azure.com/.default>
+FABRIC_USER_SEARCH_TOKEN=<raw end-user Search token for https://search.azure.com/.default>
 ```
 
 Do not prefix the token with `Bearer`.

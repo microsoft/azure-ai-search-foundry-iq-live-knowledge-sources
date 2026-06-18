@@ -66,8 +66,8 @@
             </div>
             <p>
               MCP runs live against Microsoft Learn after deployment. If Fabric workspace and ontology IDs were provided
-              before deployment, the combined Knowledge Base includes Fabric; live Fabric retrieve still needs delegated
-              user context.
+              before deployment, the combined Knowledge Base includes Fabric; live Fabric retrieve still needs an
+              end-user Search token for source authorization.
             </p>
           </article>
         </div>
@@ -86,17 +86,17 @@
 
       <section id="fabric" class="view">
         <article class="panel">
-          <h2>Fabric Delegated Token</h2>
+          <h2>Fabric Source Authorization</h2>
           <p>
             Optional. Paste a raw token for <code>https://search.azure.com/.default</code> to test live Fabric retrieval.
             The token is sent once to the serverless API and is not stored by this app.
           </p>
-          <input id="fabric-token" class="token-input" type="password" placeholder="raw delegated token, no Bearer prefix" />
+          <input id="fabric-token" class="token-input" type="password" placeholder="raw end-user Search token, no Bearer prefix" />
         </article>
         <article class="panel hero-panel">
           <div>
             <h2>Fabric Ontology</h2>
-            <p>Shows Airline Ops ontology grounding. Without delegated Fabric auth, this panel returns offline replay.</p>
+            <p>Shows Airline Ops ontology grounding. Without source authorization, this panel returns offline replay.</p>
           </div>
           <button class="primary" data-run="fabric">Run</button>
         </article>

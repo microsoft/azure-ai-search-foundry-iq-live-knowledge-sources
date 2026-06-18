@@ -696,7 +696,7 @@ log "Next checks:"
 log "  1. Open the demo app URL from the deployment summary."
 log "  2. Run the MCP panel live test."
 if [[ "$DEPLOYMENT_MODE" == "byo-fabric" || "$DEPLOYMENT_MODE" == "full" ]]; then
-  log "  3. Run the Fabric panel with a transient delegated token for live retrieve."
+  log "  3. Run the Fabric panel with a transient end-user Search token for live retrieve."
 else
   log "  3. Fabric is skipped in MCP-only mode; use offline replay if you want to inspect the trace shape."
 fi
