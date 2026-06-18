@@ -51,7 +51,8 @@ If you are evaluating the repo for the first time, use this path:
 3. Start with `mcp-only` if you do not have Fabric assets yet.
 4. Open the demo app after deployment and inspect the **Current Demo Flow** and **Source Trace** sections.
 5. Use [docs/12-reviewer-evidence.md](docs/12-reviewer-evidence.md) to understand what evidence proves a good run.
-6. Move to `byo-fabric` or `full` only after you are ready to validate Fabric workspace, ontology, region quota, and delegated auth.
+6. Review [docs/13-public-preview-limitations.md](docs/13-public-preview-limitations.md) before making customer-facing or blog claims.
+7. Move to `byo-fabric` or `full` only after you are ready to validate Fabric workspace, ontology, region quota, and delegated auth.
 
 ## Preview Notice
 
@@ -96,6 +97,7 @@ The initial quickstart proves the MCP Server path. The Fabric path is added when
 | Airline Ops ontology contract | A concrete sample domain for Fabric BYO ontology validation | `docs/fabric-ontology-prerequisites.md` |
 | Fabric live BYO validation | Two-minute path for existing Fabric workspace/ontology IDs | `docs/11-fabric-live-byo-validation.md` |
 | Reviewer evidence map | How to review local validation, E2E reports, offline traces, and cleanup evidence | [docs/12-reviewer-evidence.md](docs/12-reviewer-evidence.md) |
+| Preview limitations | Public-preview caveats, auth boundaries, quota expectations, and safe claims | [docs/13-public-preview-limitations.md](docs/13-public-preview-limitations.md) |
 | Offline replay | Trace inspection without live keys or tenant access | `docs/09-offline-replay.md` |
 | One-command deployment | Azure resources, MCP KS/KB, demo app, and generated summary | `docs/10-one-command-deployment.md` |
 
@@ -268,6 +270,7 @@ docs/
   10-one-command-deployment.md
   11-fabric-live-byo-validation.md
   12-reviewer-evidence.md
+  13-public-preview-limitations.md
   external-tenant-login.md
   fabric-ontology-prerequisites.md
 

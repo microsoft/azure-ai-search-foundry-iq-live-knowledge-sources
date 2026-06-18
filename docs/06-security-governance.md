@@ -20,3 +20,5 @@
 - Keep only placeholders in `.env.sample`.
 - Do not commit live retrieve payloads that contain sensitive source data.
 - Keep sample responses synthetic.
+
+For a reviewer-facing list of preview caveats, quota expectations, and safe public claims, see [Public Preview Limitations and Caveats](13-public-preview-limitations.md).
