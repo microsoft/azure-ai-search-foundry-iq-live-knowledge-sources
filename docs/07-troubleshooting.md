@@ -36,7 +36,7 @@ deployments/<env>/test-report.md
 - Confirm the Fabric workspace ID and ontology ID.
 - Confirm the user can access the Fabric workspace and ontology.
 - Confirm `x-ms-query-source-authorization` is present in retrieve calls.
-- Confirm the delegated token is scoped for Azure AI Search.
+- Confirm the end-user access token is scoped for Azure AI Search: `https://search.azure.com/.default`.
 - Use `includeReferenceSourceData` during validation.
 
 ## Fabric Greenfield Fails
@@ -51,8 +51,8 @@ deployments/<env>/test-report.md
 ## Fabric Retrieve Returns Offline Replay
 
 - In `mcp-only`, this is expected.
-- In `byo-fabric` or `full`, live retrieve requires both Fabric IDs and delegated user context.
-- Provide `FABRIC_USER_SEARCH_TOKEN` server-side only for private demos, or paste a transient raw token in the app.
+- In `byo-fabric` or `full`, live retrieve requires both Fabric IDs and an end-user Search access token for source authorization.
+- Provide `FABRIC_USER_SEARCH_TOKEN` server-side only for private demos, or paste a transient raw end-user token in the app.
 - The token must be scoped to `https://search.azure.com/.default` and must not include a `Bearer` prefix.
 - If the token expires, MCP live can still work while Fabric and combined views fall back to replay.
 
@@ -61,7 +61,7 @@ deployments/<env>/test-report.md
 - The default path uses Azure Static Web Apps with managed Functions API to avoid App Service Plan quota issues.
 - If Static Web Apps is unavailable in your Azure region, set `AZURE_STATIC_WEB_APP_LOCATION` to a supported region such as `eastus2`.
 - If you opt into the optional App Service path and hit `Microsoft.Web/serverFarms` quota errors, use Static Web Apps or request App Service quota.
-- Browser code must never receive Search admin keys, Azure OpenAI keys, or Fabric delegated tokens. Keep retrieve calls behind the server-side API.
+- Browser code must never receive Search admin keys, Azure OpenAI keys, or long-lived user tokens. Keep retrieve calls behind the server-side API.
 
 ## E2E Report Shows FAIL Or SKIP
 

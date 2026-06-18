@@ -90,7 +90,7 @@ This gives the demo a realistic semantic join path while keeping the public samp
 5. Validate natural-language questions inside Fabric before connecting Azure AI Search.
 6. Copy the Fabric workspace ID and ontology item ID into `samples/rest/04-create-fabric-ontology-ks.http`.
 7. Create the Fabric Ontology Knowledge Source.
-8. Retrieve with a raw delegated user token in `x-ms-query-source-authorization`.
+8. Retrieve with a raw end-user Search access token in `x-ms-query-source-authorization`.
 
 ## Validation Questions
 

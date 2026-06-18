@@ -7,7 +7,7 @@ Offline replay lets you inspect expected retrieve shapes without live Azure reso
 Live Knowledge Sources are tenant and network dependent:
 
 - MCP Server KS needs an HTTPS MCP endpoint that Azure AI Search can reach.
-- Fabric Ontology KS needs a Fabric workspace, ontology item, and delegated user context.
+- Fabric Ontology KS needs a Fabric workspace, ontology item, and end-user source authorization for live retrieval.
 - Combined Knowledge Bases can route differently depending on source descriptions, query wording, and model behavior.
 
 The checked-in responses are small synthetic examples for learning the trace structure. They are not captured customer data.

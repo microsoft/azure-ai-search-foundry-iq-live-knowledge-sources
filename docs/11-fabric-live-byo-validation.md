@@ -10,7 +10,7 @@ This is the fastest way to prove the Fabric Ontology Knowledge Source path after
 3. postprovision creates the Fabric Ontology Knowledge Source.
 4. The combined Knowledge Base references MCP + Fabric.
 5. Open the demo app.
-6. Paste a transient delegated Fabric/Search token only when you want live Fabric retrieve.
+6. Paste a transient end-user Search access token only when you want live Fabric retrieve.
 ```
 
 The repo never commits tenant IDs, tokens, or generated deployment summaries.
@@ -65,10 +65,10 @@ The E2E report includes a Fabric KS check when the Fabric IDs are configured. If
 Open the app URL from the deployment summary:
 
 - **MCP Live** runs immediately against Microsoft Learn MCP.
-- **Fabric Ontology** uses offline replay until a delegated token is provided.
+- **Fabric Ontology** uses offline replay until an end-user Search access token is provided.
 - **Combined Trace** shows the same user experience path that will call both sources when Fabric live auth is configured.
 
-For Fabric live retrieve, paste a raw delegated token for:
+For Fabric live retrieve, paste a raw end-user access token for:
 
 ```text
 https://search.azure.com/.default
@@ -88,7 +88,7 @@ FABRIC_ONTOLOGY_ID
 FABRIC_USER_SEARCH_TOKEN
 ```
 
-Run it in dry-run/offline mode first, then set `RUN_LIVE_CALLS=true` only when your tenant, ontology, Search endpoint, and delegated token are ready.
+Run it in dry-run/offline mode first, then set `RUN_LIVE_CALLS=true` only when your tenant, ontology, Search endpoint, and end-user Search token are ready.
 
 ## Boundary
 

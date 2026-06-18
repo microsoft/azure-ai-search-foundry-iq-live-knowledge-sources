@@ -11,7 +11,7 @@
 ## Fabric Ontology KS
 
 - Validate Fabric workspace and ontology permissions.
-- Use delegated user auth when user-specific access matters.
+- Use end-user source authorization when user-specific Fabric access matters.
 - Confirm tenant alignment between Azure AI Search and Fabric.
 - Confirm region and data handling requirements before production use.
 
@@ -20,4 +20,3 @@
 - Keep only placeholders in `.env.sample`.
 - Do not commit live retrieve payloads that contain sensitive source data.
 - Keep sample responses synthetic.
-
