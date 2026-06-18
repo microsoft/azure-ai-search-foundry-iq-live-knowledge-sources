@@ -31,10 +31,10 @@ The GitHub Actions `Validate` workflow runs the same local validation gate on pu
 [ ] README links reviewer evidence and preview limitations
 [ ] docs/02-choose-a-pattern.md matches the current deployment modes
 [ ] docs/10-one-command-deployment.md matches script behavior
-[ ] docs/12-reviewer-evidence.md matches E2E report behavior
+[ ] docs/maintainers/reviewer-evidence.md matches E2E report behavior
 [ ] docs/13-public-preview-limitations.md captures current caveats
-[ ] docs/17-storyline-and-safe-claims.md matches the README and demo walkthrough
-[ ] docs/18-private-review-workflow.md matches the promotion and reviewer evidence flow
+[ ] docs/maintainers/storyline-and-safe-claims.md matches the README and demo walkthrough
+[ ] docs/maintainers/private-review-workflow.md matches the promotion and reviewer evidence flow
 [ ] docs/19-faq.md answers first-run mode choice, offline replay, Fabric source authorization, MCP endpoint requirements, and evidence collection
 [ ] Markdown links resolve locally
 [ ] troubleshooting includes auth, quota, GraphModel readiness, and hosting fallback notes
@@ -77,7 +77,7 @@ Do not commit the report itself. Summarize only sanitized evidence in PRs or rev
 Before sharing a multi-mode claim, generate an ignored sanitized summary:
 
 ```bash
-python3 scripts/summarize-e2e-evidence.py \
+python3 scripts/maintainers/summarize-e2e-evidence.py \
   deployments/<mcp-env>/test-report.md \
   deployments/<byo-fabric-env>/test-report.md \
   deployments/<full-env>/test-report.md
@@ -115,8 +115,8 @@ Before writing a README update, blog, or presentation:
 [ ] "Production-ready" wording is avoided
 ```
 
-Use [Public Preview Limitations and Caveats](13-public-preview-limitations.md) as the source for safe wording.
-Use [Storyline And Safe Claims](17-storyline-and-safe-claims.md) for blog, presentation, and reviewer-summary phrasing.
+Use [Public Preview Limitations and Caveats](../13-public-preview-limitations.md) as the source for safe wording.
+Use [Storyline And Safe Claims](storyline-and-safe-claims.md) for blog, presentation, and reviewer-summary phrasing.
 
 ## Reviewer Packet
 
@@ -129,18 +129,18 @@ A useful reviewer packet should include:
 - sanitized E2E summary,
 - screenshots only if they do not expose sensitive values,
 - known caveats or skipped checks,
-- links to `docs/12-reviewer-evidence.md` and `docs/13-public-preview-limitations.md`.
+- links to `docs/maintainers/reviewer-evidence.md` and `docs/13-public-preview-limitations.md`.
 
 Generate the local packet and promotion note after the last source commit you plan to share:
 
 ```bash
-bash scripts/create-review-packet.sh \
+bash scripts/maintainers/create-review-packet.sh \
   --mode full \
   --intent "private review" \
   --run-local-validation \
   --e2e-summary scratch/review-packets/e2e-evidence-summary-<timestamp>.local.md
 
-bash scripts/create-promotion-note.sh \
+bash scripts/maintainers/create-promotion-note.sh \
   --target-remote microsoft \
   --review-packet scratch/review-packets/review-packet-<timestamp>.local.md \
   --e2e-summary scratch/review-packets/e2e-evidence-summary-<timestamp>.local.md

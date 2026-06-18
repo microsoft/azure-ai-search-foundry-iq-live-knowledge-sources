@@ -34,7 +34,7 @@ deployments/<env>/fabric.env
 Do not commit these reports. Generate sanitized summaries before sharing evidence:
 
 ```bash
-python3 scripts/summarize-e2e-evidence.py \
+python3 scripts/maintainers/summarize-e2e-evidence.py \
   deployments/<mcp-env>/test-report.md \
   deployments/<byo-fabric-env>/test-report.md \
   deployments/<full-env>/test-report.md
@@ -55,7 +55,7 @@ Use this order for release rehearsal:
 7. Run promotion readiness with review artifact paths.
 
 ```bash
-bash scripts/check-promotion-readiness.sh \
+bash scripts/maintainers/check-promotion-readiness.sh \
   --target-remote microsoft \
   --run-validation \
   --review-packet scratch/review-packets/<packet>.local.md \

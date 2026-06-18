@@ -1,5 +1,5 @@
-name: Private review request
-description: Request terminology, preview caveat, deployment-mode, or sample-readiness review.
+name: Sample review request
+description: Request terminology, preview caveat, deployment-mode, or sample-readiness feedback.
 title: "[Review]: "
 labels:
   - review
@@ -7,7 +7,7 @@ body:
   - type: markdown
     attributes:
       value: |
-        Use this form for private review before broader sharing, blog publication, workshops, or target-org promotion.
+        Use this form for sample feedback on terminology, deployment-mode clarity, preview caveats, or docs quality.
 
         Do not include API keys, bearer tokens, tenant IDs, private endpoints, customer data, generated deployment reports, or raw live responses.
   - type: dropdown
@@ -20,7 +20,7 @@ body:
         - Fabric Ontology Knowledge Source
         - Deployment modes
         - Security and generated-output hygiene
-        - Blog or presentation safe claims
+        - Docs or presentation wording
         - Full sample readiness
     validations:
       required: true
@@ -48,15 +48,12 @@ body:
     id: evidence
     attributes:
       label: Sanitized evidence
-      description: Paste only sanitized facts from a local review packet or E2E evidence summary.
+      description: Paste only sanitized validation facts. Do not paste raw deployment reports.
       placeholder: |
         Commit:
         Local validation: PASS / FAIL / not run
         GitHub Actions Validate: PASS / FAIL / not run
-        Review packet: scratch/review-packets/<packet>.local.md
-        Promotion note: scratch/review-packets/<promotion-note>.local.md
-        Promotion readiness: PASS / FAIL / not run
-        Sanitized E2E summary: PASS / FAIL / SKIP counts only
+        E2E summary: PASS / FAIL / SKIP counts only
         Cleanup: PASS / FAIL / skipped
     validations:
       required: true
@@ -77,5 +74,5 @@ body:
       options:
         - label: I removed secrets, bearer tokens, tenant-specific IDs, private endpoints, customer data, generated deployment reports, and raw live responses.
           required: true
-        - label: Local review packet, promotion note, screenshots, and deployment reports remain ignored and are not attached directly.
+        - label: Local screenshots, deployment reports, env files, and logs remain ignored and are not attached directly.
           required: true

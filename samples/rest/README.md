@@ -80,4 +80,4 @@ Then inspect:
 - `sourceData.fabricAnswer`
 - `sourceData.fabricRawData`
 
-For guidance on what counts as good evidence, see [Reviewer Evidence Guide](../../docs/12-reviewer-evidence.md).
+For query and trace guidance, see [Test Queries And Expected Traces](../../docs/08-test-queries.md).

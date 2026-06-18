@@ -10,7 +10,7 @@ NO_COLOR="${NO_COLOR:-}"
 usage() {
   cat <<'USAGE'
 Usage:
-  bash scripts/create-promotion-note.sh [options]
+  bash scripts/maintainers/create-promotion-note.sh [options]
 
 Options:
   --target-remote <name>  Target organization remote. Default: microsoft
@@ -175,7 +175,7 @@ Run:
 
 \`\`\`bash
 git status -sb
-bash scripts/check-promotion-readiness.sh \\
+bash scripts/maintainers/check-promotion-readiness.sh \\
   --target-remote ${TARGET_REMOTE} \\
   --run-validation \\
   --review-packet ${REVIEW_PACKET:-<packet.local.md>} \\

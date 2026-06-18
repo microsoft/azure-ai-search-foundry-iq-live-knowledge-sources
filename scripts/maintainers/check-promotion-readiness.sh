@@ -10,7 +10,7 @@ NO_COLOR="${NO_COLOR:-}"
 usage() {
   cat <<'USAGE'
 Usage:
-  bash scripts/check-promotion-readiness.sh [options]
+  bash scripts/maintainers/check-promotion-readiness.sh [options]
 
 Options:
   --target-remote <name>   Target organization remote to inspect. Default: microsoft
@@ -256,7 +256,7 @@ Manual promotion commands, only after PASS:
 
   git status -sb
   git remote get-url ${TARGET_REMOTE}
-  bash scripts/check-promotion-readiness.sh --target-remote ${TARGET_REMOTE} --run-validation --review-packet <packet.local.md> --promotion-note <promotion-note.local.md>
+  bash scripts/maintainers/check-promotion-readiness.sh --target-remote ${TARGET_REMOTE} --run-validation --review-packet <packet.local.md> --promotion-note <promotion-note.local.md>
   git push ${TARGET_REMOTE} ${branch:-main}:review/live-knowledge-sources
 
 Do not push raw deployment reports, .env files, scratch notes, local screenshots,

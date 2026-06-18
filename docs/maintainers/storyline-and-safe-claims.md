@@ -55,7 +55,7 @@ Do not use these in README, blogs, presentations, or customer-facing demos:
 - "MCP Server KS can attach local stdio MCP servers directly."
 - "Fabric delegated auth is optional for live user-specific retrieval."
 
-Use [Public Preview Limitations and Caveats](13-public-preview-limitations.md) as the final wording boundary.
+Use [Public Preview Limitations and Caveats](../13-public-preview-limitations.md) as the final wording boundary.
 
 ## Blog Outline
 
@@ -82,13 +82,13 @@ Suggested flow:
 Before sending a blog draft, conference abstract, or broad internal post for review, produce a local evidence set and keep it ignored:
 
 ```bash
-python3 scripts/summarize-e2e-evidence.py \
+python3 scripts/maintainers/summarize-e2e-evidence.py \
   deployments/<mcp-env>/test-report.md \
   deployments/<byo-fabric-env>/test-report.md \
   deployments/<full-env>/test-report.md \
   --output scratch/review-packets/e2e-evidence-summary-blog.local.md
 
-bash scripts/create-review-packet.sh \
+bash scripts/maintainers/create-review-packet.sh \
   --mode full \
   --intent "blog terminology review" \
   --run-local-validation \
@@ -130,7 +130,7 @@ Use this when you have three to five minutes:
 5. Show combined trace.
 6. Close with evidence and caveats: validation gate, E2E reports, preview limitations.
 
-For the longer app sequence, use [Demo Walkthrough](16-demo-walkthrough.md).
+For the longer app sequence, use [Demo Walkthrough](../16-demo-walkthrough.md).
 
 ## Reviewer Ask
 

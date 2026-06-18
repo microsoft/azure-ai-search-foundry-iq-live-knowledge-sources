@@ -45,9 +45,7 @@ bash scripts/deploy.sh \
 4. Add Fabric Ontology KS with BYO Fabric IDs or run `--mode full` to create the sample Fabric assets.
 5. Create a combined Knowledge Base and repeat trace validation.
 
-## How To Review A Run
-
-Use [Reviewer Evidence Guide](12-reviewer-evidence.md) when you need to decide whether a run is good enough for private review, a workshop, or a blog/demo walkthrough.
+## How To Check A Run
 
 The short version:
 

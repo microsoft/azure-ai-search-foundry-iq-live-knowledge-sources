@@ -42,4 +42,4 @@ Do not commit that env file.
 - REST equivalents: [samples/rest](../samples/rest/README.md)
 - Offline replay responses: [samples/responses](../samples/responses/README.md)
 - Fabric prerequisites: [docs/fabric-ontology-prerequisites.md](../docs/fabric-ontology-prerequisites.md)
-- Reviewer evidence: [docs/12-reviewer-evidence.md](../docs/12-reviewer-evidence.md)
+- Test query guidance: [docs/08-test-queries.md](../docs/08-test-queries.md)

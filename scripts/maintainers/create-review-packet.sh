@@ -13,7 +13,7 @@ NO_COLOR="${NO_COLOR:-}"
 usage() {
   cat <<'USAGE'
 Usage:
-  bash scripts/create-review-packet.sh [options]
+  bash scripts/maintainers/create-review-packet.sh [options]
 
 Options:
   --mode <mode>          Deployment mode reviewed.
@@ -22,7 +22,7 @@ Options:
   --e2e-report <path>    Ignored local E2E report path to reference.
                          The script records only the path, not report contents.
   --e2e-summary <path>   Ignored sanitized E2E summary path to reference.
-                         Generate it with scripts/summarize-e2e-evidence.py.
+                         Generate it with scripts/maintainers/summarize-e2e-evidence.py.
                          When present, the packet pre-fills Evidence Summary.
   --run-local-validation Run bash scripts/validate-local.sh --no-color and record
                          only PASS/FAIL and the ignored log path in the packet.
@@ -170,7 +170,7 @@ evidence_summary_block="- MCP KS:
 - Offline replay used: yes/no, with reason"
 
 if [[ -n "$E2E_SUMMARY" && -f "$E2E_SUMMARY" ]]; then
-  evidence_summary_block="$(python3 scripts/extract-review-evidence.py "$E2E_SUMMARY")"
+  evidence_summary_block="$(python3 scripts/maintainers/extract-review-evidence.py "$E2E_SUMMARY")"
 fi
 
 actions_result="not checked"
@@ -268,10 +268,10 @@ ${evidence_summary_block}
 
 ## Helpful Links
 
-- [Reviewer Evidence Guide](../../docs/12-reviewer-evidence.md)
+- [Reviewer Evidence Guide](../../docs/maintainers/reviewer-evidence.md)
 - [Public Preview Limitations and Caveats](../../docs/13-public-preview-limitations.md)
-- [Storyline And Safe Claims](../../docs/17-storyline-and-safe-claims.md)
-- [Repository Promotion Guide](../../docs/15-repository-promotion.md)
+- [Storyline And Safe Claims](../../docs/maintainers/storyline-and-safe-claims.md)
+- [Repository Promotion Guide](../../docs/maintainers/repository-promotion.md)
 EOF
 
 printf '%sReview packet written:%s %s\n' "$C_GREEN" "$C_RESET" "$OUTPUT"

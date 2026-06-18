@@ -13,7 +13,7 @@ The important point: do not judge the sample only by final answer text. A good r
 | E2E test report | `deployments/<env>/test-report.md` | No | Create-call-load-delete checks with PASS, FAIL, or SKIP per deployment mode. |
 | Sanitized E2E evidence summary | `scratch/review-packets/e2e-evidence-summary-*.local.md` | No | PASS, FAIL, and SKIP counts plus checklist names without raw report notes, endpoints, tenant IDs, or resource names. |
 | Offline replay samples | `samples/responses/*.json` | Yes | Expected retrieve trace shape without live tenant dependencies. |
-| Test specifications | `docs/test-specs/*.md` | Yes | The expected checks and pass criteria for each full-run path. |
+| Test specifications | `docs/maintainers/test-specs/*.md` | Yes | The expected checks and pass criteria for each full-run path. |
 | Demo app screens | Running app or local screenshots under ignored `scratch/` | No | The user-facing explanation of MCP, Fabric, combined trace, and deployment status. |
 
 Generated deployment reports, local screenshots, logs, and scratch notes stay ignored. Do not copy tokens, tenant IDs, service URLs, or customer data from local reports into tracked docs.
@@ -22,8 +22,8 @@ Generated deployment reports, local screenshots, logs, and scratch notes stay ig
 
 ### Five minutes
 
-1. Read [README.md](../README.md) through **First Five Minutes**.
-2. Open [Choose a Pattern](02-choose-a-pattern.md).
+1. Read [README.md](../../README.md) through the quickstart sections.
+2. Open [Choose a Pattern](../02-choose-a-pattern.md).
 3. Check that the three modes are understandable:
    - `mcp-only`: fastest MCP Server KS validation.
    - `byo-fabric`: connect an existing Fabric workspace and ontology.
@@ -98,7 +98,7 @@ The report is intentionally ignored by git.
 Generate a sanitized summary before sharing evidence:
 
 ```bash
-python3 scripts/summarize-e2e-evidence.py \
+python3 scripts/maintainers/summarize-e2e-evidence.py \
   deployments/ext-liveks-mcp-e2e/test-report.md \
   deployments/ext-liveks-byo-e2e/test-report.md \
   deployments/ext-liveks-full-e2e/test-report.md
@@ -141,7 +141,7 @@ Use this shape in a private review PR, Teams/Loop note, or reviewer email. Keep 
 You can generate a local starting point with:
 
 ```bash
-bash scripts/create-review-packet.sh \
+bash scripts/maintainers/create-review-packet.sh \
   --mode mcp-only \
   --run-local-validation \
   --intent "private review"
@@ -150,7 +150,7 @@ bash scripts/create-review-packet.sh \
 With a sanitized E2E summary:
 
 ```bash
-bash scripts/create-review-packet.sh \
+bash scripts/maintainers/create-review-packet.sh \
   --mode full \
   --intent "private review" \
   --run-local-validation \
@@ -162,7 +162,7 @@ The script writes an ignored markdown file under `scratch/review-packets/`. It r
 Before target-organization promotion, create a short local handoff note:
 
 ```bash
-bash scripts/create-promotion-note.sh \
+bash scripts/maintainers/create-promotion-note.sh \
   --target-remote microsoft \
   --review-packet scratch/review-packets/review-packet-<timestamp>.local.md \
   --e2e-summary scratch/review-packets/e2e-evidence-summary-<timestamp>.local.md
@@ -173,7 +173,7 @@ The promotion note stays ignored under `scratch/review-packets/`. It captures th
 For multi-mode evidence, generate a sanitized E2E summary next to the packet:
 
 ```bash
-python3 scripts/summarize-e2e-evidence.py \
+python3 scripts/maintainers/summarize-e2e-evidence.py \
   deployments/<mcp-env>/test-report.md \
   deployments/<byo-fabric-env>/test-report.md \
   deployments/<full-env>/test-report.md
@@ -230,7 +230,7 @@ Use these proof points to decide whether a run supports a claim.
 | Combined routing works | Combined KB includes both source names and retrieve output includes activity or references from the expected sources for the query. |
 | Demo app works | App root returns HTTP 200, `/api/status` exposes no secrets, and retrieve routes return live evidence or clearly marked offline replay. |
 | Full greenfield path works | Fabric sample assets are created, generated Fabric IDs are consumed by Azure AI Search KS creation, app loads, and cleanup completes. |
-| Blog or public claim is safe | Evidence above exists and wording follows [Public Preview Limitations and Caveats](13-public-preview-limitations.md). |
+| Blog or public claim is safe | Evidence above exists and wording follows [Public Preview Limitations and Caveats](../13-public-preview-limitations.md). |
 
 ## What Is Not Enough
 

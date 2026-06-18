@@ -126,6 +126,17 @@ function renderJson() {
   $('#summary-json').textContent = pretty(state.summary);
 }
 
+function activateTab(tabName) {
+  const button = document.querySelector(`[data-tab="${tabName}"]`);
+  const view = document.getElementById(tabName);
+  if (!button || !view) return;
+
+  document.querySelectorAll('[data-tab]').forEach((tab) => tab.classList.remove('active'));
+  document.querySelectorAll('.view').forEach((item) => item.classList.remove('active'));
+  button.classList.add('active');
+  view.classList.add('active');
+}
+
 function renderTrace(target, data, query) {
   $(target).innerHTML = `
     <article class="panel">
@@ -193,10 +204,7 @@ async function run(kind) {
 async function boot() {
   document.querySelectorAll('[data-tab]').forEach((button) => {
     button.addEventListener('click', () => {
-      document.querySelectorAll('[data-tab]').forEach((tab) => tab.classList.remove('active'));
-      document.querySelectorAll('.view').forEach((view) => view.classList.remove('active'));
-      button.classList.add('active');
-      document.getElementById(button.dataset.tab).classList.add('active');
+      activateTab(button.dataset.tab);
     });
   });
 
@@ -210,6 +218,18 @@ async function boot() {
   state.summary = await fetchJson('/api/deployment-summary').catch(() => null);
   renderReadiness();
   renderJson();
+
+  const params = new URLSearchParams(window.location.search);
+  const tab = params.get('tab');
+  if (tab) {
+    activateTab(tab);
+  }
+
+  const demo = params.get('demo');
+  if (['mcp', 'fabric', 'combined'].includes(demo)) {
+    activateTab(demo);
+    await run(demo);
+  }
 }
 
 boot();

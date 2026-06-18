@@ -25,26 +25,14 @@
 - [ ] `git diff --check`
 - [ ] GitHub Actions `Validate` workflow passes
 - [ ] E2E report reviewed when deployment behavior changed
-- [ ] Sanitized E2E summary generated when deployment behavior is claimed
-- [ ] Promotion readiness preflight run when preparing target-org review or release candidate
+- [ ] Generated reports remain local and ignored
 - [ ] Not applicable; docs-only or metadata-only change
-
-Promotion readiness command, when applicable:
-
-```bash
-bash scripts/check-promotion-readiness.sh \
-  --target-remote <remote> \
-  --run-validation \
-  --review-packet scratch/review-packets/<packet>.local.md \
-  --promotion-note scratch/review-packets/<promotion-note>.local.md
-```
 
 If E2E was run, summarize the ignored report path and result:
 
 ```text
 deployments/<env>/test-report.md
 Result: PASS / FAIL / SKIP summary
-Sanitized summary: scratch/review-packets/e2e-evidence-summary-*.local.md
 ```
 
 Do not paste raw tokens, tenant IDs, service URLs, customer data, or generated deployment reports into this PR.
@@ -57,7 +45,6 @@ Do not paste raw tokens, tenant IDs, service URLs, customer data, or generated d
 - [ ] Fabric live claims are backed by live Fabric activity or clearly described as offline replay.
 - [ ] MCP examples use remote HTTPS MCP servers, not local stdio servers.
 - [ ] Public-facing claims follow `docs/13-public-preview-limitations.md`.
-- [ ] Broader review or release candidates follow `docs/14-release-readiness-checklist.md`.
 
 ## Reviewer Notes
 
@@ -69,4 +56,4 @@ Suggested reviewer asks:
 - MCP Server KS request/response shape and trace wording
 - Fabric Ontology KS setup and delegated source authorization wording
 - deployment-mode clarity: `mcp-only`, `byo-fabric`, `full`
-- public-preview caveats and safe claims
+- public-preview caveats

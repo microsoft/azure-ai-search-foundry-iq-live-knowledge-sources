@@ -59,7 +59,7 @@ git diff --check
 Or run the non-pushing promotion preflight:
 
 ```bash
-bash scripts/check-promotion-readiness.sh \
+bash scripts/maintainers/check-promotion-readiness.sh \
   --target-remote microsoft \
   --run-validation \
   --review-packet scratch/review-packets/review-packet-<timestamp>.local.md \
@@ -71,7 +71,7 @@ The preflight checks the current branch, clean tracked worktree state, untracked
 To prepare a local human-readable handoff note before the target-org push, generate an ignored promotion note:
 
 ```bash
-bash scripts/create-promotion-note.sh \
+bash scripts/maintainers/create-promotion-note.sh \
   --target-remote microsoft \
   --review-packet scratch/review-packets/review-packet-<timestamp>.local.md \
   --e2e-summary scratch/review-packets/e2e-evidence-summary-<timestamp>.local.md
@@ -147,8 +147,8 @@ The PR should include:
 - known preview caveats,
 - reviewer asks.
 
-Use the template in [Reviewer Evidence Guide](12-reviewer-evidence.md#reviewer-packet-template) for the PR body, Teams note, or reviewer email.
-Use [Private Review Workflow](18-private-review-workflow.md) for the end-to-end sequence from clean source branch to sanitized review request.
+Use the template in [Reviewer Evidence Guide](reviewer-evidence.md#reviewer-packet-template) for the PR body, Teams note, or reviewer email.
+Use [Private Review Workflow](private-review-workflow.md) for the end-to-end sequence from clean source branch to sanitized review request.
 
 Do not paste generated reports, tokens, tenant IDs, service URLs, or private screenshots into the PR.
 
@@ -193,4 +193,4 @@ Before public release:
 - confirm support expectations,
 - remove or archive stale workbench branches.
 
-Use [Release Readiness Checklist](14-release-readiness-checklist.md) as the final source-level gate.
+Use [Release Readiness Checklist](release-readiness-checklist.md) as the final source-level gate.

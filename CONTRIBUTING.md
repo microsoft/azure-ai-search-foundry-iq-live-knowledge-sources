@@ -21,4 +21,5 @@ This repository is a reusable sample accelerator for Azure AI Search and Foundry
 - Confirm `.env.sample` contains safe placeholders only.
 - Keep generated deployment reports, screenshots, logs, and scratch notes out of git.
 - Treat Dependabot PRs like any other PR: wait for `Validate`, inspect the diff, and confirm preview sample behavior is unchanged.
-- Use `docs/12-reviewer-evidence.md`, `docs/13-public-preview-limitations.md`, and `docs/14-release-readiness-checklist.md` when preparing review notes.
+- Use `docs/13-public-preview-limitations.md` when writing public-facing preview caveats.
+- Maintainer-only release and promotion notes live under `docs/maintainers/`.
