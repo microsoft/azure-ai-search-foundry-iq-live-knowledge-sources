@@ -35,6 +35,25 @@ Before opening a PR or pushing to a Microsoft org repo, run:
 bash scripts/validate-local.sh
 ```
 
+## First Five Minutes
+
+If you are evaluating the repo for the first time, use this path:
+
+1. Run local validation:
+
+   ```bash
+   bash scripts/validate-local.sh
+   ```
+
+2. Read the mode selector in `docs/02-choose-a-pattern.md`.
+3. Start with `mcp-only` if you do not have Fabric assets yet.
+4. Open the demo app after deployment and inspect the **Current Demo Flow** and **Source Trace** sections.
+5. Move to `byo-fabric` or `full` only after you are ready to validate Fabric workspace, ontology, region quota, and delegated auth.
+
+## Preview Notice
+
+This sample uses Azure AI Search public preview Knowledge Source APIs. API versions, request shapes, and service behavior can change. Keep preview API versions explicit, validate against the linked Learn manuals, and do not use checked-in sample settings for production workloads without a security and governance review.
+
 ## Why This Repo Exists
 
 Classic retrieval samples usually start with ingestion: load documents, build an index, then query the index. These two preview Knowledge Sources are different. They let a Knowledge Base call live sources at retrieval time:
