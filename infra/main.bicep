@@ -273,7 +273,7 @@ resource staticWebApp 'Microsoft.Web/staticSites@2023-12-01' = if (hostingMode =
   name: names.staticWebApp
   location: staticWebAppLocation
   tags: union(tags, {
-    'azd-service-name': 'demo-app'
+    'azd-service-name': 'static-app'
   })
   sku: {
     name: 'Free'

@@ -87,16 +87,7 @@ deployments/<env>/test-report.md
 ```
 
 The report is ignored by git and includes a checklist, progress bar, resource names, app URL, and pass/fail notes.
-
-Use [Reviewer Evidence Guide](12-reviewer-evidence.md) to interpret which checks matter for Microsoft org review, customer workshops, and blog/demo walkthroughs.
 Use [Public Preview Limitations and Caveats](13-public-preview-limitations.md) before turning deployment results into customer-facing or blog claims.
-
-Full-run test specs are indexed in [Full-Run Test Specifications](test-specs/README.md):
-
-- `docs/test-specs/e2e-byo-fabric.md`
-- `docs/test-specs/e2e-mcp-only.md`
-- `docs/test-specs/e2e-fabric-greenfield.md`
-- `docs/test-specs/e2e-full-greenfield.md`
 
 The default hosting path is Azure Static Web Apps with a managed Functions API. This avoids the `Microsoft.Web/serverFarms` quota problem that can block App Service Plan creation in constrained demo subscriptions.
 
@@ -157,8 +148,6 @@ It does not include API keys, tokens, or customer data.
 ## Demo App
 
 The default demo app is under `static-app/`. It deploys as Azure Static Web Apps plus managed Functions API, so browser code never receives Search admin keys or OpenAI keys.
-
-`demo-app/` remains as an optional Next.js/App Service reference path for environments that prefer App Service and have `Microsoft.Web/serverFarms` quota available.
 
 Required API routes:
 

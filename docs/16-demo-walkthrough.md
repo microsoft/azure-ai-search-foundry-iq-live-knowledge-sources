@@ -1,6 +1,6 @@
 # Demo Walkthrough
 
-Use this walkthrough when you need to show the repo in a workshop, private review, blog draft review, or short live demo.
+Use this walkthrough when you need to show the repo in a workshop or short live demo.
 
 ![Current demo flow](../assets/current-demo-flow.svg)
 
@@ -179,7 +179,6 @@ Use this order when the audience needs to reproduce the sample:
 7. Move to `byo-fabric` when Fabric workspace and ontology IDs are ready.
 8. Open [Fabric Ontology KS Airline Ops](../notebooks/02-fabric-ontology-ks-airline-ops.ipynb).
 9. Run the combined route and inspect source evidence.
-10. Review [Reviewer Evidence Guide](12-reviewer-evidence.md).
 
 ## Demo Safety Checks
 

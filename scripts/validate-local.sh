@@ -25,7 +25,6 @@ This script performs local, non-deploying validation:
 - offline response inspection
 - no-secret scan
 - Static Web Apps demo build
-- optional Next.js demo app build
 - Bicep build when Azure CLI is available
 USAGE
 }
@@ -73,7 +72,7 @@ fi
 
 cd "$(git rev-parse --show-toplevel)"
 
-TOTAL=14
+TOTAL=12
 CURRENT=0
 FAILED=false
 SKIPPED=0
@@ -137,9 +136,9 @@ run_required "Shell syntax" \
     scripts/deploy-static-webapp-api.sh \
     scripts/no-secret-scan.sh \
     scripts/fabric-e2e-test.sh \
-    scripts/create-review-packet.sh \
-    scripts/create-promotion-note.sh \
-    scripts/check-promotion-readiness.sh \
+    scripts/maintainers/create-review-packet.sh \
+    scripts/maintainers/create-promotion-note.sh \
+    scripts/maintainers/check-promotion-readiness.sh \
     scripts/validate-local.sh
 
 run_required "Python compile" \
@@ -149,8 +148,8 @@ run_required "Python compile" \
     scripts/fabric-provision.py \
     scripts/fabric-destroy.py \
     scripts/check-sample-hygiene.py \
-    scripts/summarize-e2e-evidence.py \
-    scripts/extract-review-evidence.py \
+    scripts/maintainers/summarize-e2e-evidence.py \
+    scripts/maintainers/extract-review-evidence.py \
     samples/python/build_payloads.py \
     samples/python/inspect_retrieve_response.py
 
@@ -210,17 +209,6 @@ fi
 
 run_required "Static app build" \
   npm --prefix static-app run build
-
-step "Demo app dependencies"
-if [[ -d demo-app/node_modules ]]; then
-  pass "Demo app dependencies already installed"
-else
-  npm --prefix demo-app ci
-  pass "Demo app dependencies installed"
-fi
-
-run_required "Demo app build" \
-  npm --prefix demo-app run build
 
 step "Bicep build"
 if command -v az >/dev/null 2>&1; then

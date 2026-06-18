@@ -96,7 +96,7 @@ Summarize the result. Do not paste the raw report unless it has been reviewed an
 For a safer reviewer artifact, generate a sanitized summary:
 
 ```bash
-python3 scripts/summarize-e2e-evidence.py \
+python3 scripts/maintainers/summarize-e2e-evidence.py \
   deployments/<mcp-env>/test-report.md \
   deployments/<byo-fabric-env>/test-report.md \
   deployments/<full-env>/test-report.md
@@ -109,7 +109,7 @@ This writes an ignored file under `scratch/review-packets/` and copies only safe
 Use:
 
 ```bash
-bash scripts/create-review-packet.sh \
+bash scripts/maintainers/create-review-packet.sh \
   --mode mcp-only \
   --intent "private review" \
   --run-local-validation
@@ -118,7 +118,7 @@ bash scripts/create-review-packet.sh \
 With an E2E report:
 
 ```bash
-bash scripts/create-review-packet.sh \
+bash scripts/maintainers/create-review-packet.sh \
   --mode byo-fabric \
   --intent "private review" \
   --run-local-validation \
@@ -128,7 +128,7 @@ bash scripts/create-review-packet.sh \
 With a sanitized multi-mode E2E summary:
 
 ```bash
-bash scripts/create-review-packet.sh \
+bash scripts/maintainers/create-review-packet.sh \
   --mode full \
   --intent "private review" \
   --run-local-validation \
@@ -150,7 +150,7 @@ The packet records source commit, remote names, local validation result, GitHub 
 Before pushing to a target organization remote, generate a short local-only promotion note:
 
 ```bash
-bash scripts/create-promotion-note.sh \
+bash scripts/maintainers/create-promotion-note.sh \
   --target-remote microsoft \
   --review-packet scratch/review-packets/review-packet-<timestamp>.local.md \
   --e2e-summary scratch/review-packets/e2e-evidence-summary-<timestamp>.local.md
@@ -199,11 +199,11 @@ Use role-specific asks so reviewers can answer quickly.
 
 | Reviewer lane | Ask them to validate | Evidence to point at |
 | --- | --- | --- |
-| Azure AI Search / Knowledge Source | KS/KB REST shape, API version, retrieve trace wording, `activity` / `references` interpretation, MCP Server KS examples | `samples/rest/`, [MCP Server KS](03-mcp-server-ks.md), [Reviewer Evidence Guide](12-reviewer-evidence.md) |
-| Fabric / Ontology | Fabric workspace and ontology prerequisites, Fabric Ontology KS wording, delegated source authorization caveats, full-mode Fabric setup language | [Fabric Ontology KS](04-fabric-ontology-ks.md), [Fabric Prerequisites](fabric-ontology-prerequisites.md), [BYO Fabric Validation](11-fabric-live-byo-validation.md) |
-| Field / workshop owner | First-five-minutes flow, deployment-mode clarity, notebook usability, offline replay usefulness, failure fallback story | [Choose a Pattern](02-choose-a-pattern.md), `notebooks/`, [Demo Walkthrough](16-demo-walkthrough.md) |
-| Security / release hygiene | Ignored generated outputs, env handling, no-secret scan posture, synthetic data boundary, preview limitation language | [Security Governance](06-security-governance.md), [Release Readiness](14-release-readiness-checklist.md), [Public Preview Limitations](13-public-preview-limitations.md) |
-| Blog / presentation reviewer | Claims vs evidence, screenshots, architecture wording, customer-safe phrasing, call-to-action | [Storyline And Safe Claims](17-storyline-and-safe-claims.md), sanitized screenshots under ignored `scratch/` |
+| Azure AI Search / Knowledge Source | KS/KB REST shape, API version, retrieve trace wording, `activity` / `references` interpretation, MCP Server KS examples | `samples/rest/`, [MCP Server KS](../03-mcp-server-ks.md), [Reviewer Evidence Guide](reviewer-evidence.md) |
+| Fabric / Ontology | Fabric workspace and ontology prerequisites, Fabric Ontology KS wording, delegated source authorization caveats, full-mode Fabric setup language | [Fabric Ontology KS](../04-fabric-ontology-ks.md), [Fabric Prerequisites](../fabric-ontology-prerequisites.md), [BYO Fabric Validation](../11-fabric-live-byo-validation.md) |
+| Field / workshop owner | First-five-minutes flow, deployment-mode clarity, notebook usability, offline replay usefulness, failure fallback story | [Choose a Pattern](../02-choose-a-pattern.md), `notebooks/`, [Demo Walkthrough](../16-demo-walkthrough.md) |
+| Security / release hygiene | Ignored generated outputs, env handling, no-secret scan posture, synthetic data boundary, preview limitation language | [Security Governance](../06-security-governance.md), [Release Readiness](release-readiness-checklist.md), [Public Preview Limitations](../13-public-preview-limitations.md) |
+| Blog / presentation reviewer | Claims vs evidence, screenshots, architecture wording, customer-safe phrasing, call-to-action | [Storyline And Safe Claims](storyline-and-safe-claims.md), sanitized screenshots under ignored `scratch/` |
 
 Keep asks narrow. A private review is not a public release approval, and a terminology review is not proof that a live deployment has passed E2E.
 
@@ -212,9 +212,9 @@ Keep asks narrow. A private review is not a public release approval, and a termi
 Safe to link:
 
 - target branch or PR,
-- [Reviewer Evidence Guide](12-reviewer-evidence.md),
-- [Public Preview Limitations and Caveats](13-public-preview-limitations.md),
-- [Storyline And Safe Claims](17-storyline-and-safe-claims.md),
+- [Reviewer Evidence Guide](reviewer-evidence.md),
+- [Public Preview Limitations and Caveats](../13-public-preview-limitations.md),
+- [Storyline And Safe Claims](storyline-and-safe-claims.md),
 - sanitized screenshots if they do not expose resource names or private endpoints.
 
 Do not attach:
