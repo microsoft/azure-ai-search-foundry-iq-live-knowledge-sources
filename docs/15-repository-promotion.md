@@ -59,10 +59,14 @@ git diff --check
 Or run the non-pushing promotion preflight:
 
 ```bash
-bash scripts/check-promotion-readiness.sh --target-remote microsoft --run-validation
+bash scripts/check-promotion-readiness.sh \
+  --target-remote microsoft \
+  --run-validation \
+  --review-packet scratch/review-packets/review-packet-<timestamp>.local.md \
+  --promotion-note scratch/review-packets/promotion-note-<timestamp>.local.md
 ```
 
-The preflight checks the current branch, clean tracked worktree state, untracked non-ignored files, ignored generated-output paths, local validation, no-secret scan, whitespace, target remote configuration, and the latest GitHub Actions `Validate` result for the current commit. It prints manual push commands but never pushes.
+The preflight checks the current branch, clean tracked worktree state, untracked non-ignored files, ignored generated-output paths, optional local review artifacts, local validation, no-secret scan, whitespace, target remote configuration, and the latest GitHub Actions `Validate` result for the current commit. When review artifact paths are provided, it confirms that they are ignored by git and reference the current source commit. It prints manual push commands but never pushes.
 
 To prepare a local human-readable handoff note before the target-org push, generate an ignored promotion note:
 
@@ -88,6 +92,7 @@ Confirm:
 [ ] worktree is clean
 [ ] local validation passes
 [ ] GitHub Actions Validate workflow passes on the staging repo
+[ ] review packet and promotion note reference the current commit
 [ ] no generated reports are staged
 [ ] no local env files are staged
 [ ] no scratch notes are staged

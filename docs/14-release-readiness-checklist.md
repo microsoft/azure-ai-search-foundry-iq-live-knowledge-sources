@@ -153,7 +153,7 @@ If any tracked file changes after generating these files, regenerate them. A sta
 ```text
 [ ] Local validation passes
 [ ] GitHub Actions Validate passes for the exact commit being shared
-[ ] Promotion readiness preflight passes if pushing to a target org remote
+[ ] Promotion readiness preflight passes with current review packet and promotion note paths if pushing to a target org remote
 [ ] Repository promotion guide has been reviewed
 [ ] Private review workflow has been reviewed if requesting product or target-org feedback
 [ ] The intended deployment mode has current evidence
