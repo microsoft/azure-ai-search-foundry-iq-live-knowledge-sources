@@ -62,6 +62,7 @@ deployments/<env>/test-report.md
 The report is ignored by git and includes a checklist, progress bar, resource names, app URL, and pass/fail notes.
 
 Use [Reviewer Evidence Guide](12-reviewer-evidence.md) to interpret which checks matter for Microsoft org review, customer workshops, and blog/demo walkthroughs.
+Use [Public Preview Limitations and Caveats](13-public-preview-limitations.md) before turning deployment results into customer-facing or blog claims.
 
 Full-run test specs:
 
