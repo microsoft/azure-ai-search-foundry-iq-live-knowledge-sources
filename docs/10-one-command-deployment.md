@@ -8,7 +8,7 @@ The goal is to give a field engineer or customer a working platform demo with an
 
 | Mode | What it creates | Fabric behavior | Recommended use |
 | --- | --- | --- | --- |
-| `byo-fabric` | Azure AI Search, Azure OpenAI, MCP KS/KB, Search index, demo app | Connects an existing Fabric workspace and ontology | Default public sample path |
+| `byo-fabric` | Azure AI Search, Azure OpenAI, MCP KS/KB, Search index, demo app | Connects an existing Fabric workspace and ontology | Primary live Fabric sample path |
 | `mcp-only` | Azure AI Search, Azure OpenAI, MCP KS/KB, Search index, demo app | Skips Fabric KS creation | First MCP validation or tenants without Fabric |
 | `full` | Azure/Foundry/Search/MCP/app resources plus Fabric capacity/workspace/lakehouse/ontology | Creates sample Airline Ops Fabric assets, then connects Fabric Ontology KS | Greenfield end-to-end sample path |
 
@@ -239,7 +239,7 @@ Do not prefix the token with `Bearer`.
 
 ## Phase 2 Candidates
 
-- Fabric ontology authoring automation if public APIs and PM guidance are stable.
+- Production-grade Fabric ontology authoring refinements if public APIs and PM guidance evolve beyond the current sample automation.
 - Microsoft Graph upload for SharePoint-hosted policy PDFs.
 - Production app token acquisition and OBO plumbing for user-specific Fabric live retrieval.
 - Optional Search Index Knowledge Source path for indexed regulation documents.
