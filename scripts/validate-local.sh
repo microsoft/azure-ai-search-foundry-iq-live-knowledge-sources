@@ -135,6 +135,7 @@ run_required "Shell syntax" \
     scripts/deploy-static-webapp-api.sh \
     scripts/no-secret-scan.sh \
     scripts/fabric-e2e-test.sh \
+    scripts/create-review-packet.sh \
     scripts/validate-local.sh
 
 run_required "Python compile" \

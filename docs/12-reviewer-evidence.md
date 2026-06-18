@@ -120,6 +120,16 @@ A useful evidence packet answers these questions:
 
 Use this shape in a private review PR, Teams/Loop note, or reviewer email. Keep the generated reports ignored and paste only sanitized facts.
 
+You can generate a local starting point with:
+
+```bash
+bash scripts/create-review-packet.sh \
+  --mode mcp-only \
+  --intent "private review"
+```
+
+The script writes an ignored markdown file under `scratch/review-packets/`. It records the current commit, local worktree state, latest GitHub Actions `Validate` result when available, and optional E2E report path. It does not copy deployment report contents.
+
 ```text
 Review scope:
 - Repo/branch:
