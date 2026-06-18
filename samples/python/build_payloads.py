@@ -54,7 +54,7 @@ def main() -> None:
     )
 
     mcp_only_knowledge_base = create_knowledge_base(
-        name="live-knowledge-sources-kb",
+        name="live-knowledge-sources-mcp-kb",
         knowledge_source_names=["microsoft-learn-mcp-ks"],
         description="Knowledge Base for validating MCP Server live grounding before adding tenant-specific sources.",
         retrieval_instructions=(
