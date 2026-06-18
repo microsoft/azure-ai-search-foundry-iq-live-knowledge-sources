@@ -12,53 +12,78 @@
         <div>
           <p class="eyebrow">Azure AI Search + Foundry IQ</p>
           <h1>Live Knowledge Sources Demo</h1>
+          <p class="lede">One retrieve call, multiple live grounding paths, inspectable evidence.</p>
         </div>
-        <div id="status-pill" class="status-pill">
-          <span class="status-dot" aria-hidden="true"></span>
-          <span id="status-pill-text">Loading</span>
+        <div class="topbar-actions">
+          <div id="status-pill" class="status-pill">
+            <span class="status-dot" aria-hidden="true"></span>
+            <span id="status-pill-text">Loading</span>
+          </div>
+          <button class="ghost-button" data-open-tab="combined" type="button">Run combined</button>
         </div>
       </section>
 
       <nav class="tabs" aria-label="Demo sections">
-        <button class="tab active" data-tab="overview">overview</button>
-        <button class="tab" data-tab="mcp">mcp</button>
-        <button class="tab" data-tab="fabric">fabric</button>
-        <button class="tab" data-tab="combined">combined</button>
-        <button class="tab" data-tab="deployment">deployment</button>
+        <button class="tab active" data-tab="overview">Overview</button>
+        <button class="tab" data-tab="mcp">MCP Live</button>
+        <button class="tab" data-tab="fabric">Fabric</button>
+        <button class="tab" data-tab="combined">Combined Trace</button>
+        <button class="tab" data-tab="deployment">Deployment</button>
       </nav>
 
       <section id="overview" class="view active">
-        <article class="panel">
+        <article class="panel command-panel">
           <div class="section-heading">
             <div>
               <h2>Current Demo Flow</h2>
-              <p>Choose the path that matches the tenant state before you run the sample.</p>
+              <p>Choose a deployment mode, run a retrieve call, then inspect the evidence contract.</p>
+            </div>
+          </div>
+          <div class="trace-pipeline" aria-label="Knowledge Base retrieve pipeline">
+            <div>
+              <strong>Question</strong>
+              <span>Business or implementation prompt</span>
+            </div>
+            <div>
+              <strong>Knowledge Base</strong>
+              <span>Routes with source hints</span>
+            </div>
+            <div>
+              <strong>Live Sources</strong>
+              <span>MCP + Fabric Ontology</span>
+            </div>
+            <div>
+              <strong>Trace</strong>
+              <span>activity, references, sourceData</span>
             </div>
           </div>
           <div class="mode-grid">
-            <div class="mode-card mode-full">
+            <div class="mode-card mode-full" data-mode-card="full">
               <strong>full</strong>
               <span>Zero-base path</span>
               <p>Creates Fabric sample assets, then deploys Azure AI Search, both KS paths, KBs, and the app.</p>
+              <button class="mini-action" data-open-tab="combined" type="button">View trace</button>
             </div>
-            <div class="mode-card mode-byo">
+            <div class="mode-card mode-byo" data-mode-card="byo-fabric">
               <strong>byo-fabric</strong>
               <span>Existing Fabric path</span>
               <p>Uses your Fabric workspace and ontology, then creates the Foundry IQ side and combined KB.</p>
+              <button class="mini-action" data-open-tab="fabric" type="button">Check Fabric</button>
             </div>
-            <div class="mode-card mode-mcp">
+            <div class="mode-card mode-mcp" data-mode-card="mcp-only">
               <strong>mcp-only</strong>
               <span>Fast validation path</span>
               <p>Validates Microsoft Learn MCP Server KS without Fabric tenant setup.</p>
+              <button class="mini-action" data-open-tab="mcp" type="button">Run MCP</button>
             </div>
           </div>
         </article>
         <div class="grid two overview-grid">
-          <article class="panel">
+          <article class="panel readiness-panel">
             <h2>Deployment Readiness</h2>
             <div id="readiness" class="readiness-list"></div>
           </article>
-          <article class="panel">
+          <article class="panel evidence-panel">
             <h2>What This Shows</h2>
             <div class="flow">
               <div>MCP Server KS</div>
