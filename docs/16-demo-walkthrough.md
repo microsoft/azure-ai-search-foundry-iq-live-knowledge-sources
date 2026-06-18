@@ -2,6 +2,8 @@
 
 Use this walkthrough when you need to show the repo in a workshop, private review, blog draft review, or short live demo.
 
+![Current demo flow](../assets/current-demo-flow.svg)
+
 The goal is to explain the sample through one simple loop:
 
 ```text
