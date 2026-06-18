@@ -125,10 +125,11 @@ You can generate a local starting point with:
 ```bash
 bash scripts/create-review-packet.sh \
   --mode mcp-only \
+  --run-local-validation \
   --intent "private review"
 ```
 
-The script writes an ignored markdown file under `scratch/review-packets/`. It records the current commit, local worktree state, latest GitHub Actions `Validate` result when available, and optional E2E report path. It does not copy deployment report contents.
+The script writes an ignored markdown file under `scratch/review-packets/`. It records the current commit, local worktree state, local validation result when requested, latest GitHub Actions `Validate` result when available, and optional E2E report path. It does not copy deployment report contents.
 
 ```text
 Review scope:
