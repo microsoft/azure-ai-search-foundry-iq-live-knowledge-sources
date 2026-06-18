@@ -116,6 +116,60 @@ A useful evidence packet answers these questions:
 - Did the app server return status without exposing secrets?
 - Did cleanup delete the resource group?
 
+## Reviewer Packet Template
+
+Use this shape in a private review PR, Teams/Loop note, or reviewer email. Keep the generated reports ignored and paste only sanitized facts.
+
+```text
+Review scope:
+- Repo/branch:
+- Commit:
+- Deployment mode reviewed: mcp-only | byo-fabric | full
+- Review intent: private review | workshop rehearsal | blog validation | official sample preparation
+
+Validation:
+- Local validation: PASS / FAIL / not run
+- GitHub Actions Validate: PASS / FAIL / not run
+- E2E report path, local only: deployments/<env>/test-report.md
+- Cleanup: PASS / FAIL / skipped, with reason
+
+Evidence summary:
+- MCP KS:
+- Fabric KS:
+- Knowledge Base:
+- Retrieve evidence:
+- App load:
+- Offline replay used: yes/no, with reason
+
+Known caveats:
+- Preview API:
+- Fabric quota or tenant settings:
+- Delegated auth/token:
+- Region/model availability:
+
+Reviewer asks:
+- Azure AI Search KS terminology and REST shape
+- Fabric Ontology KS setup and delegated source authorization wording
+- Deployment-mode clarity: mcp-only, byo-fabric, full
+- Public-preview caveats and safe claims
+- Security posture for generated outputs and tokens
+```
+
+Do not paste raw test reports into the packet. If a reviewer needs the report, share a redacted excerpt or screen-share it from the local ignored path.
+
+## Mode-Specific Proof Points
+
+Use these proof points to decide whether a run supports a claim.
+
+| Claim | Minimum evidence |
+| --- | --- |
+| MCP Server KS works | `microsoft-learn-mcp-ks` exists, MCP-only KB exists, retrieve returns MCP activity or Microsoft Learn references. |
+| Fabric Ontology KS works | Fabric KS exists, combined KB includes it, live retrieve with delegated source authorization returns Fabric activity or Fabric source data. |
+| Combined routing works | Combined KB includes both source names and retrieve output includes activity or references from the expected sources for the query. |
+| Demo app works | App root returns HTTP 200, `/api/status` exposes no secrets, and retrieve routes return live evidence or clearly marked offline replay. |
+| Full greenfield path works | Fabric sample assets are created, generated Fabric IDs are consumed by Azure AI Search KS creation, app loads, and cleanup completes. |
+| Blog or public claim is safe | Evidence above exists and wording follows [Public Preview Limitations and Caveats](13-public-preview-limitations.md). |
+
 ## What Is Not Enough
 
 Avoid treating these as complete proof:
