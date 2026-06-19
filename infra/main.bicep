@@ -139,6 +139,8 @@ var demoRuntimeSettings = [
     name: 'AZURE_SEARCH_API_VERSION'
     value: '2026-05-01-preview'
   }
+  // Sample simplification: the server-side demo API uses the Search admin key for retrieve and liveness checks.
+  // For production, validate preview support for keyless or query-key retrieval before reducing this privilege.
   {
     name: 'AZURE_SEARCH_API_KEY'
     value: search.listAdminKeys().primaryKey
@@ -182,6 +184,7 @@ var demoRuntimeSettingsObject = {
   NEXT_TELEMETRY_DISABLED: '1'
   AZURE_SEARCH_ENDPOINT: 'https://${search.name}.search.windows.net'
   AZURE_SEARCH_API_VERSION: '2026-05-01-preview'
+  // Keep this aligned with demoRuntimeSettings above; browser code never receives this value.
   AZURE_SEARCH_API_KEY: search.listAdminKeys().primaryKey
   AIRLINE_OPS_INDEX_NAME: 'airline-ops-regulatory-docs'
   MCP_KNOWLEDGE_SOURCE_NAME: 'microsoft-learn-mcp-ks'
@@ -207,6 +210,7 @@ resource search 'Microsoft.Search/searchServices@2023-11-01' = {
     replicaCount: 1
     partitionCount: 1
     hostingMode: 'default'
+    // Public network/local auth keep the sample zero-setup. For production, restrict network access and prefer keyless identity where supported.
     publicNetworkAccess: 'enabled'
     disableLocalAuth: false
     semanticSearch: 'free'
@@ -223,6 +227,7 @@ resource openai 'Microsoft.CognitiveServices/accounts@2024-10-01' = {
   }
   properties: {
     customSubDomainName: names.openai
+    // Public network access is a sample default. Production deployments should apply tenant network controls.
     publicNetworkAccess: 'Enabled'
   }
 }

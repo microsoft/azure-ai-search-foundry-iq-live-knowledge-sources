@@ -112,6 +112,29 @@ run_cmd() {
   ok "$description"
 }
 
+run_fabric_cleanup_best_effort() {
+  local description="Delete generated Fabric assets when present"
+  local command=(python3 scripts/fabric-destroy.py --yes)
+  if [[ -n "$ENV_NAME" ]]; then
+    command=(python3 scripts/fabric-destroy.py --env-name "$ENV_NAME" --yes)
+  fi
+
+  log "$ ${command[*]}"
+
+  set +e
+  "${command[@]}" 2>&1 | tee -a "$LOG_FILE"
+  local status=${PIPESTATUS[0]}
+  set -e
+
+  if [[ "$status" -ne 0 ]]; then
+    warn "$description failed with exit code $status; continuing to azd down so core Azure resources are removed."
+    warn "After azd cleanup, inspect generated Fabric assets manually if needed."
+    return 0
+  fi
+
+  ok "$description"
+}
+
 show_azd_env_safe() {
   set +e
   local output
@@ -196,11 +219,7 @@ fi
 
 show_azd_env_safe
 confirm_destroy
-if [[ -n "$ENV_NAME" ]]; then
-  run_cmd "Delete generated Fabric assets when present" python3 scripts/fabric-destroy.py --env-name "$ENV_NAME" --yes
-else
-  run_cmd "Delete generated Fabric assets when present" python3 scripts/fabric-destroy.py --yes
-fi
+run_fabric_cleanup_best_effort
 run_cmd "Delete provisioned resources" azd down --purge --force
 
 log ""

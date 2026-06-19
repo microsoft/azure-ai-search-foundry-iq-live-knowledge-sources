@@ -209,7 +209,7 @@ Cleanup:
 bash scripts/destroy.sh --env-name liveks-dev
 ```
 
-The cleanup wrapper calls `azd down --purge --force` after confirmation and writes an ignored log under `.deployment/`.
+The cleanup wrapper first attempts generated Fabric cleanup, then calls `azd down --purge --force` even if Fabric cleanup needs manual follow-up. Fabric provisioning writes non-secret partial summaries under `deployments/<env>/` so `fabric-destroy.py` can find generated capacity/workspace assets after a failed `full` run.
 
 ## Fabric Live Mode
 

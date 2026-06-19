@@ -1,5 +1,22 @@
 # Security and Governance
 
+## Implementation Model
+
+The sample keeps browser code away from Azure AI Search and Azure OpenAI credentials.
+
+```mermaid
+flowchart LR
+  Browser["Browser UI"] --> API["Static Web Apps API"]
+  API -->|"server-side retrieve + Search key"| Search["Azure AI Search KB"]
+  Search -->|"managed identity or model key"| OpenAI["Azure OpenAI"]
+  Search -->|"x-ms-query-source-authorization"| Fabric["Fabric Ontology"]
+```
+
+- Postprovision creates Knowledge Sources and Knowledge Bases with a Search admin key. That key is never sent to the browser.
+- Fabric live retrieve requires a raw delegated user token per request in `x-ms-query-source-authorization` with scope `https://search.azure.com/.default`.
+- Azure OpenAI access uses either a model API key in the Knowledge Base payload or the Search service managed identity with RBAC when no key is provided.
+- The demo app always calls the server-side API first; browser code does not call Azure AI Search directly.
+
 ## MCP Server KS
 
 - Vet the remote MCP server before connecting it.

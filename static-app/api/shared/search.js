@@ -19,15 +19,26 @@ function hasLiveSearchConfig() {
   return Boolean(process.env.AZURE_SEARCH_ENDPOINT && process.env.AZURE_SEARCH_API_KEY);
 }
 
-async function checkSearchReachability(timeoutMs = 2000) {
+const REACHABILITY_CACHE_MS = 10000;
+let reachabilityCache = null;
+
+async function checkSearchReachability(timeoutMs = 2000, options = {}) {
   const status = runtimeStatus();
   const checkedAt = new Date().toISOString();
+  const now = Date.now();
 
   if (!hasLiveSearchConfig()) {
     return {
       reachable: false,
       checkedAt,
       reachabilityStatus: 'offline',
+    };
+  }
+
+  if (!options.force && reachabilityCache && now - reachabilityCache.cachedAt < REACHABILITY_CACHE_MS) {
+    return {
+      ...reachabilityCache.result,
+      cached: true,
     };
   }
 
@@ -45,19 +56,23 @@ async function checkSearchReachability(timeoutMs = 2000) {
       signal: controller.signal,
     });
 
-    return {
+    const result = {
       reachable: response.ok,
       checkedAt,
       reachabilityStatus: response.ok ? 'live' : 'unreachable',
       statusCode: response.status,
     };
+    reachabilityCache = { cachedAt: now, result };
+    return result;
   } catch (error) {
-    return {
+    const result = {
       reachable: false,
       checkedAt,
       reachabilityStatus: 'unreachable',
       error: error instanceof Error && error.name === 'AbortError' ? 'timeout' : 'request failed',
     };
+    reachabilityCache = { cachedAt: now, result };
+    return result;
   } finally {
     clearTimeout(timeout);
   }

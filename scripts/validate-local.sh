@@ -17,6 +17,7 @@ Options:
 This script performs local, non-deploying validation:
 - shell syntax
 - Python compile
+- Python contract tests
 - notebook JSON parse
 - GitHub issue template structure check
 - Markdown local link check
@@ -72,7 +73,7 @@ fi
 
 cd "$(git rev-parse --show-toplevel)"
 
-TOTAL=12
+TOTAL=13
 CURRENT=0
 FAILED=false
 SKIPPED=0
@@ -152,6 +153,9 @@ run_required "Python compile" \
     scripts/maintainers/extract-review-evidence.py \
     samples/python/build_payloads.py \
     samples/python/inspect_retrieve_response.py
+
+run_required "Python contract tests" \
+  python3 -m unittest discover -s tests
 
 run_required "Notebook JSON parse" \
   python3 - <<'PY'

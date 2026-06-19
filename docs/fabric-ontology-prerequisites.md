@@ -31,6 +31,30 @@ Use one of these paths:
 
 Keep `DEPLOYMENT_MODE=byo-fabric` and `FABRIC_CAPACITY_MODE=byo` for existing Fabric assets. Use `DEPLOYMENT_MODE=full` and `FABRIC_CAPACITY_MODE=create` for the greenfield path. If the selected Fabric region has quota `0`, switch `FABRIC_LOCATION` or use BYO Fabric.
 
+## Full Mode Environment Variables
+
+`full` mode reads these Fabric settings from the shell, `.env` file, or selected `azd` environment.
+
+| Variable | Default | Description | Billing impact |
+| --- | --- | --- | --- |
+| `DEPLOYMENT_MODE` | `full` in the Fabric provisioner | Must be `full` for greenfield Fabric creation. | None by itself |
+| `FABRIC_CAPACITY_MODE` | `create` | `create`, `byo`, or `skip`. `create` provisions capacity when one is not found. | `create` can create billable capacity |
+| `FABRIC_CAPACITY_SKU` | `F2` | Capacity SKU for greenfield sample deployments. Change this before running if the tenant requires a different SKU. | `F2` is billable |
+| `FABRIC_CAPACITY_NAME` | generated from env name | Optional capacity display/resource name. | None by itself |
+| `FABRIC_CAPACITY_ID` | empty | Existing Fabric capacity ID to reuse. | Reuses existing billing |
+| `FABRIC_CAPACITY_ARM_ID` | empty | Existing ARM resource ID for a capacity created outside this run. | Reuses existing billing |
+| `FABRIC_CAPACITY_RESOURCE_GROUP` | `AZURE_RESOURCE_GROUP` or `rg-<env>-fabric` | Resource group for generated capacity. | Deleted by `fabric-destroy.py` only when this run created the capacity |
+| `FABRIC_CAPACITY_ADMIN` | signed-in Azure user | UPN assigned as capacity administrator when creating capacity. | None by itself |
+| `FABRIC_LOCATION` | `AZURE_LOCATION` or `westus3` | Fabric capacity location. Use a region with Fabric quota. | Region quota controls whether capacity can be created |
+| `FABRIC_WORKSPACE_ID` | empty | Existing workspace ID. Leave empty for generated workspace. | Reuses existing workspace |
+| `FABRIC_WORKSPACE_NAME` | `liveks_airline_ops_<env>` | Generated workspace name. | Uses selected capacity |
+| `FABRIC_LAKEHOUSE_ID` | empty | Existing Lakehouse ID. Leave empty for generated Lakehouse. | Reuses existing Lakehouse |
+| `FABRIC_LAKEHOUSE_NAME` | `airline_ops_lakehouse` | Generated Lakehouse name. | Uses selected capacity |
+| `FABRIC_ONTOLOGY_ID` | empty | Existing ontology item ID. Leave empty for generated ontology. | Reuses existing ontology |
+| `FABRIC_ONTOLOGY_NAME` | `AirlineOpsOntology` | Generated ontology name. | Uses selected capacity |
+
+Generated Fabric IDs are written to ignored files under `deployments/<env>/` so cleanup can find partially created assets after a failed run.
+
 ## Greenfield Graph Readiness
 
 Creating the ontology item is not enough for live retrieve. Fabric also creates an ontology-backed GraphModel. That graph must have a valid definition, finish graph loading, and become queryable before Azure AI Search Fabric Ontology KS can return `fabricOntology` activity.

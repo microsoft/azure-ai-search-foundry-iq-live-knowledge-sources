@@ -9,9 +9,9 @@
 ![Python 3.11](https://img.shields.io/badge/python-3.11-blue)
 ![PRs welcome](https://img.shields.io/badge/PRs-welcome-brightgreen)
 
-![Retrieve trace contract](assets/trace-contract.gif)
+![Architecture](assets/live-knowledge-sources-architecture.svg)
 
-Ask once, then inspect the contract: `activity` shows which source ran, `references` show the evidence, and `sourceData` shows what came back from the live source.
+One Knowledge Base can route a query to live MCP tools and governed Fabric semantics, then return the trace contract: `activity`, `references`, and `sourceData`.
 
 ## What This Is
 
@@ -21,6 +21,20 @@ Ask once, then inspect the contract: `activity` shows which source ran, `referen
 
 This is a reusable sample accelerator, not a production reference architecture. It uses Azure AI Search public preview Knowledge Source APIs (`2026-05-01-preview`). Keep the [official Learn manuals](#primary-manuals) as the source of truth while preview behavior evolves.
 
+## Why This Repo
+
+- **See the trace, not just the docs.** Offline responses show the actual retrieve contract: which source ran, which tool was called, and what evidence came back.
+- **Run it in 30 seconds with zero setup.** Learn the contract without Azure keys, tenant access, or a Fabric workspace.
+- **Go live with one command.** Move from offline replay to `mcp-only`, `byo-fabric`, or `full` deployment paths when you are ready.
+
+This repo complements the official Learn manuals by packaging runnable payloads, notebooks, deployment scripts, and offline evidence around the same preview APIs.
+
+## What You'll Learn
+
+1. Inspect offline retrieve traces with no cloud setup.
+2. Walk through MCP Server KS and Fabric Ontology KS in notebooks.
+3. Deploy a live demo app and verify the same trace contract against your tenant.
+
 ## Try It In 30 Seconds
 
 No Azure subscription, keys, tenant, or Fabric workspace required:
@@ -29,13 +43,9 @@ No Azure subscription, keys, tenant, or Fabric workspace required:
 python3 samples/python/inspect_retrieve_response.py samples/responses/mcp-retrieve.sample.json
 ```
 
-Expected shape:
+![Retrieve trace contract](assets/trace-contract.gif)
 
-```text
-Activity: type=mcpServer, knowledgeSourceName=microsoft-learn-mcp-ks, toolName=microsoft_docs_search
-References: type=mcpServer, title="Create an MCP Server knowledge source"
-sourceData keys: content, title
-```
+You should see `Activity`, `References`, and `Source Data Preview` sections.
 
 Try the combined offline trace:
 
@@ -61,17 +71,13 @@ Before deploying, install `azd`, `az`, `python3`, `node`, and `npm`, then sign i
 
 The default app is Azure Static Web Apps plus a managed Functions API. Browser code never receives Search admin keys or Azure OpenAI keys.
 
-![Demo trace viewer](assets/demo-trace.gif)
-
-The app is one way to view the same trace contract. It reveals the response in stages so you can explain query, answer, source activity, references, and source data during a demo.
-
-![Deploy progress](assets/deploy-progress.gif)
+Safety defaults: the deploy wrapper validates templates, payloads, and the app before provisioning; failed deployments print cleanup commands; generated Fabric IDs are saved for teardown; and `destroy.sh` continues to `azd down --purge --force` even if Fabric cleanup needs manual follow-up.
 
 ![Demo overview](assets/demo-overview.png)
 
-## How It Works
+The app is one way to view the same trace contract. It reveals the response in stages so you can explain query, answer, source activity, references, and source data during a demo. For a longer presenter flow, see [Demo Walkthrough](docs/16-demo-walkthrough.md).
 
-![Architecture](assets/live-knowledge-sources-architecture.svg)
+## How It Works
 
 The Knowledge Base composes the live sources. Each retrieve call can hint which sources to use through `knowledgeSourceParams`, then the response exposes `activity`, `references`, and `sourceData`.
 
@@ -163,7 +169,7 @@ Run this before opening a PR or sharing the sample broadly:
 bash scripts/validate-local.sh
 ```
 
-The gate checks shell syntax, Python compile, notebook JSON, Markdown links, sample hygiene, payload generation, offline responses, no-secret scan, Static Web Apps build, and Bicep build when Azure CLI is available.
+The gate checks shell syntax, Python compile, Python contract tests, notebook JSON, Markdown links, sample hygiene, payload generation, offline responses, no-secret scan, Static Web Apps build, and Bicep build when Azure CLI is available.
 
 ## Security Notes
 
