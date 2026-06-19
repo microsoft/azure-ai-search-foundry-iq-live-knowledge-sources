@@ -37,6 +37,12 @@ GRAPH_DATA_SOURCES_SCHEMA = "https://developer.microsoft.com/json-schemas/fabric
 GRAPH_DEFINITION_SCHEMA = "https://developer.microsoft.com/json-schemas/fabric/item/graphInstance/definition/graphDefinition/1.0.0/schema.json"
 GRAPH_TYPE_SCHEMA = "https://developer.microsoft.com/json-schemas/fabric/item/graphInstance/definition/graphType/1.0.0/schema.json"
 GRAPH_STYLING_SCHEMA = "https://developer.microsoft.com/json-schemas/fabric/item/graphInstance/definition/stylingConfiguration/1.0.0/schema.json"
+TRANSIENT_HTTP_STATUS_CODES = {429, 503}
+TRANSIENT_RETRY_DELAYS_SECONDS = (2, 4, 8)
+FABRIC_CAPACITY_LIST_ATTEMPTS = 72
+FABRIC_GRAPH_PROBE_ATTEMPTS = 60
+FABRIC_GRAPH_SECOND_PROBE_ATTEMPTS = 45
+FABRIC_GRAPH_PROBE_DELAY_SECONDS = 20
 
 ENTITY_SPECS = [
     ("Airline", "airlines.csv", "airline_code"),
@@ -155,23 +161,39 @@ def request_json(
     if extra_headers:
         headers.update(extra_headers)
     request = urllib.request.Request(url, data=data, headers=headers, method=method)
-    try:
-        with urllib.request.urlopen(request, timeout=timeout) as response:
-            payload = response.read().decode("utf-8")
-            parsed = json.loads(payload) if payload else None
-            if response.status not in expected:
-                raise RuntimeError(f"{method} {url} returned {response.status}: {payload}")
-            return response.status, dict(response.headers), parsed
-    except urllib.error.HTTPError as error:
-        detail = error.read().decode("utf-8", errors="replace")
-        raise RuntimeError(f"{method} {url} failed: {error.code}\n{detail}") from error
+    last_error: urllib.error.HTTPError | None = None
+    retry_delays = (*TRANSIENT_RETRY_DELAYS_SECONDS, None)
+
+    for retry_delay in retry_delays:
+        try:
+            with urllib.request.urlopen(request, timeout=timeout) as response:
+                payload = response.read().decode("utf-8")
+                parsed = json.loads(payload) if payload else None
+                if response.status not in expected:
+                    raise RuntimeError(f"{method} {url} returned {response.status}: {payload}")
+                return response.status, dict(response.headers), parsed
+        except urllib.error.HTTPError as error:
+            last_error = error
+            if error.code in TRANSIENT_HTTP_STATUS_CODES and retry_delay is not None:
+                retry_after = error.headers.get("Retry-After")
+                delay = int(retry_after) if retry_after and retry_after.isdigit() else retry_delay
+                print(f"[warn] {method} {url} returned {error.code}; retrying in {delay}s.", file=sys.stderr)
+                time.sleep(delay)
+                continue
+            detail = error.read().decode("utf-8", errors="replace")
+            raise RuntimeError(f"{method} {url} failed: {error.code}\n{detail}") from error
+
+    if last_error:
+        detail = last_error.read().decode("utf-8", errors="replace")
+        raise RuntimeError(f"{method} {url} failed: {last_error.code}\n{detail}") from last_error
+    raise RuntimeError(f"{method} {url} failed without an HTTP response.")
 
 
 def fabric_request(method: str, path: str, token: str, body: dict[str, Any] | None = None, expected: tuple[int, ...] = (200, 201, 202)) -> tuple[int, dict[str, str], dict[str, Any] | None]:
     return request_json(method=method, url=f"{FABRIC_API}{path}", token=token, body=body, expected=expected)
 
 
-def poll_fabric_operation(location: str, token: str, *, attempts: int = 60, delay_seconds: int = 5) -> dict[str, Any]:
+def poll_fabric_operation(location: str, token: str, *, attempts: int = 120, delay_seconds: int = 5) -> dict[str, Any]:
     last: dict[str, Any] = {}
     for _ in range(attempts):
         _, _, payload = request_json(method="GET", url=location, token=token, expected=(200, 202))
@@ -182,7 +204,10 @@ def poll_fabric_operation(location: str, token: str, *, attempts: int = 60, dela
         if status in {"failed", "failure", "cancelled", "canceled"}:
             raise RuntimeError(f"Fabric operation failed: {json.dumps(last, indent=2)}")
         time.sleep(delay_seconds)
-    raise RuntimeError(f"Fabric operation did not complete: {json.dumps(last, indent=2)}")
+    raise RuntimeError(
+        "Fabric operation did not complete before the sample timeout. "
+        f"The service may still be processing the item; retry the command after a few minutes. Last status: {json.dumps(last, indent=2)}"
+    )
 
 
 def az_rest(method: str, url: str, body: dict[str, Any] | None = None) -> dict[str, Any]:
@@ -216,6 +241,16 @@ def capacity_by_name(token: str, name: str) -> dict[str, Any] | None:
     for capacity in list_fabric_capacities(token):
         if capacity.get("displayName") == name:
             return capacity
+    return None
+
+
+def capacity_by_name_with_retry(token: str, name: str, *, attempts: int = 3, delay_seconds: int = 5) -> dict[str, Any] | None:
+    for attempt in range(1, attempts + 1):
+        found = capacity_by_name(token, name)
+        if found:
+            return found
+        if attempt < attempts:
+            time.sleep(delay_seconds)
     return None
 
 
@@ -258,7 +293,7 @@ def ensure_capacity(settings: dict[str, str], token: str, *, dry_run: bool) -> t
     if capacity_id:
         return capacity_id, {"displayName": capacity_name, "id": capacity_id, "state": "Configured", "created": False}
 
-    existing = capacity_by_name(token, capacity_name) if not dry_run else None
+    existing = capacity_by_name_with_retry(token, capacity_name) if not dry_run else None
     if existing:
         return str(existing["id"]), {**existing, "created": False}
 
@@ -274,12 +309,15 @@ def ensure_capacity(settings: dict[str, str], token: str, *, dry_run: bool) -> t
     if dry_run:
         return "00000000-0000-0000-0000-000000000010", {"displayName": capacity_name, "id": "dry-run-capacity", "state": "DryRun", "created": True, "armId": arm_id}
 
-    for _ in range(36):
+    for _ in range(FABRIC_CAPACITY_LIST_ATTEMPTS):
         found = capacity_by_name(token, capacity_name)
         if found:
             return str(found["id"]), {**found, "created": True, "armId": arm_id}
         time.sleep(5)
-    raise RuntimeError(f"Created Fabric capacity '{capacity_name}' in ARM, but Fabric API did not list it.")
+    raise RuntimeError(
+        f"Created Fabric capacity '{capacity_name}' in ARM, but Fabric API did not list it before the sample timeout. "
+        "The capacity may still be propagating. Run scripts/fabric-destroy.py with this environment if you stop here."
+    )
 
 
 def list_by_display_name(path: str, token: str, display_name: str) -> dict[str, Any] | None:
@@ -795,7 +833,7 @@ def update_graph_model_definition(workspace_id: str, graph_model_id: str, token:
         expected=(200, 202),
     )
     if status == 202 and headers.get("Location"):
-        return poll_lro(headers["Location"], token, attempts=60, delay_seconds=5)
+        return poll_lro(headers["Location"], token, attempts=120, delay_seconds=5)
     return payload or {"status": "Succeeded"}
 
 
@@ -809,7 +847,7 @@ def refresh_graph_model(workspace_id: str, graph_model_id: str, token: str) -> d
         extra_headers={"Content-Type": "application/json", "Content-Length": "0"},
     )
     if status == 202 and headers.get("Location"):
-        return poll_lro(headers["Location"], token, attempts=60, delay_seconds=10)
+        return poll_lro(headers["Location"], token, attempts=120, delay_seconds=10)
     return payload or {"status": "Succeeded"}
 
 
@@ -826,7 +864,14 @@ def execute_graph_probe(workspace_id: str, graph_model_id: str, token: str) -> d
     return {"status": "ok", "rowCount": len(rows), "query": body["query"]}
 
 
-def wait_for_graph_probe(workspace_id: str, graph_model_id: str, token: str, *, attempts: int = 30, delay_seconds: int = 15) -> dict[str, Any]:
+def wait_for_graph_probe(
+    workspace_id: str,
+    graph_model_id: str,
+    token: str,
+    *,
+    attempts: int = FABRIC_GRAPH_PROBE_ATTEMPTS,
+    delay_seconds: int = FABRIC_GRAPH_PROBE_DELAY_SECONDS,
+) -> dict[str, Any]:
     last_error = ""
     last_graph_model: dict[str, Any] = {}
     for attempt in range(1, attempts + 1):
@@ -852,6 +897,7 @@ def wait_for_graph_probe(workspace_id: str, graph_model_id: str, token: str, *, 
         "queryReadiness": (last_graph_model.get("properties") or {}).get("queryReadiness", ""),
         "lastDataLoadingStatus": (last_graph_model.get("properties") or {}).get("lastDataLoadingStatus", {}),
         "error": last_error,
+        "message": "The GraphModel did not become queryable before the sample timeout. It may still be indexing; retry the run or cleanup generated Fabric assets if you stop here.",
     }
 
 
@@ -881,7 +927,13 @@ def validate_graph_model(workspace_id: str, lakehouse_id: str, ontology_id: str,
             validation["refreshGraph"] = refresh_result
             if str((refresh_result.get("failureReason") or {}).get("errorCode")) == "RefreshAlreadyInProgress":
                 validation["refreshGraphNote"] = "Refresh was already running after updateDefinition; waiting for the active load."
-            second_wait = wait_for_graph_probe(workspace_id, graph_model_id, token, attempts=20, delay_seconds=15)
+            second_wait = wait_for_graph_probe(
+                workspace_id,
+                graph_model_id,
+                token,
+                attempts=FABRIC_GRAPH_SECOND_PROBE_ATTEMPTS,
+                delay_seconds=FABRIC_GRAPH_PROBE_DELAY_SECONDS,
+            )
             validation["secondProbeWait"] = second_wait
             final_wait = second_wait
         else:
@@ -974,6 +1026,74 @@ def build_settings(args: argparse.Namespace, azd_values: dict[str, str]) -> dict
     }
 
 
+def base_summary(settings: dict[str, str]) -> dict[str, Any]:
+    return {
+        "status": "running",
+        "environmentName": settings["AZURE_ENV_NAME"],
+        "fabricLocation": settings["FABRIC_LOCATION"],
+        "capacityMode": settings["FABRIC_CAPACITY_MODE"],
+        "capacityId": settings.get("FABRIC_CAPACITY_ID", ""),
+        "capacityName": settings["FABRIC_CAPACITY_NAME"],
+        "capacitySku": settings["FABRIC_CAPACITY_SKU"],
+        "capacityState": "",
+        "capacityArmId": settings.get("FABRIC_CAPACITY_ARM_ID", ""),
+        "capacityResourceGroup": settings["FABRIC_CAPACITY_RESOURCE_GROUP"],
+        "capacityCreated": False,
+        "workspaceId": settings.get("FABRIC_WORKSPACE_ID", ""),
+        "workspaceName": settings["FABRIC_WORKSPACE_NAME"],
+        "workspaceCreated": False,
+        "lakehouseId": settings.get("FABRIC_LAKEHOUSE_ID", ""),
+        "lakehouseName": settings["FABRIC_LAKEHOUSE_NAME"],
+        "lakehouseCreated": False,
+        "ontologyId": settings.get("FABRIC_ONTOLOGY_ID", ""),
+        "ontologyName": settings["FABRIC_ONTOLOGY_NAME"],
+        "ontologyCreated": False,
+        "uploadedFiles": [],
+        "tablesLoaded": [],
+        "availableTables": [],
+        "ontologyManifest": {},
+        "ontologyValidation": {},
+        "graphValidation": {},
+    }
+
+
+def write_partial_outputs(settings: dict[str, str], summary: dict[str, Any], *, status: str | None = None) -> None:
+    if status:
+        summary["status"] = status
+    write_outputs(settings, summary)
+
+
+def sync_capacity_to_azd(summary: dict[str, Any], *, dry_run: bool) -> None:
+    for key, value in {
+        "FABRIC_CAPACITY_ID": str(summary.get("capacityId", "")),
+        "FABRIC_CAPACITY_NAME": str(summary.get("capacityName", "")),
+        "FABRIC_CAPACITY_ARM_ID": str(summary.get("capacityArmId", "")),
+        "FABRIC_CAPACITY_RESOURCE_GROUP": str(summary.get("capacityResourceGroup", "")),
+        "FABRIC_LOCATION": str(summary.get("fabricLocation", "")),
+    }.items():
+        azd_set(key, value, dry_run=dry_run)
+
+
+def sync_all_fabric_ids_to_azd(summary: dict[str, Any], *, dry_run: bool) -> None:
+    sync_capacity_to_azd(summary, dry_run=dry_run)
+    for key, value in {
+        "FABRIC_WORKSPACE_ID": str(summary.get("workspaceId", "")),
+        "FABRIC_LAKEHOUSE_ID": str(summary.get("lakehouseId", "")),
+        "FABRIC_ONTOLOGY_ID": str(summary.get("ontologyId", "")),
+    }.items():
+        azd_set(key, value, dry_run=dry_run)
+
+
+def print_cleanup_hint(settings: dict[str, str], error: BaseException) -> None:
+    env_name = settings["AZURE_ENV_NAME"]
+    print("", file=sys.stderr)
+    print(f"Fabric provisioning failed: {error}", file=sys.stderr)
+    print("A partial Fabric deployment may remain. To clean up generated Fabric assets:", file=sys.stderr)
+    print(f"  python3 scripts/fabric-destroy.py --env-name {env_name} --yes", file=sys.stderr)
+    print("If Azure resources were also provisioned, run:", file=sys.stderr)
+    print(f"  bash scripts/destroy.sh --env-name {env_name} --yes", file=sys.stderr)
+
+
 def main() -> None:
     args = parse_args()
     azd_values = load_azd_env()
@@ -998,71 +1118,98 @@ def main() -> None:
         print(json.dumps({"dryRun": True, "ontologyManifest": manifest, "definitionPartCount": len(definition["parts"])}, indent=2))
         return
 
-    fabric_token = get_token(FABRIC_RESOURCE)
-    storage_token = get_token(STORAGE_RESOURCE)
+    summary = base_summary(settings)
 
-    capacity_id, capacity = ensure_capacity(settings, fabric_token, dry_run=False)
-    workspace_id, workspace = ensure_workspace(settings, fabric_token, capacity_id, dry_run=False)
-    lakehouse_id, lakehouse = ensure_lakehouse(settings, fabric_token, workspace_id, dry_run=False)
-    uploaded_files = upload_to_onelake(workspace_id, lakehouse_id, storage_token, dry_run=False)
-    tables_loaded = load_tables(workspace_id, lakehouse_id, fabric_token, dry_run=False)
-    available_tables = wait_for_lakehouse_tables(workspace_id, lakehouse_id, fabric_token, tables_loaded)
-    missing_tables = sorted(set(tables_loaded) - set(available_tables))
-    if missing_tables:
-        raise RuntimeError(f"Lakehouse tables did not appear after load: {missing_tables}")
-    ontology_id, ontology, manifest = ensure_ontology(settings, fabric_token, workspace_id, lakehouse_id, dry_run=False)
-    ontology_validation = validate_ontology_definition(workspace_id, ontology_id, fabric_token, manifest["partCount"], dry_run=False)
-    if ontology_validation["status"] != "ok":
-        raise RuntimeError(f"Ontology definition validation failed: {ontology_validation}")
-    graph_validation = validate_graph_model(workspace_id, lakehouse_id, ontology_id, settings["FABRIC_ONTOLOGY_NAME"], fabric_token, dry_run=False)
+    try:
+        fabric_token = get_token(FABRIC_RESOURCE)
+        storage_token = get_token(STORAGE_RESOURCE)
 
-    summary = {
-        "environmentName": settings["AZURE_ENV_NAME"],
-        "fabricLocation": settings["FABRIC_LOCATION"],
-        "capacityMode": settings["FABRIC_CAPACITY_MODE"],
-        "capacityId": capacity_id,
-        "capacityName": capacity.get("displayName") or settings["FABRIC_CAPACITY_NAME"],
-        "capacitySku": capacity.get("sku") or settings["FABRIC_CAPACITY_SKU"],
-        "capacityState": capacity.get("state", ""),
-        "capacityArmId": capacity.get("armId") or settings.get("FABRIC_CAPACITY_ARM_ID", ""),
-        "capacityResourceGroup": settings["FABRIC_CAPACITY_RESOURCE_GROUP"],
-        "capacityCreated": bool(capacity.get("created")),
-        "workspaceId": workspace_id,
-        "workspaceName": workspace.get("displayName") or settings["FABRIC_WORKSPACE_NAME"],
-        "workspaceCreated": bool(workspace.get("created")),
-        "lakehouseId": lakehouse_id,
-        "lakehouseName": lakehouse.get("displayName") or settings["FABRIC_LAKEHOUSE_NAME"],
-        "lakehouseCreated": bool(lakehouse.get("created")),
-        "ontologyId": ontology_id,
-        "ontologyName": ontology.get("displayName") or settings["FABRIC_ONTOLOGY_NAME"],
-        "ontologyCreated": bool(ontology.get("created")),
-        "uploadedFiles": uploaded_files,
-        "tablesLoaded": tables_loaded,
-        "ontologyManifest": manifest,
-        "ontologyValidation": ontology_validation,
-        "graphValidation": graph_validation,
-    }
-    write_outputs(settings, summary)
-
-    if graph_validation.get("status") != "ok":
-        raise RuntimeError(
-            "Fabric GraphModel is not queryable after ontology provisioning. "
-            f"Graph validation: {json.dumps(graph_validation, indent=2)}"
+        capacity_id, capacity = ensure_capacity(settings, fabric_token, dry_run=False)
+        summary.update(
+            {
+                "capacityId": capacity_id,
+                "capacityName": capacity.get("displayName") or settings["FABRIC_CAPACITY_NAME"],
+                "capacitySku": capacity.get("sku") or settings["FABRIC_CAPACITY_SKU"],
+                "capacityState": capacity.get("state", ""),
+                "capacityArmId": capacity.get("armId") or settings.get("FABRIC_CAPACITY_ARM_ID", ""),
+                "capacityResourceGroup": settings["FABRIC_CAPACITY_RESOURCE_GROUP"],
+                "capacityCreated": bool(capacity.get("created")),
+            }
         )
+        write_partial_outputs(settings, summary)
+        sync_capacity_to_azd(summary, dry_run=False)
 
-    for key, value in {
-        "FABRIC_CAPACITY_ID": capacity_id,
-        "FABRIC_CAPACITY_NAME": str(summary["capacityName"]),
-        "FABRIC_CAPACITY_ARM_ID": str(summary["capacityArmId"]),
-        "FABRIC_CAPACITY_RESOURCE_GROUP": str(summary["capacityResourceGroup"]),
-        "FABRIC_LOCATION": settings["FABRIC_LOCATION"],
-        "FABRIC_WORKSPACE_ID": workspace_id,
-        "FABRIC_LAKEHOUSE_ID": lakehouse_id,
-        "FABRIC_ONTOLOGY_ID": ontology_id,
-    }.items():
-        azd_set(key, value, dry_run=False)
+        workspace_id, workspace = ensure_workspace(settings, fabric_token, capacity_id, dry_run=False)
+        summary.update(
+            {
+                "workspaceId": workspace_id,
+                "workspaceName": workspace.get("displayName") or settings["FABRIC_WORKSPACE_NAME"],
+                "workspaceCreated": bool(workspace.get("created")),
+            }
+        )
+        write_partial_outputs(settings, summary)
 
-    print(f"Fabric provision complete. Summary written to deployments/{settings['AZURE_ENV_NAME']}/fabric-summary.md")
+        lakehouse_id, lakehouse = ensure_lakehouse(settings, fabric_token, workspace_id, dry_run=False)
+        summary.update(
+            {
+                "lakehouseId": lakehouse_id,
+                "lakehouseName": lakehouse.get("displayName") or settings["FABRIC_LAKEHOUSE_NAME"],
+                "lakehouseCreated": bool(lakehouse.get("created")),
+            }
+        )
+        write_partial_outputs(settings, summary)
+
+        uploaded_files = upload_to_onelake(workspace_id, lakehouse_id, storage_token, dry_run=False)
+        summary["uploadedFiles"] = uploaded_files
+        write_partial_outputs(settings, summary)
+
+        tables_loaded = load_tables(workspace_id, lakehouse_id, fabric_token, dry_run=False)
+        summary["tablesLoaded"] = tables_loaded
+        write_partial_outputs(settings, summary)
+
+        available_tables = wait_for_lakehouse_tables(workspace_id, lakehouse_id, fabric_token, tables_loaded)
+        summary["availableTables"] = available_tables
+        write_partial_outputs(settings, summary)
+        missing_tables = sorted(set(tables_loaded) - set(available_tables))
+        if missing_tables:
+            raise RuntimeError(f"Lakehouse tables did not appear after load: {missing_tables}")
+
+        ontology_id, ontology, manifest = ensure_ontology(settings, fabric_token, workspace_id, lakehouse_id, dry_run=False)
+        summary.update(
+            {
+                "ontologyId": ontology_id,
+                "ontologyName": ontology.get("displayName") or settings["FABRIC_ONTOLOGY_NAME"],
+                "ontologyCreated": bool(ontology.get("created")),
+                "ontologyManifest": manifest,
+            }
+        )
+        write_partial_outputs(settings, summary)
+
+        ontology_validation = validate_ontology_definition(workspace_id, ontology_id, fabric_token, manifest["partCount"], dry_run=False)
+        summary["ontologyValidation"] = ontology_validation
+        write_partial_outputs(settings, summary)
+        if ontology_validation["status"] != "ok":
+            raise RuntimeError(f"Ontology definition validation failed: {ontology_validation}")
+
+        graph_validation = validate_graph_model(workspace_id, lakehouse_id, ontology_id, settings["FABRIC_ONTOLOGY_NAME"], fabric_token, dry_run=False)
+        summary["graphValidation"] = graph_validation
+        write_partial_outputs(settings, summary, status="complete" if graph_validation.get("status") == "ok" else "failed")
+
+        if graph_validation.get("status") != "ok":
+            raise RuntimeError(
+                "Fabric GraphModel is not queryable after ontology provisioning. "
+                "It may still be indexing; retry later or clean up generated Fabric assets if you stop here. "
+                f"Graph validation: {json.dumps(graph_validation, indent=2)}"
+            )
+
+        sync_all_fabric_ids_to_azd(summary, dry_run=False)
+        print(f"Fabric provision complete. Summary written to deployments/{settings['AZURE_ENV_NAME']}/fabric-summary.md")
+    except Exception as error:
+        summary["status"] = "failed"
+        summary["error"] = str(error)
+        write_partial_outputs(settings, summary)
+        print_cleanup_hint(settings, error)
+        raise
 
 
 if __name__ == "__main__":

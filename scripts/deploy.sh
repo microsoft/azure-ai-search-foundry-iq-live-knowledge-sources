@@ -188,6 +188,7 @@ run_cmd() {
     fail "$description"
     log "Exit code: $status"
     log "See log: $LOG_FILE"
+    print_cleanup_hint
     exit "$status"
   fi
 
@@ -603,11 +604,29 @@ show_azd_env_safe() {
   done <<< "$output"
 }
 
+cleanup_env_name() {
+  local env="$ENV_NAME"
+  if [[ -z "$env" ]]; then
+    env="$(azd_env_value AZURE_ENV_NAME)"
+  fi
+  printf '%s' "${env:-<env>}"
+}
+
+print_cleanup_hint() {
+  local env
+  env="$(cleanup_env_name)"
+  warn "A partial deployment may remain. To clean up:"
+  log "  bash scripts/destroy.sh --env-name $env --yes"
+  log "  # or, for Azure resources only: azd down --purge --force"
+  log "  # if Fabric was used: python3 scripts/fabric-destroy.py --env-name $env --yes"
+}
+
 on_error() {
   local exit_code=$?
   fail "Deployment script stopped unexpectedly."
   log "Exit code: $exit_code"
   log "See log: $LOG_FILE"
+  print_cleanup_hint
   exit "$exit_code"
 }
 trap on_error ERR
