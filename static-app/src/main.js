@@ -114,6 +114,7 @@ function statusText(status) {
 }
 
 function renderReadiness() {
+  const fabricTokenInput = $('#fabric-token');
   const readiness = [
     {
       label: 'Deployment mode',
@@ -137,8 +138,8 @@ function renderReadiness() {
     },
     {
       label: 'Fabric live token',
-      ready: Boolean(state.status.hasFabricToken || $('#fabric-token')?.value),
-      value: state.status.hasFabricToken ? 'server-side configured' : $('#fabric-token')?.value ? 'transient token entered' : 'offline replay',
+      ready: Boolean(state.status.hasFabricToken || fabricTokenInput?.value),
+      value: state.status.hasFabricToken ? 'server-side configured' : fabricTokenInput?.value ? 'transient token entered' : 'offline replay',
     },
     {
       label: 'App mode',
@@ -148,34 +149,44 @@ function renderReadiness() {
   ];
 
   const pill = $('#status-pill');
-  pill.classList.remove('is-live', 'is-offline', 'is-error');
-  pill.classList.add(statusClass(state.status));
-  $('#status-pill-text').textContent = statusText(state.status);
-  $('#status-checked').textContent = state.status.checkedAt ? `Last checked ${state.status.checkedAt}.` : 'Not checked yet.';
+  pill?.classList.remove('is-live', 'is-offline', 'is-error');
+  pill?.classList.add(statusClass(state.status));
+
+  const pillText = $('#status-pill-text');
+  if (pillText) pillText.textContent = statusText(state.status);
+
+  const checked = $('#status-checked');
+  if (checked) checked.textContent = state.status.checkedAt ? `Last checked ${state.status.checkedAt}.` : 'Not checked yet.';
 
   const deploymentMode = state.status.deploymentMode || 'mcp-only';
   document.querySelectorAll('[data-mode-card]').forEach((card) => {
     card.classList.toggle('is-current', card.dataset.modeCard === deploymentMode);
   });
 
-  $('#readiness').innerHTML = readiness
-    .map(
-      (item) => `
-        <div class="readiness">
-          <span class="${item.ready ? 'dot ready' : 'dot'}"></span>
-          <div>
-            <strong>${item.label}</strong>
-            <p>${item.value}</p>
+  const readinessTarget = $('#readiness');
+  if (readinessTarget) {
+    readinessTarget.innerHTML = readiness
+      .map(
+        (item) => `
+          <div class="readiness">
+            <span class="${item.ready ? 'dot ready' : 'dot'}"></span>
+            <div>
+              <strong>${item.label}</strong>
+              <p>${item.value}</p>
+            </div>
           </div>
-        </div>
-      `,
-    )
-    .join('');
+        `,
+      )
+      .join('');
+  }
 }
 
 function renderJson() {
-  $('#status-json').textContent = pretty(state.status);
-  $('#summary-json').textContent = pretty(state.summary);
+  const statusJson = $('#status-json');
+  if (statusJson) statusJson.textContent = pretty(state.status);
+
+  const summaryJson = $('#summary-json');
+  if (summaryJson) summaryJson.textContent = pretty(state.summary);
 }
 
 function activateTab(tabName) {
@@ -190,7 +201,10 @@ function activateTab(tabName) {
 }
 
 function renderTrace(target, data, query) {
-  $(target).innerHTML = `
+  const resultTarget = $(target);
+  if (!resultTarget) return;
+
+  resultTarget.innerHTML = `
     <article class="panel reveal">
       <div class="trace-header">
         <h3>Query</h3>
@@ -234,8 +248,10 @@ async function fetchJson(path, options = {}) {
 async function run(kind) {
   const button = document.querySelector(`[data-run="${kind}"]`);
   const target = `#${kind}-result`;
-  button.disabled = true;
-  button.textContent = 'Running...';
+  if (button) {
+    button.disabled = true;
+    button.textContent = 'Running...';
+  }
 
   try {
     const body = { query: queries[kind] };
@@ -253,13 +269,15 @@ async function run(kind) {
   } catch (error) {
     renderTrace(target, { mode: 'offline', error: error.message, response: [], activity: [], references: [] }, queries[kind]);
   } finally {
-    button.disabled = false;
-    button.textContent = 'Run';
+    if (button) {
+      button.disabled = false;
+      button.textContent = 'Run';
+    }
   }
 }
 
-async function refreshStatus() {
-  state.status = await fetchJson('/api/status').catch(() => ({
+async function refreshStatus(force = false) {
+  state.status = await fetchJson(force ? '/api/status?refresh=1' : '/api/status').catch(() => ({
     deploymentMode: 'mcp-only',
     reachabilityStatus: 'offline',
     reachable: false,
@@ -289,14 +307,18 @@ async function boot() {
     });
   });
 
-  $('#fabric-token').addEventListener('input', renderReadiness);
-  $('#recheck-status').addEventListener('click', async () => {
+  $('#fabric-token')?.addEventListener('input', renderReadiness);
+  $('#recheck-status')?.addEventListener('click', async () => {
     const button = $('#recheck-status');
-    button.disabled = true;
-    button.textContent = 'Checking...';
-    await refreshStatus();
-    button.disabled = false;
-    button.textContent = 'Re-check';
+    if (button) {
+      button.disabled = true;
+      button.textContent = 'Checking...';
+    }
+    await refreshStatus(true);
+    if (button) {
+      button.disabled = false;
+      button.textContent = 'Re-check';
+    }
   });
 
   await refreshStatus();
