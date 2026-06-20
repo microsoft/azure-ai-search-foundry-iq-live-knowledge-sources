@@ -92,12 +92,15 @@ Confirm:
 [ ] worktree is clean
 [ ] local validation passes
 [ ] GitHub Actions Validate workflow passes on the staging repo
+[ ] README Validate badge strategy is correct for the target repo state
 [ ] review packet and promotion note reference the current commit
 [ ] no generated reports are staged
 [ ] no local env files are staged
 [ ] no scratch notes are staged
 [ ] release readiness checklist is reviewed
 ```
+
+README uses a static `validate-local gate` badge while the Microsoft org repo is private or before the target workflow has a public badge endpoint. After the target repo is public and `.github/workflows/validate.yml` has run at least once, replace it with the GitHub Actions badge for the target repo.
 
 ## Remote Setup
 
