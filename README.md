@@ -4,7 +4,7 @@
 > see which live source answered, which tool ran, and which references came back.
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
-[![Validate](https://github.com/microsoft/azure-ai-search-foundry-iq-live-knowledge-sources/actions/workflows/validate.yml/badge.svg)](.github/workflows/validate.yml)
+![Validate](https://img.shields.io/badge/validate-local%20gate-blue)
 ![Preview API](https://img.shields.io/badge/Azure%20AI%20Search-2026--05--01--preview-orange)
 ![Python 3.11](https://img.shields.io/badge/python-3.11-blue)
 ![PRs welcome](https://img.shields.io/badge/PRs-welcome-brightgreen)
@@ -43,8 +43,6 @@ No Azure subscription, keys, tenant, or Fabric workspace required:
 python3 samples/python/inspect_retrieve_response.py samples/responses/mcp-retrieve.sample.json
 ```
 
-![Retrieve trace contract](assets/trace-contract.gif)
-
 You should see `Activity`, `References`, and `Source Data Preview` sections.
 
 Try the combined offline trace:
@@ -52,6 +50,8 @@ Try the combined offline trace:
 ```bash
 python3 samples/python/inspect_retrieve_response.py samples/responses/combined-airline-ops-retrieve.sample.json
 ```
+
+![Retrieve trace contract](assets/trace-contract.gif)
 
 It shows Fabric Ontology activity for Airline Ops business data and MCP Server activity for Microsoft Learn implementation guidance.
 

@@ -45,6 +45,7 @@ The GitHub Actions `Validate` workflow runs the same local validation gate on pu
 ```text
 [ ] GitHub Actions Validate workflow passes
 [ ] GitHub Actions Validate is green for the exact commit being reviewed
+[ ] README Validate badge does not point at a private or non-existent Actions badge URL
 [ ] Dependabot configuration is present for GitHub Actions and tracked npm apps
 [ ] Static Web Apps demo and optional Next.js demo app both build
 [ ] REST samples keep the preview API version explicit
