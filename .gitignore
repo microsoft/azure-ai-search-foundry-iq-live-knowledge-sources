@@ -27,6 +27,11 @@ coverage/
 .next/
 out/
 
+# concept-anim build artifacts (keep source under tools/concept-anim, ignore outputs)
+tools/concept-anim/frames/
+tools/concept-anim/palette.png
+tools/concept-anim/node_modules/
+
 # Notebook runtime output
 .ipynb_checkpoints/
 notebooks/output/
