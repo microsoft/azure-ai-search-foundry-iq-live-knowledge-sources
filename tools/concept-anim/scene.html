@@ -36,7 +36,7 @@
   <div class="pill" id="pill"></div>
   <div class="q" id="q">Which gate handles the delayed <b>Contoso Air</b> flight?</div>
 
-  <div class="arrow" id="aMcp" style="left:430px;top:250px;width:170px;transform:rotate(28deg)"></div>
+  <div class="arrow" id="aMcp" style="left:430px;top:250px;width:170px;transform:rotate(145deg)"></div>
   <div class="arrow" id="aFab" style="left:560px;top:250px;width:200px;transform:rotate(20deg)"></div>
 
   <div class="card kb" id="kb"><h4>Knowledge Base · answerSynthesis</h4>
@@ -70,7 +70,7 @@ const pill=t=>{const e=document.getElementById("pill");e.textContent=t;e.classLi
 window.__seek=function(ms){
   const t=ms/1000;
   show("q", t>=0.6);
-  show("kb", t>=1.4); show("aMcp", t>=2.0&&t<6.2); show("aFab", t>=2.0&&t<6.2);
+  show("kb", t>=1.4); show("aMcp", t>=2.55&&t<6.2); show("aFab", t>=4.35&&t<6.2);
   show("mcp", t>=2.4&&t<6.2); show("fab", t>=4.2&&t<6.2); show("trace", t>=6.4);
   if(t>=0.6&&t<1.4) pill("a question enters the Knowledge Base");
   else if(t<4.2) pill("one Knowledge Base composes live MCP + Fabric sources");
