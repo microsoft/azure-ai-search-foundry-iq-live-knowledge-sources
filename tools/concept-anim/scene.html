@@ -1,0 +1,86 @@
+<!doctype html><html><head><meta charset="utf-8"><style>
+  :root{--blue:#105fce;--green:#127a5a;--amber:#a96100;--red:#b42318;--ink:#e8eef6;--bg:#0d1b2a;--panel:#10243a;--line:#23415f;}
+  *{box-sizing:border-box;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;}
+  html,body{margin:0;background:var(--bg);color:var(--ink);}
+  #stage{width:1000px;height:640px;position:relative;overflow:hidden;padding:28px 34px;}
+  .title{font-size:26px;font-weight:700} .title b{color:#5bb0ff}
+  .sub{color:#8aa0b8;font-size:13px;margin-top:2px}
+  .pill{position:absolute;left:34px;top:84px;background:#0c2136;border:1px solid var(--line);
+        border-radius:999px;padding:6px 12px;font-size:13px;color:#cfe0f2;opacity:0;transform:translateY(-4px);
+        transition:opacity .25s,transform .25s}
+  .pill.show{opacity:1;transform:none}
+  .q{position:absolute;left:34px;top:128px;width:932px;background:#0c2136;border:1px solid var(--line);
+     border-radius:10px;padding:10px 14px;font-size:14px;color:#dbe7f4;opacity:0;transform:translateY(6px);
+     transition:opacity .3s,transform .3s} .q.show{opacity:1;transform:none} .q b{color:#5bb0ff}
+  .card{position:absolute;background:var(--panel);border:1px solid var(--line);border-radius:12px;
+        padding:14px 16px;opacity:0;transform:translateY(8px);transition:opacity .3s,transform .3s}
+  .card.show{opacity:1;transform:none}
+  .card h4{margin:0 0 8px;font-size:13px;letter-spacing:.03em}
+  .kb{left:360px;top:188px;width:280px;border-color:var(--blue)} .kb h4{color:#5bb0ff;margin:0}
+  .kb pre{margin-top:6px}
+  .mcp{left:48px;top:308px;width:430px;border-color:var(--amber)} .mcp h4{color:#e9a23b}
+  .fab{left:520px;top:308px;width:430px;border-color:var(--green)} .fab h4{color:#39b58a}
+  .trace{left:235px;top:300px;width:530px;border-color:var(--blue)} .trace h4{color:#5bb0ff}
+  pre{margin:0;font-size:12.5px;line-height:1.55;color:#cdd9e6;white-space:pre-wrap}
+  .k{color:#8aa0b8}.s{color:#7fd1a6}
+  .arrow{position:absolute;background:var(--line);height:2px;transform-origin:left center;opacity:0;transition:opacity .3s}
+  .arrow.show{opacity:.7}
+  .foot{position:absolute;left:34px;bottom:22px;color:#7d92a8;font-size:12px;opacity:0;transition:opacity .3s}
+  .foot.show{opacity:1}
+  .payoff{position:absolute;left:34px;bottom:52px;color:#dbe7f4;font-size:15px;opacity:0;transition:opacity .3s}
+  .payoff.show{opacity:1}
+</style></head><body>
+<div id="stage">
+  <div class="title">Live <b>Knowledge Sources</b></div>
+  <div class="sub">one retrieve call · inspectable evidence</div>
+  <div class="pill" id="pill"></div>
+  <div class="q" id="q">Which gate handles the delayed <b>Contoso Air</b> flight?</div>
+
+  <div class="arrow" id="aMcp" style="left:430px;top:250px;width:170px;transform:rotate(28deg)"></div>
+  <div class="arrow" id="aFab" style="left:560px;top:250px;width:200px;transform:rotate(20deg)"></div>
+
+  <div class="card kb" id="kb"><h4>Knowledge Base · answerSynthesis</h4>
+    <pre><span class="k">knowledgeSources:</span> [mcp, fabric]</pre></div>
+
+  <div class="card mcp" id="mcp"><h4>MCP Server KS · kind: mcpServer</h4><pre id="mcpCode"></pre></div>
+  <div class="card fab" id="fab"><h4>Fabric Ontology KS · kind: fabricOntology</h4><pre id="fabCode"></pre></div>
+  <div class="card trace" id="trace"><h4>retrieve response · the trace contract</h4><pre id="traceCode"></pre></div>
+
+  <div class="payoff" id="payoff">See which source answered, which tool ran, what evidence came back.</div>
+  <div class="foot" id="foot">MCP Server KS · Fabric Ontology KS · Azure AI Search 2026-05-01-preview</div>
+</div>
+<script>
+const MCP = `<span class="k">serverURL:</span> <span class="s">"…/api/mcp"</span>
+<span class="k">tools[0].name:</span> <span class="s">"microsoft_docs_search"</span>
+<span class="k">outputParsing.kind:</span> <span class="s">"auto"</span>
+<span class="k">inclusionMode:</span> <span class="s">"reranked"</span>`;
+const FAB = `<span class="k">workspaceId:</span> <span class="s">"&lt;guid&gt;"</span>
+<span class="k">ontologyId:</span> <span class="s">"&lt;guid&gt;"</span>
+<span class="k">sourceAuthorization:</span> <span class="s">per-request</span>`;
+const TRACE = `<span class="k">activity[].type:</span> <span class="s">"mcpServer"</span> | <span class="s">"fabricOntology"</span>
+<span class="k">references[].knowledgeSourceName</span>
+<span class="k">references[].toolName · title</span>
+<span class="k">references[].sourceData</span>`;
+function typeLines(el, html, p){
+  const lines = html.split("\n"); const n = Math.ceil(lines.length * Math.min(1,Math.max(0,p)));
+  el.innerHTML = lines.slice(0, n).join("\n");
+}
+const show=(id,on)=>document.getElementById(id).classList.toggle("show",on);
+const pill=t=>{const e=document.getElementById("pill");e.textContent=t;e.classList.toggle("show",!!t);};
+window.__seek=function(ms){
+  const t=ms/1000;
+  show("q", t>=0.6);
+  show("kb", t>=1.4); show("aMcp", t>=2.0&&t<6.2); show("aFab", t>=2.0&&t<6.2);
+  show("mcp", t>=2.4&&t<6.2); show("fab", t>=4.2&&t<6.2); show("trace", t>=6.4);
+  if(t>=0.6&&t<1.4) pill("a question enters the Knowledge Base");
+  else if(t<4.2) pill("one Knowledge Base composes live MCP + Fabric sources");
+  else if(t<6.2) pill("each source builds from its real payload");
+  else if(t<8.6) pill("one retrieve call returns activity + references + sourceData");
+  else pill("");
+  typeLines(document.getElementById("mcpCode"), MCP, (t-2.4)/1.4);
+  typeLines(document.getElementById("fabCode"), FAB, (t-4.2)/1.4);
+  typeLines(document.getElementById("traceCode"), TRACE, (t-6.4)/1.8);
+  show("payoff", t>=8.8); show("foot", t>=9.4);
+};
+window.__seek(0);
+</script></body></html>
