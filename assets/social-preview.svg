@@ -1,0 +1,103 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="640" viewBox="0 0 1280 640" role="img" aria-labelledby="title desc">
+  <title id="title">Live Knowledge Sources for Azure AI Search social preview</title>
+  <desc id="desc">Social preview card for an Azure AI Search sample showing Foundry IQ live knowledge sources with MCP Server and Fabric Ontology grounding.</desc>
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#06111f"/>
+      <stop offset="0.54" stop-color="#0b1d32"/>
+      <stop offset="1" stop-color="#08251f"/>
+    </linearGradient>
+    <radialGradient id="blueGlow" cx="42%" cy="18%" r="62%">
+      <stop offset="0" stop-color="#2563eb" stop-opacity="0.35"/>
+      <stop offset="1" stop-color="#2563eb" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="greenGlow" cx="83%" cy="72%" r="52%">
+      <stop offset="0" stop-color="#10b981" stop-opacity="0.24"/>
+      <stop offset="1" stop-color="#10b981" stop-opacity="0"/>
+    </radialGradient>
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="18" stdDeviation="20" flood-color="#000000" flood-opacity="0.35"/>
+    </filter>
+    <filter id="softShadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="10" stdDeviation="12" flood-color="#000000" flood-opacity="0.28"/>
+    </filter>
+    <style>
+      .sans{font-family:"Segoe UI",Arial,sans-serif}
+      .mono{font-family:"SFMono-Regular",Consolas,Menlo,monospace}
+      .muted{fill:#a9bed6}
+      .ink{fill:#eef7ff}
+      .blue{fill:#6bb7ff}
+      .amber{fill:#f7b955}
+      .green{fill:#4ade9b}
+      .cardText{fill:#d8e7f7}
+      .tiny{font-size:19px}
+      .chip{font-size:22px;font-weight:700}
+    </style>
+  </defs>
+
+  <rect width="1280" height="640" fill="url(#bg)"/>
+  <rect width="1280" height="640" fill="url(#blueGlow)"/>
+  <rect width="1280" height="640" fill="url(#greenGlow)"/>
+  <path d="M0 536 C226 494 382 588 628 534 C842 487 1018 414 1280 456 L1280 640 L0 640 Z" fill="#0f2237" opacity="0.64"/>
+  <path d="M0 132 C172 90 310 146 484 104 C690 55 834 70 1012 120 C1118 150 1194 160 1280 132" fill="none" stroke="#1e3a5f" stroke-width="2" opacity="0.55"/>
+  <path d="M0 170 C192 122 336 188 548 142 C714 106 842 116 1012 164 C1128 197 1200 202 1280 170" fill="none" stroke="#234a75" stroke-width="2" opacity="0.36"/>
+
+  <g transform="translate(72 58)">
+    <rect x="0" y="0" width="234" height="38" rx="19" fill="#0f2742" stroke="#315a82"/>
+    <text x="22" y="25" class="sans muted" font-size="17" font-weight="700">Azure AI Search sample</text>
+  </g>
+
+  <g transform="translate(72 126)">
+    <text x="0" y="0" class="sans ink" font-size="58" font-weight="800" letter-spacing="-1.1">Live Knowledge</text>
+    <text x="0" y="68" class="sans ink" font-size="58" font-weight="800" letter-spacing="-1.1">Sources</text>
+    <text x="0" y="128" class="sans blue" font-size="36" font-weight="750">Azure AI Search + Foundry IQ</text>
+    <text x="2" y="182" class="sans muted" font-size="25">One Knowledge Base composes live MCP tools</text>
+    <text x="2" y="218" class="sans muted" font-size="25">and governed Fabric ontology semantics.</text>
+  </g>
+
+  <g transform="translate(74 476)">
+    <rect x="0" y="0" width="154" height="44" rx="22" fill="#102b47" stroke="#2b6cb0"/>
+    <text x="25" y="29" class="mono blue chip">activity</text>
+    <rect x="176" y="0" width="184" height="44" rx="22" fill="#102b47" stroke="#2b6cb0"/>
+    <text x="203" y="29" class="mono blue chip">references</text>
+    <rect x="382" y="0" width="180" height="44" rx="22" fill="#102b47" stroke="#2b6cb0"/>
+    <text x="409" y="29" class="mono blue chip">sourceData</text>
+  </g>
+
+  <g transform="translate(760 86)" filter="url(#shadow)">
+    <rect x="0" y="0" width="424" height="410" rx="30" fill="#0b1c31" stroke="#244f78" stroke-width="2"/>
+    <rect x="28" y="30" width="368" height="58" rx="17" fill="#0d2a48" stroke="#1d63a8"/>
+    <text x="54" y="66" class="mono blue" font-size="18" font-weight="800">Knowledge Base · answerSynthesis</text>
+    <text x="54" y="111" class="mono muted" font-size="17">knowledgeSources: [mcp, fabric]</text>
+
+    <line x1="212" y1="92" x2="102" y2="172" stroke="#345a7f" stroke-width="3"/>
+    <line x1="212" y1="92" x2="322" y2="172" stroke="#345a7f" stroke-width="3"/>
+
+    <g filter="url(#softShadow)">
+      <rect x="30" y="168" width="174" height="106" rx="17" fill="#122033" stroke="#d68021" stroke-width="2"/>
+      <text x="48" y="202" class="mono amber" font-size="17" font-weight="800">MCP Server KS</text>
+      <text x="48" y="231" class="mono cardText" font-size="15">kind: mcpServer</text>
+      <text x="48" y="254" class="mono cardText" font-size="15">tool at retrieve</text>
+    </g>
+
+    <g filter="url(#softShadow)">
+      <rect x="224" y="168" width="174" height="106" rx="17" fill="#0e2630" stroke="#14946f" stroke-width="2"/>
+      <text x="242" y="202" class="mono green" font-size="17" font-weight="800">Fabric Ontology</text>
+      <text x="242" y="231" class="mono cardText" font-size="15">kind: fabricOntology</text>
+      <text x="242" y="254" class="mono cardText" font-size="15">semantic grounding</text>
+    </g>
+
+    <g transform="translate(55 318)">
+      <rect x="0" y="0" width="314" height="52" rx="16" fill="#0d2a48" stroke="#1d63a8"/>
+      <text x="25" y="34" class="mono cardText" font-size="16">retrieve → inspectable trace</text>
+    </g>
+  </g>
+
+  <g transform="translate(74 560)">
+    <text x="0" y="0" class="sans muted" font-size="21">MCP Server KS</text>
+    <circle cx="158" cy="-6" r="5" fill="#f7b955"/>
+    <text x="178" y="0" class="sans muted" font-size="21">Fabric Ontology KS</text>
+    <circle cx="374" cy="-6" r="5" fill="#4ade9b"/>
+    <text x="394" y="0" class="sans muted" font-size="21">Azure AI Search 2026-05-01-preview</text>
+  </g>
+</svg>

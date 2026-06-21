@@ -11,6 +11,7 @@ Tracked assets must not contain tenant IDs, resource names, service endpoints, t
 | `deployment-modes.svg` | First-reader mode selection: `mcp-only`, `byo-fabric`, and `full`. | `README.md`, `docs/02-choose-a-pattern.md` |
 | `current-demo-flow.svg` | Short demo walkthrough: choose a path, deploy, run retrieve, inspect trace evidence, and clean up. | `docs/16-demo-walkthrough.md` |
 | `live-knowledge-sources-architecture.svg` | Architecture overview: Knowledge Base retrieval across MCP Server KS and Fabric Ontology KS. | `README.md`, `docs/01-architecture.md` |
+| `social-preview.png` / `social-preview.svg` | GitHub repository social preview image and editable SVG source. | Repository settings |
 | `demo-overview.png` | Public-safe screenshot of the Static Web Apps demo overview. | `README.md` |
 | `how-it-works.gif` | Animated How It Works explainer: one retrieve call through a Knowledge Base, MCP Server KS, Fabric Ontology KS, and trace contract. | `README.md` |
 | `trace-contract.gif` | Public-safe terminal loop showing the retrieve response contract: activity, references, and sourceData. | `README.md` |
@@ -40,10 +41,11 @@ Use this sequence for demos and blog drafts:
 1. `current-demo-flow.svg`
 2. `deployment-modes.svg`
 3. `live-knowledge-sources-architecture.svg`
-4. `how-it-works.gif` for the animated KB and Knowledge Source composition explainer
-5. `trace-contract.gif` for terminal trace contract proof
-6. `demo-overview.png` or `demo-trace.gif` for app viewer context
-7. `deploy-progress.gif` only as a sanitized deployment visual, not live deployment evidence
+4. `social-preview.png` for GitHub repository social preview
+5. `how-it-works.gif` for the animated KB and Knowledge Source composition explainer
+6. `trace-contract.gif` for terminal trace contract proof
+7. `demo-overview.png` or `demo-trace.gif` for app viewer context
+8. `deploy-progress.gif` only as a sanitized deployment visual, not live deployment evidence
 
 ## Accessibility
 
