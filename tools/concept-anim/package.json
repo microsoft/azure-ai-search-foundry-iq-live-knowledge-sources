@@ -1,0 +1,13 @@
+{
+  "name": "concept-anim",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Dev-only tool: renders the How It Works concept GIF for the README.",
+  "scripts": {
+    "capture": "node capture.js",
+    "build": "node capture.js && bash build.sh"
+  },
+  "dependencies": {
+    "puppeteer-core": "^23"
+  }
+}

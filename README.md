@@ -81,24 +81,11 @@ The app is one way to view the same trace contract. It reveals the response in s
 
 The Knowledge Base composes the live sources. Each retrieve call can hint which sources to use through `knowledgeSourceParams`, then the response exposes `activity`, `references`, and `sourceData`.
 
-```mermaid
-flowchart TB
-  subgraph KB["Knowledge Base (outputMode: answerSynthesis)"]
-    KSref["knowledgeSources: [mcp, fabric]"]
-    Model["models: azureOpenAI"]
-  end
-  subgraph MCP["MCP Server KS - kind: mcpServer"]
-    M1["mcpServerParameters.serverURL"]
-    M2["tools[].name + outputParsing"]
-  end
-  subgraph FAB["Fabric Ontology KS - kind: fabricOntology"]
-    F1["fabricOntologyParameters.workspaceId"]
-    F2["ontologyId + source authorization"]
-  end
-  KSref --> MCP
-  KSref --> FAB
-  KB -->|"retrieve(knowledgeSourceParams)"| OUT["activity + references + sourceData"]
-```
+<p align="center">
+  <img src="assets/how-it-works.gif"
+       alt="One retrieve call against a Knowledge Base composes a live MCP Server source and a Fabric Ontology source, then returns an inspectable trace contract: activity, references, sourceData."
+       width="900">
+</p>
 
 Every path follows the same loop:
 
