@@ -12,7 +12,7 @@ from engine import (
     BLUE, BLUE_DK, DIM, FAINT, GREEN, INK, ORANGE, PANEL, PANEL_HEAD, PANEL_LINE,
     RED, TERM_BG, TERM_BOX, WHITE, YELLOW, GREEN_DK, CAPTION_BG,
     Ctx, Module, W, H, MARGIN, FPS, ease, fresh_bg, draw_chrome, kr, mono,
-    rounded, terminal_window, draw_term_lines, text_width, wrap,
+    rounded, terminal_window, draw_term_lines, text_width, wrap, term_box_bottom,
 )
 
 STEP = 1.0 / FPS
@@ -23,11 +23,14 @@ STEP = 1.0 / FPS
 # ---------------------------------------------------------------------------
 
 def compose(ctx: Ctx, term_title: str, lines, cursor_last: str | None = None,
-            font_size=27, lh=38, chrome=True) -> Image.Image:
+            font_size=27, lh=38, chrome=True, box_lines: int | None = None) -> Image.Image:
     img = fresh_bg()
     if chrome:
         draw_chrome(img, ctx)
-    origin = terminal_window(img, term_title)
+    box_bottom = None
+    if box_lines is not None:
+        box_bottom = term_box_bottom(box_lines, lh=lh)
+    origin = terminal_window(img, term_title, box_bottom=box_bottom)
     end_y = draw_term_lines(img, origin, lines, font_size=font_size, lh=lh)
     if cursor_last is not None:
         # place cursor after the last rendered line
@@ -69,15 +72,19 @@ def title_card(mod: Module, ctx: Ctx, title: str, subtitle: str = "",
             ty += (104 if big else 80)
         ty += 12
         bf = kr(38, "medium")
+        by = ty
         for i, b in enumerate(bullets[:n_bul]):
-            by = ty + i * 64
+            wlines = E.wrap(bf, b, 1080) or [""]
             d.ellipse([cx - 300, by + 16, cx - 286, by + 30], fill=BLUE)
-            d.text((cx - 264, by), b, font=bf, fill=INK)
+            for wl in wlines:
+                d.text((cx - 264, by), wl, font=bf, fill=INK)
+                by += 50
+            by += 14
         if code and code_on:
             cf = mono(30, bold=True)
             cw = text_width(cf, code)
             bx0 = cx - cw // 2 - 30
-            byy = ty + max(1, len(bullets)) * 64 + 28
+            byy = by + 14
             rounded(d, [bx0, byy, cx + cw // 2 + 30, byy + 64], 12,
                     fill=(*TERM_BG, 255), outline=(*PANEL_LINE, 255), width=2)
             d.text((cx - cw // 2, byy + 14), code, font=cf, fill=GREEN)
@@ -107,6 +114,8 @@ def terminal_scene(mod: Module, ctx: Ctx, prompt: str, command: str,
     the viewer read what each part of the output means."""
     pre_lines = pre_lines or []
     promptseg = [(prompt, GREEN, True)]
+    # stable adaptive box height for the whole scene (final content size)
+    box_lines = len(pre_lines) + 1 + len(output)
 
     # ---- type the command ----
     full = command
@@ -118,12 +127,12 @@ def terminal_scene(mod: Module, ctx: Ctx, prompt: str, command: str,
         line = list(promptseg) + [(typed, INK)]
         cursor_text = prompt + typed
         img = compose(ctx, term_title, pre_lines + [line], cursor_last=cursor_text,
-                      font_size=font_size, lh=lh)
+                      font_size=font_size, lh=lh, box_lines=box_lines)
         mod.add(img, type_speed)
     # blink hold on full command
     full_cmd_line = list(promptseg) + [(full, INK)]
     img = compose(ctx, term_title, pre_lines + [full_cmd_line],
-                  cursor_last=prompt + full, font_size=font_size, lh=lh)
+                  cursor_last=prompt + full, font_size=font_size, lh=lh, box_lines=box_lines)
     mod.add(img, 0.5)
 
     # ---- reveal output ----
@@ -136,13 +145,15 @@ def terminal_scene(mod: Module, ctx: Ctx, prompt: str, command: str,
         grp = output[k:k + chunk]
         k += chunk
         shown = shown + grp
-        final_img = compose(ctx, term_title, shown, font_size=font_size, lh=lh)
+        final_img = compose(ctx, term_title, shown, font_size=font_size, lh=lh,
+                            box_lines=box_lines)
         mod.add(final_img, line_reveal)
     mod.hold(settle)
     # explanatory caption walk over the same final output
     for cap, sub in (explains or []):
         ectx = replace(ctx, caption=cap, caption_sub=sub)
-        eimg = compose(ectx, term_title, shown, font_size=font_size, lh=lh)
+        eimg = compose(ectx, term_title, shown, font_size=font_size, lh=lh,
+                       box_lines=box_lines)
         mod.add(eimg, explain_hold)
     return final_img, shown, term_title
 
@@ -159,7 +170,7 @@ def term_caption_hold(mod: Module, base_img: Image.Image, ctx: Ctx, dur: float):
 # ---------------------------------------------------------------------------
 
 def zoom_term(mod: Module, scene_result, roi, explain: str, sub: str = "",
-              tag="확대 / ZOOM", settle=2.8, font_size=27, lh=38):
+              tag=None, settle=2.8, font_size=27, lh=38):
     """Compose a chrome-free terminal base from a terminal_scene result, then zoom."""
     _final, lines, term_title = scene_result
     ctx = Ctx(1, 1, "")  # chrome disabled, so labels are irrelevant
@@ -194,10 +205,12 @@ def _lerp_rect(a, b, t):
 
 
 def zoom_callout(mod: Module, base_img: Image.Image, roi, explain: str,
-                 sub: str = "", tag="확대 / ZOOM", steps=12, settle=2.8,
+                 sub: str = "", tag=None, steps=12, settle=2.8,
                  zoom_out=False):
     full = (0, 0, W, H)
     target = _roi_169(roi)
+    if tag is None:
+        tag = E.tr("확대 / ZOOM", "ZOOM IN")
 
     def crop_at(rect):
         r = tuple(int(round(v)) for v in rect)
@@ -232,7 +245,7 @@ def zoom_callout(mod: Module, base_img: Image.Image, roi, explain: str,
         d.text((MARGIN + 36, ty), ln, font=ef, fill=INK)
         ty += 42
     if sub:
-        d.text((MARGIN + 36, ty + 2), sub, font=mono(24, bold=True), fill=ORANGE)
+        E.draw_mixed(d, (MARGIN + 36, ty + 2), sub, 24, ORANGE, bold=True)
     mod.add(final, settle)
 
     if zoom_out:
@@ -251,11 +264,12 @@ def file_view(mod: Module, ctx: Ctx, filename: str, numbered_lines: list,
               settle=2.6, font_size=24, lh=34) -> Image.Image:
     """numbered_lines: list of (text, color)."""
     highlights = highlights or set()
+    box_bottom = E.term_box_bottom(len(numbered_lines), lh=lh)
 
     def frame(n: int) -> Image.Image:
         img = fresh_bg()
         draw_chrome(img, ctx)
-        ox, oy = terminal_window(img, f"{filename}")
+        ox, oy = terminal_window(img, f"{filename}", box_bottom=box_bottom)
         d = ImageDraw.Draw(img, "RGBA")
         gutter_w = 64
         x_code = ox + gutter_w + 18
@@ -298,11 +312,12 @@ def file_view(mod: Module, ctx: Ctx, filename: str, numbered_lines: list,
 def tree_view(mod: Module, ctx: Ctx, header: str, entries: list, settle=2.8,
               reveal=True):
     """entries: list of dict(indent, name, comment, kind)."""
+    box_bottom = E.term_box_bottom(len(entries), lh=40)
 
     def frame(n: int) -> Image.Image:
         img = fresh_bg()
         draw_chrome(img, ctx)
-        ox, oy = terminal_window(img, header)
+        ox, oy = terminal_window(img, header, box_bottom=box_bottom)
         d = ImageDraw.Draw(img, "RGBA")
         f = mono(26)
         cf = mono(22)
@@ -420,7 +435,14 @@ def kv_card(mod: Module, ctx: Ctx, panel_title: str, rows: list, note: str = "",
     def frame(n: int) -> Image.Image:
         img = fresh_bg()
         draw_chrome(img, ctx)
-        ox, oy = terminal_window(img, panel_title)
+        # adaptive box: sum row heights + optional note band
+        span = 6
+        for row in rows:
+            _h = row[2] if len(row) >= 3 else ""
+            span += 80 if _h else 56
+        note_band = 92 if note else 16
+        box_bottom = min(TERM_BOX[3], TERM_BOX[1] + 52 + 24 + span + note_band)
+        ox, oy = terminal_window(img, panel_title, box_bottom=box_bottom)
         d = ImageDraw.Draw(img, "RGBA")
         kf = mono(27, bold=True)
         vf = mono(27)
@@ -438,7 +460,7 @@ def kv_card(mod: Module, ctx: Ctx, panel_title: str, rows: list, note: str = "",
             else:
                 y += 56
         if note:
-            ny = TERM_BOX[3] - 92
+            ny = box_bottom - 78
             d.line([ox, ny - 14, TERM_BOX[2] - 30, ny - 14], fill=(*PANEL_LINE, 255), width=2)
             for k, ln in enumerate(wrap(kr(26, "medium"), note, TERM_BOX[2] - ox - 60)[:2]):
                 d.text((ox, ny + k * 36), ln, font=kr(26, "medium"), fill=ORANGE)
@@ -485,9 +507,15 @@ def note_card(mod: Module, ctx: Ctx, panel_title: str, items: list,
     def frame(n: int) -> Image.Image:
         img = fresh_bg()
         draw_chrome(img, ctx)
-        ox, oy = terminal_window(img, panel_title)
-        d = ImageDraw.Draw(img, "RGBA")
         size = 30
+        # precompute content height for an adaptive box that hugs the items
+        span = 0
+        for kind, text in items:
+            wl = E.wrap_mixed(text, size, TERM_BOX[2] - (MARGIN + 34 + 56) - 50)[:2]
+            span += 40 + 38 * (max(1, min(len(wl), 2)) - 1) + 26
+        box_bottom = min(TERM_BOX[3], TERM_BOX[1] + 52 + 24 + span + 14)
+        ox, oy = terminal_window(img, panel_title, box_bottom=box_bottom)
+        d = ImageDraw.Draw(img, "RGBA")
         y = oy + 6
         for kind, text in items[:n]:
             draw_icon(d, kind, ox, y, 34)
