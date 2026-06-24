@@ -55,6 +55,19 @@ MARGIN = 84
 
 
 # ---------------------------------------------------------------------------
+# Language / i18n
+# ---------------------------------------------------------------------------
+
+LANG = "ko"  # set by build_guide_video.main(); "ko" or "en"
+
+
+def tr(ko: str, en: str) -> str:
+    """Return the string for the active language. Display strings only —
+    real command output / JSON / file contents stay identical across builds."""
+    return en if LANG == "en" else ko
+
+
+# ---------------------------------------------------------------------------
 # Fonts
 # ---------------------------------------------------------------------------
 
@@ -217,9 +230,12 @@ def draw_chrome(img: Image.Image, ctx: Ctx):
 TERM_BOX = (MARGIN, 196, W - MARGIN, 904)  # x0,y0,x1,y1
 
 
-def terminal_window(img: Image.Image, title: str = "bash", body_top_pad: int = 24):
+def terminal_window(img: Image.Image, title: str = "bash", body_top_pad: int = 24,
+                    box_bottom: int | None = None):
     d = ImageDraw.Draw(img, "RGBA")
     x0, y0, x1, y1 = TERM_BOX
+    if box_bottom is not None:
+        y1 = max(y0 + 150, min(TERM_BOX[3], int(box_bottom)))
     # shadow
     rounded(d, [x0 + 6, y0 + 10, x1 + 6, y1 + 12], 18, fill=(0, 0, 0, 70))
     rounded(d, [x0, y0, x1, y1], 18, fill=(*TERM_BG, 255), outline=(*PANEL_LINE, 255), width=2)
@@ -231,6 +247,15 @@ def terminal_window(img: Image.Image, title: str = "bash", body_top_pad: int = 2
         d.ellipse([cx - 8, y0 + 18, cx + 8, y0 + 34], fill=col)
     draw_mixed(d, (x0 + 130, y0 + 14), title, 22, DIM)
     return (x0 + 34, y0 + 52 + body_top_pad)  # content origin (x, y)
+
+
+def term_box_bottom(n_lines: int, lh: int = 38, top_pad: int = 24,
+                    bottom_pad: int = 30, min_lines: int = 5) -> int:
+    """Compute an adaptive terminal-box bottom that hugs the content height so
+    short scenes don't leave a large empty void. Clamped to the canonical box."""
+    content_top = TERM_BOX[1] + 52 + top_pad
+    n = max(n_lines, min_lines)
+    return min(TERM_BOX[3], content_top + n * lh + bottom_pad)
 
 
 def draw_term_lines(img, origin, lines, font_size=27, lh=38):
