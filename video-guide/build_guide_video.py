@@ -423,6 +423,31 @@ def m3() -> Module:
                "Default is dry-run (offline) — set RUN_LIVE_CALLS=true + keys for real Azure calls."),
        settle=2.8)
 
+    # Real footage — notebook 01 actually executed offline (jupyter nbconvert --execute)
+    ctx_nbr = Ctx(3, TOTAL, lbl_local(),
+                  caption=tr("말이 아니라 실제 실행 화면 — 노트북 01 을 dry-run 으로 돌린 결과입니다.",
+                             "Not slides — the real run: notebook 01 executed in dry-run."),
+                  caption_sub="jupyter nbconvert --execute · 01-mcp-server-ks-quickstart.ipynb")
+    S.real_hero(m, ctx_nbr, "assets/real/nb-hero.png", kind="editor",
+                win_title="Jupyter · notebooks/01-mcp-server-ks-quickstart.ipynb", settle=2.8)
+    nbtag = tr("실제 실행 · NOTEBOOK", "NOTEBOOK RUN")
+    S.real_zoom(m, Ctx(3, TOTAL, lbl_local()), "assets/real/nb-run.png",
+                explain=tr("셀 출력: 기본값 RUN_LIVE_CALLS=False → 오프라인 dry-run 으로 동작.",
+                           "Cell output: default RUN_LIVE_CALLS=False → runs as an offline dry-run."),
+                sub="MCP = learn.microsoft.com/api/mcp · tool = microsoft_docs_search",
+                tag=nbtag, settle=3.0)
+    S.real_zoom(m, Ctx(3, TOTAL, lbl_local()), "assets/real/nb-build.png",
+                explain=tr("코드가 MCP KS·KB 페이로드를 생성 — 출력 JSON 이 그대로 찍힙니다.",
+                           "The code builds the MCP KS·KB payloads — printed straight as output JSON."),
+                sub="create_mcp_server_knowledge_source() · create_knowledge_base()",
+                tag=nbtag, settle=3.0)
+    S.real_zoom(m, Ctx(3, TOTAL, lbl_local()), "assets/real/nb-dryrun.png",
+                explain=tr("핵심 분기: RUN_LIVE_CALLS 이면 실제 Azure 호출, 아니면 dry-run 출력.",
+                           "The key gate: if RUN_LIVE_CALLS → real Azure call, else dry-run output."),
+                sub=tr("RUN_LIVE_CALLS=true + 키를 넣는 순간 실제 retrieve 가 실행됩니다.",
+                       "The moment you set RUN_LIVE_CALLS=true + keys, a real retrieve runs."),
+                tag=nbtag, settle=3.4)
+
     ctx_modes = Ctx(3, TOTAL, lbl_local(),
                     caption=tr("세 모드의 차이 = retrieve 때 '어떤 라이브 소스가 답하나' 입니다.",
                                "The 3 modes differ in which live source answers at retrieve time."))
@@ -789,6 +814,43 @@ def m6() -> Module:
                              "Open the App URL — see query → KB → live sources → trace right in the browser."))
     S.webapp_showcase(m, ctx_app, settle=3.8)
 
+    # Real footage — the actual demo app (captured screenshots of the running UI)
+    apptabs = [tr("개요", "Overview"), "MCP Live", "Fabric", "Combined", tr("배포", "Deploy")]
+    ctx_appr = Ctx(6, TOTAL, lbl_verify(),
+                   caption=tr("개념도 그대로 — 이번엔 실제로 실행되는 데모 앱 화면입니다.",
+                              "The same concept map — now the actual running demo app."),
+                   caption_sub="static-app · Azure Static Web Apps + managed Functions API")
+    S.real_hero(m, ctx_appr, "assets/real/app-hero.png", kind="browser",
+                url="<app>.azurestaticapps.net", tabs=apptabs, active=0, settle=2.8)
+    apptag = tr("실제 앱 · LIVE APP", "LIVE APP")
+    S.real_zoom(m, Ctx(6, TOTAL, lbl_verify()), "assets/real/app-modes.png",
+                explain=tr("세 배포 모드(full · byo-fabric · mcp-only)를 앱에서 바로 고릅니다.",
+                           "Pick the three deploy modes (full · byo-fabric · mcp-only) in the app."),
+                sub=tr("full=제로베이스 · byo-fabric=내 Fabric · mcp-only=빠른 검증",
+                       "full=zero-base · byo-fabric=your Fabric · mcp-only=fast validation"),
+                tag=apptag, settle=3.0)
+    S.real_zoom(m, Ctx(6, TOTAL, lbl_verify()), "assets/real/app-mcp-answer.png",
+                explain=tr("MCP Live: 답변과 함께 'Source Trace' 배지가 어떤 소스가 답했는지 보여줍니다.",
+                           "MCP Live: the answer plus 'Source Trace' badges show which source answered."),
+                sub="MCP Server KS · activity · references · offline replay",
+                tag=apptag, settle=3.0)
+    S.real_zoom(m, Ctx(6, TOTAL, lbl_verify()), "assets/real/app-mcp-json.png",
+                explain=tr("activity·references = 실행된 소스와 근거 계약을 그대로 노출합니다.",
+                           "activity·references expose the exact sources-that-ran + grounding contract."),
+                sub='type:"mcpServer" · toolName:"microsoft_docs_search" · sourceData',
+                tag=apptag, settle=3.0)
+    S.real_zoom(m, Ctx(6, TOTAL, lbl_verify()), "assets/real/app-combined.png",
+                explain=tr("Combined: 한 번의 retrieve 에 fabricOntology 와 mcpServer 가 함께 보입니다.",
+                           "Combined: one retrieve shows both fabricOntology and mcpServer together."),
+                sub=tr("이것이 '라이브 통합 라우팅'의 결정적 증거입니다.",
+                       "This is the decisive proof of live unified routing."),
+                tag=apptag, settle=3.4)
+    S.real_zoom(m, Ctx(6, TOTAL, lbl_verify()), "assets/real/app-deploy.png",
+                explain=tr("Deploy 탭: 런타임 상태·요약 JSON — 설정만 보이고 시크릿은 없습니다.",
+                           "Deploy tab: runtime status + summary JSON — config only, never secrets."),
+                sub="hasSearchKey:false · reachabilityStatus · KB/KS names",
+                tag=apptag, settle=3.0)
+
     ctx2 = Ctx(6, TOTAL, lbl_verify(),
                caption=tr("데모 앱은 서버 라우트로 같은 trace 계약을 보여줍니다.",
                           "The demo app exposes the same trace contract via server routes."))
@@ -833,44 +895,6 @@ def m6() -> Module:
            "Seeing deploymentMode and the knowledgeBase name = the deploy config is alive."),
         sub='"deploymentMode": "mcp-only"   "secretsExposed": false',
         settle=2.6, font_size=23, lh=35,
-    )
-
-    # live trace via the retrieve route — the real "is it working" proof
-    ctx_ret = Ctx(6, TOTAL, lbl_verify(),
-                  caption=tr("진짜 동작 증거: retrieve 라우트가 라이브 trace 를 그대로 돌려줍니다.",
-                             "The real proof: the retrieve route returns the live trace itself."),
-                  caption_sub="POST /api/retrieve/combined")
-    res_ret = S.terminal_scene(
-        m, ctx_ret, "$ ",
-        "curl -s -X POST .../api/retrieve/combined -d '{\"query\":\"airline ops exposure\"}'",
-        lines(
-            [("Activity", BLUE, True)],
-            '  { "type": "fabricOntology", "count": 5 }',
-            '  { "type": "mcpServer", "count": 2 }',
-            [("References", BLUE, True)],
-            '  { "title": "Alpine Air — customer-care exposure",',
-            '    "hasSourceData": true }',
-            [("Source Data Preview", BLUE, True)],
-            '  "fabricAnswer": "Alpine Air ranks first by exposure…"',
-        ),
-        term_title="bash — verify retrieve", font_size=23, lh=35, settle=2.0,
-        explains=[
-            (tr("로컬 mock 에서 본 것과 같은 activity·references·sourceData 가 라이브로 옵니다.",
-                "The same activity·references·sourceData you saw in the mock — now live."),
-             tr("두 소스(fabricOntology+mcpServer)가 함께 보이면 통합 라우팅 정상.",
-                "Both sources (fabricOntology+mcpServer) together = unified routing works.")),
-            (tr("권한/네트워크 문제로 라이브가 안 되면 offlineFallback 으로 같은 형태를 반환.",
-                "If perms/network block live, offlineFallback returns the same shape."),
-             tr("그래서 데모는 어떤 환경에서도 trace 형태를 보여줄 수 있습니다.",
-                "So the demo can show the trace shape in any environment.")),
-        ],
-    )
-    S.zoom_term(
-        m, res_ret, (E.MARGIN, 250, 1500, 360),
-        tr("activity 에 fabricOntology + mcpServer 둘 다 — 라이브 통합의 결정적 증거.",
-           "fabricOntology + mcpServer both in activity — decisive proof of live unification."),
-        sub='"type":"fabricOntology"  +  "type":"mcpServer"',
-        settle=2.8, font_size=23, lh=35,
     )
 
     ctx3 = Ctx(6, TOTAL, lbl_verify(),

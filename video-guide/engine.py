@@ -300,6 +300,46 @@ def term_box_bottom(n_lines: int, lh: int = 38, top_pad: int = 24,
     return min(TERM_BOX[3], content_top + n * lh + bottom_pad)
 
 
+# ---------------------------------------------------------------------------
+# Real screenshot embedding (captured PNGs of the actual app / notebook)
+# ---------------------------------------------------------------------------
+
+_SHOT_CACHE: dict[str, Image.Image] = {}
+
+
+def load_shot(path) -> Image.Image:
+    """Load a captured PNG once and cache it (RGB)."""
+    key = str(path)
+    img = _SHOT_CACHE.get(key)
+    if img is None:
+        img = Image.open(key).convert("RGB")
+        _SHOT_CACHE[key] = img
+    return img
+
+
+def paste_contain(base: Image.Image, src, rect, *, pad: int = 0,
+                  frame=None, frame_w: int = 2, shadow: bool = True):
+    """Scale src (PIL image or path) to fit *inside* rect preserving aspect, then
+    center it. Returns the placed box (px0, py0, px1, py1)."""
+    if not isinstance(src, Image.Image):
+        src = load_shot(src)
+    x0, y0, x1, y1 = (int(v) for v in rect)
+    rw, rh = (x1 - x0 - 2 * pad), (y1 - y0 - 2 * pad)
+    sw, sh = src.size
+    scale = min(rw / sw, rh / sh)
+    nw, nh = max(1, int(round(sw * scale))), max(1, int(round(sh * scale)))
+    img = src.resize((nw, nh), Image.LANCZOS)
+    px = x0 + pad + (rw - nw) // 2
+    py = y0 + pad + (rh - nh) // 2
+    d = ImageDraw.Draw(base, "RGBA")
+    if shadow:
+        d.rectangle([px + 5, py + 8, px + nw + 5, py + nh + 8], fill=(0, 0, 0, 80))
+    base.paste(img, (px, py))
+    if frame is not None:
+        d.rectangle([px - 1, py - 1, px + nw, py + nh], outline=(*frame, 255), width=frame_w)
+    return (px, py, px + nw, py + nh)
+
+
 def draw_term_lines(img, origin, lines, font_size=27, lh=38):
     """lines: list of (text, color) or (segments) where segments is list of (text,color)."""
     d = ImageDraw.Draw(img, "RGBA")
