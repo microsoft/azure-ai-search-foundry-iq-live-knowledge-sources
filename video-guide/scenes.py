@@ -18,6 +18,15 @@ from engine import (
 
 STEP = 1.0 / FPS
 
+# Captured real-screenshot assets (the actual deployed app + executed notebook),
+# resolved relative to this file so the build works from any cwd.
+ASSET_DIR = Path(__file__).resolve().parent
+
+
+def _asset(rel: str) -> str:
+    p = Path(rel)
+    return str(p if p.is_absolute() else ASSET_DIR / p)
+
 
 # ---------------------------------------------------------------------------
 # compose: bg + chrome + terminal + lines (+ optional cursor)
@@ -622,3 +631,65 @@ def webapp_showcase(mod: Module, ctx: Ctx, settle=3.8):
         mod.add(frame(s), 0.45)
     mod.add(frame(4), 0.8)
     mod.add(frame(5), settle)
+
+
+# ---------------------------------------------------------------------------
+# Real footage: embed captured screenshots of the actual app / notebook
+# ---------------------------------------------------------------------------
+
+def _shot_rect(kind: str, box_bottom: int):
+    """Inner content rectangle of a window for pasting a real screenshot."""
+    x0, y0, x1, _ = TERM_BOX
+    head = 104 if kind == "browser" else 52  # browser: bar+tabs; editor: title bar
+    inset = 16
+    return (x0 + inset, y0 + head + inset, x1 - inset, box_bottom - inset)
+
+
+def real_hero(mod: Module, ctx: Ctx, png: str, *, kind: str = "browser",
+              url: str = "", tabs=None, active: int = 0, win_title: str = "",
+              box_bottom: int = 902, settle: float = 2.8) -> Image.Image:
+    """Establishing shot: a real screenshot framed inside a browser/editor window,
+    with the normal chapter chrome + blue caption."""
+    img = fresh_bg()
+    draw_chrome(img, ctx)
+    if kind == "browser":
+        browser_window(img, url=url, tabs=tabs or [], active=active, box_bottom=box_bottom)
+    else:
+        terminal_window(img, win_title, box_bottom=box_bottom)
+    E.paste_contain(img, _asset(png), _shot_rect(kind, box_bottom), frame=PANEL_LINE)
+    mod.add(img, settle)
+    return img
+
+
+def real_zoom(mod: Module, ctx: Ctx, png: str, *, explain: str, sub: str = "",
+              tag: str | None = None, settle: float = 3.2) -> Image.Image:
+    """Detail shot: a real screenshot crop shown large with an orange ZOOM-style
+    callout panel (mirrors zoom_callout's settle frame), for 'here is the real
+    screen and what it means' beats."""
+    if tag is None:
+        tag = E.tr("실제 화면 · LIVE", "LIVE SCREEN")
+    img = fresh_bg()
+    E.paste_contain(img, _asset(png), (MARGIN, 150, W - MARGIN, 872), frame=PANEL_LINE)
+    d = ImageDraw.Draw(img, "RGBA")
+    # orange tag chip with a small magnifier glyph
+    tf = kr(28, "bold")
+    tw = text_width(tf, tag)
+    rounded(d, [MARGIN, 56, MARGIN + tw + 70, 56 + 50], 14, fill=(*ORANGE, 235))
+    d.ellipse([MARGIN + 16, 68, MARGIN + 40, 92], outline=(40, 24, 8), width=4)
+    d.line([MARGIN + 38, 90, MARGIN + 50, 102], fill=(40, 24, 8), width=4)
+    d.text((MARGIN + 58, 64), tag, font=tf, fill=(40, 24, 8))
+    # orange explanation panel (lower third)
+    cap_top = 900
+    rounded(d, [MARGIN, cap_top, W - MARGIN, cap_top + 128], 16,
+            fill=(*CAPTION_BG, 240), outline=(*ORANGE, 255), width=2)
+    rounded(d, [MARGIN, cap_top, MARGIN + 8, cap_top + 128], 4, fill=(*ORANGE, 255))
+    ef = kr(36, "semibold")
+    body = wrap(ef, explain, W - 2 * MARGIN - 80)[:2]
+    ty = cap_top + (24 if not sub else 18)
+    for ln in body:
+        d.text((MARGIN + 36, ty), ln, font=ef, fill=INK)
+        ty += 42
+    if sub:
+        E.draw_mixed(d, (MARGIN + 36, ty + 2), sub, 24, ORANGE, bold=True)
+    mod.add(img, settle)
+    return img
