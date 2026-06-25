@@ -12,7 +12,8 @@ from engine import (
     BLUE, BLUE_DK, DIM, FAINT, GREEN, INK, ORANGE, PANEL, PANEL_HEAD, PANEL_LINE,
     RED, TERM_BG, TERM_BOX, WHITE, YELLOW, GREEN_DK, CAPTION_BG,
     Ctx, Module, W, H, MARGIN, FPS, ease, fresh_bg, draw_chrome, kr, mono,
-    rounded, terminal_window, draw_term_lines, text_width, wrap, term_box_bottom,
+    rounded, terminal_window, browser_window, draw_term_lines, text_width, wrap,
+    term_box_bottom,
 )
 
 STEP = 1.0 / FPS
@@ -73,11 +74,19 @@ def title_card(mod: Module, ctx: Ctx, title: str, subtitle: str = "",
         ty += 12
         bf = kr(38, "medium")
         by = ty
-        for i, b in enumerate(bullets[:n_bul]):
-            wlines = E.wrap(bf, b, 1080) or [""]
-            d.ellipse([cx - 300, by + 16, cx - 286, by + 30], fill=BLUE)
-            for wl in wlines:
-                d.text((cx - 264, by), wl, font=bf, fill=INK)
+        # Measure ALL bullets (not just the revealed ones) so the block stays
+        # centered under the title and the left edge does not jitter while
+        # bullets reveal one-by-one.
+        wrapped = [E.wrap(bf, b, 1180) or [""] for b in bullets]
+        maxw = max((text_width(bf, wl) for wls in wrapped for wl in wls),
+                   default=0)
+        text_x = int(cx - maxw // 2)
+        dot_x = text_x - 36
+        for i in range(n_bul):
+            for j, wl in enumerate(wrapped[i]):
+                if j == 0:
+                    d.ellipse([dot_x, by + 16, dot_x + 14, by + 30], fill=BLUE)
+                d.text((text_x, by), wl, font=bf, fill=INK)
                 by += 50
             by += 14
         if code and code_on:
@@ -533,3 +542,83 @@ def note_card(mod: Module, ctx: Ctx, panel_title: str, items: list,
         mod.hold(settle)
     else:
         mod.add(frame(total), settle)
+
+
+# ---------------------------------------------------------------------------
+# Static web app showcase: a browser-chrome panel showing what the demo app
+# actually lets you do (query -> KB -> live sources -> trace), the three
+# retrieve tabs, and the no-keys-in-the-browser security guarantee.
+# ---------------------------------------------------------------------------
+
+def webapp_showcase(mod: Module, ctx: Ctx, settle=3.8):
+    url = "https://<app>.azurestaticapps.net"
+    tabs = [E.tr("개요", "Overview"), "MCP Live", "Fabric", "Combined Trace",
+            E.tr("배포", "Deployment")]
+    flow = [
+        (E.tr("질문", "Question"), E.tr("업무·구현 프롬프트", "business / impl prompt"), BLUE),
+        ("Knowledge Base", E.tr("source hint 로 라우팅", "routes with source hints"), ORANGE),
+        (E.tr("라이브 소스", "Live Sources"), "MCP + Fabric Ontology", GREEN),
+        ("Trace", "activity · references · sourceData", BLUE),
+    ]
+    cards = [
+        ("MCP Live", E.tr("Microsoft Learn MCP KS 호출", "calls the Microsoft Learn MCP KS"), GREEN),
+        ("Fabric", E.tr("Airline Ops 온톨로지 grounding", "Airline Ops ontology grounding"), ORANGE),
+        ("Combined Trace", E.tr("업무 grounding + 문서 가이드 한 trace", "business + docs in one trace"), BLUE),
+    ]
+    chip_w, gap, ch = 372, 46, 108
+    card_w, cgap, cyh = 522, 30, 118
+    block_w = card_w * 3 + cgap * 2  # 1626 — flow row + card row + band all align
+
+    def frame(stage: int) -> Image.Image:
+        img = fresh_bg()
+        draw_chrome(img, ctx)
+        ox, oy = browser_window(img, url=url, tabs=tabs, active=1, box_bottom=752)
+        d = ImageDraw.Draw(img, "RGBA")
+        E.draw_mixed(d, (ox, oy),
+                     E.tr("한 번의 retrieve · 여러 라이브 소스 · 검증 가능한 근거",
+                          "One retrieve call · multiple live sources · inspectable evidence"),
+                     26, WHITE, bold=True)
+        # Row 1 — the live flow, revealed left to right
+        fy = oy + 56
+        for i, (t, s, col) in enumerate(flow):
+            fx = ox + i * (chip_w + gap)
+            if i <= stage:
+                rounded(d, [fx, fy, fx + chip_w, fy + ch], 14, fill=(*TERM_BG, 255),
+                        outline=(*col, 255), width=2)
+                E.draw_mixed(d, (fx + 20, fy + 16), t, 25, col, bold=True)
+                for li, ln in enumerate(E.wrap_mixed(s, 19, chip_w - 44)[:2]):
+                    E.draw_mixed(d, (fx + 20, fy + 54 + li * 26), ln, 19, DIM)
+            if i < len(flow) - 1 and i < stage:
+                axx, ayy = fx + chip_w + 9, fy + ch // 2
+                d.line([axx, ayy, axx + gap - 20, ayy], fill=(*DIM, 255), width=3)
+                d.polygon([(axx + gap - 20, ayy - 7), (axx + gap - 8, ayy),
+                           (axx + gap - 20, ayy + 7)], fill=(*DIM, 255))
+        # Row 2 — the three retrieve tabs (what each one shows)
+        cy = fy + ch + 40
+        if stage >= 4:
+            for i, (t, s, col) in enumerate(cards):
+                cx0 = ox + i * (card_w + cgap)
+                rounded(d, [cx0, cy, cx0 + card_w, cy + cyh], 14, fill=(*PANEL_HEAD, 255),
+                        outline=(*PANEL_LINE, 255), width=2)
+                rounded(d, [cx0, cy, cx0 + 8, cy + cyh], 4, fill=(*col, 255))
+                E.draw_mixed(d, (cx0 + 26, cy + 18), t, 25, col, bold=True)
+                for li, ln in enumerate(E.wrap_mixed(s, 22, card_w - 52)[:2]):
+                    E.draw_mixed(d, (cx0 + 26, cy + 56 + li * 30), ln, 22, INK)
+        # Row 3 — keys never reach the browser
+        if stage >= 5:
+            by0 = cy + cyh + 30
+            rounded(d, [ox, by0, ox + block_w, by0 + 50], 12,
+                    fill=(*GREEN_DK, 70), outline=(*GREEN, 200), width=2)
+            lx, ly = ox + 24, by0 + 16
+            d.arc([lx, ly - 5, lx + 14, ly + 7], 180, 360, fill=GREEN, width=3)
+            rounded(d, [lx, ly + 3, lx + 14, ly + 16], 2, fill=(*GREEN, 255))
+            E.draw_mixed(d, (lx + 36, by0 + 12),
+                         E.tr("브라우저는 Search/OpenAI 키를 받지 않음 — Functions API 가 대신 호출합니다.",
+                              "The browser never receives Search/OpenAI keys — the Functions API calls for it."),
+                         23, GREEN, bold=True)
+        return img
+
+    for s in range(0, 4):
+        mod.add(frame(s), 0.45)
+    mod.add(frame(4), 0.8)
+    mod.add(frame(5), settle)

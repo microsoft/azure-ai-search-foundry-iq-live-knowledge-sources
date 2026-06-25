@@ -249,6 +249,48 @@ def terminal_window(img: Image.Image, title: str = "bash", body_top_pad: int = 2
     return (x0 + 34, y0 + 52 + body_top_pad)  # content origin (x, y)
 
 
+def browser_window(img: Image.Image, url: str = "", tabs=None, active: int = 0,
+                   box_bottom: int | None = None):
+    """A browser-chrome panel (window dots + address bar + tab strip), styled to
+    match terminal_window. Returns the content origin (x, y)."""
+    d = ImageDraw.Draw(img, "RGBA")
+    x0, y0, x1, y1 = TERM_BOX
+    if box_bottom is not None:
+        y1 = max(y0 + 220, min(TERM_BOX[3], int(box_bottom)))
+    # shadow + body
+    rounded(d, [x0 + 6, y0 + 10, x1 + 6, y1 + 12], 18, fill=(0, 0, 0, 70))
+    rounded(d, [x0, y0, x1, y1], 18, fill=(*PANEL, 255), outline=(*PANEL_LINE, 255), width=2)
+    # title bar: window dots + address pill
+    rounded(d, [x0, y0, x1, y0 + 56], 18, fill=(*PANEL_HEAD, 255))
+    d.rectangle([x0, y0 + 34, x1, y0 + 56], fill=(*PANEL_HEAD, 255))
+    for i, col in enumerate([(255, 95, 86), (255, 189, 46), (39, 201, 63)]):
+        cx = x0 + 30 + i * 26
+        d.ellipse([cx - 8, y0 + 20, cx + 8, y0 + 36], fill=col)
+    ax0, ax1 = x0 + 130, x1 - 30
+    rounded(d, [ax0, y0 + 13, ax1, y0 + 45], 14, fill=(*TERM_BG, 255),
+            outline=(*PANEL_LINE, 255), width=1)
+    # tiny green padlock (https)
+    lx, ly = ax0 + 20, y0 + 24
+    d.arc([lx, ly - 4, lx + 12, ly + 6], 180, 360, fill=GREEN, width=2)
+    rounded(d, [lx, ly + 2, lx + 12, ly + 13], 2, fill=(*GREEN, 255))
+    draw_mixed(d, (lx + 28, y0 + 22), url, 20, DIM)
+    # tab strip
+    ty = y0 + 56
+    tab_h = 48
+    d.rectangle([x0, ty, x1, ty + tab_h], fill=(*PANEL, 255))
+    d.line([x0, ty + tab_h, x1, ty + tab_h], fill=(*PANEL_LINE, 255), width=2)
+    tx = x0 + 32
+    for i, t in enumerate(tabs or []):
+        tf = kr(24, "semibold" if i == active else "medium")
+        tw = text_width(tf, t)
+        d.text((tx, ty + 11), t, font=tf, fill=(WHITE if i == active else DIM))
+        if i == active:
+            rounded(d, [int(tx - 2), ty + tab_h - 6, int(tx + tw + 2), ty + tab_h - 1],
+                    2, fill=(*BLUE, 255))
+        tx += tw + 42
+    return (x0 + 34, ty + tab_h + 24)  # content origin (x, y)
+
+
 def term_box_bottom(n_lines: int, lh: int = 38, top_pad: int = 24,
                     bottom_pad: int = 30, min_lines: int = 5) -> int:
     """Compute an adaptive terminal-box bottom that hugs the content height so
