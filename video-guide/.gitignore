@@ -1,2 +1,6 @@
 __pycache__/
 *.pyc
+
+# Generated walkthrough videos — hosted on GitHub Releases (tag walkthrough-v1).
+# Rebuild locally with: python3 build_guide_video.py
+*.mp4
