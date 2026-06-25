@@ -1,6 +1,6 @@
 # Repo quickstart guide video
 
-A ~4.5 minute walkthrough that takes a viewer from `git clone` to a working
+A ~4.8 minute walkthrough that takes a viewer from `git clone` to a working
 deployment of this repo, following the path
 **clone → local mock → test → deploy → verify → cleanup**. On-screen captions,
 chapter labels, and zoom-crop callouts explain every command, file, and input
@@ -8,7 +8,7 @@ value. Built entirely from outputs that were actually run against this repo
 (offline mock, local validation gate, dry-run, generated deployment summary).
 
 The video ships in two languages with identical scene order and timing
-(8072 frames / 269 s each); only the captions, callouts, and labels differ:
+(8648 frames / 288 s each); only the captions, callouts, and labels differ:
 
 | Language | Final video | Per-chapter clips |
 | --- | --- | --- |
@@ -29,10 +29,10 @@ clips cover:
 | --- | --- | --- |
 | `01-intro.mp4` | Overview | What the repo does, the 6 modules, why use it |
 | `02-clone.mp4` | Clone & structure | Where to clone, folder tree, README / `.env.sample`, files to read |
-| `03-local.mp4` | Local mock | `python3` only, offline `inspect_retrieve_response.py`, reading the trace |
+| `03-local.mp4` | Local mock | `python3` only, offline `inspect_retrieve_response.py`, reading the trace, the two `.ipynb` notebooks, and how the three modes differ at retrieve time |
 | `04-test.mp4` | Tests | `validate-local.sh` (13/13), `unittest`, `py_compile`, `bash -n` |
-| `05-deploy.mp4` | Deploy | `deploy.sh --help`, input values, dry-run, 8-step run (guide), cleanup |
-| `06-verify.mp4` | Verify | `deployment-summary.md`, API routes, `/api/status`, live `retrieve` trace |
+| `05-deploy.mp4` | Deploy | `deploy.sh --help`, the three modes (mcp-only / byo-fabric / full) and what each uses, input values, dry-run, 8-step run (guide), cleanup |
+| `06-verify.mp4` | Verify | `deployment-summary.md`, the static web app showcase (query → KB → live sources → trace, no keys in the browser), API routes, `/api/status`, live `retrieve` trace |
 | `07-summary.mp4` | Summary | 30-second recap + deliverable paths and playback |
 
 (Korean clips live in `clips/`; English clips live in `clips/en/`.)
@@ -64,7 +64,8 @@ both builds, so the two videos line up frame-for-frame.
   for Hangul) drive the bilingual captions.
 - `scenes.py` — high-level scene builders (title cards, typed-terminal scenes
   with output reveal and explanatory caption walks, zoom callouts, file views,
-  trees, key/value cards, pipeline and note cards).
+  trees, key/value cards, pipeline and note cards, and a browser-chrome web-app
+  showcase).
 - `build_guide_video.py` — the bilingual storyboard: real command output, JSON
   colorizing, and the Korean/English captions for each chapter.
 
