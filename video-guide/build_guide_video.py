@@ -409,6 +409,34 @@ def m3() -> Module:
         settle=2.8, font_size=24, lh=34,
     )
 
+    # notebooks (.ipynb) — what you can actually do, and how the 3 modes differ
+    ctx_nb = Ctx(3, TOTAL, lbl_local(),
+                 caption=tr("같은 계약을 노트북으로 직접 실행 — 페이로드 생성부터 retrieve 까지.",
+                            "Run the same contract yourself in notebooks — from payloads to retrieve."),
+                 caption_sub="notebooks/01-mcp-server-ks-quickstart.ipynb · 02-fabric-ontology-ks-airline-ops.ipynb")
+    S.kv_card(m, ctx_nb, tr("노트북(.ipynb)으로 직접 해보기", "Do it yourself in the notebooks (.ipynb)"), [
+        ("01 · mcp-only", tr("MCP KS·KB 생성 → retrieve → trace", "build MCP KS·KB → retrieve → trace"),
+         tr("Microsoft Learn MCP 라이브 루프 검증", "validate the live Microsoft Learn MCP loop")),
+        ("02 · byo-fabric/full", tr("Fabric Ontology KS + combined KB", "Fabric Ontology KS + combined KB"),
+         tr("Airline Ops 샘플·온톨로지 기반", "built on the Airline Ops sample ontology")),
+    ], note=tr("기본은 dry-run(offline) — RUN_LIVE_CALLS=true 와 키를 넣으면 실제 Azure 호출.",
+               "Default is dry-run (offline) — set RUN_LIVE_CALLS=true + keys for real Azure calls."),
+       settle=2.8)
+
+    ctx_modes = Ctx(3, TOTAL, lbl_local(),
+                    caption=tr("세 모드의 차이 = retrieve 때 '어떤 라이브 소스가 답하나' 입니다.",
+                               "The 3 modes differ in which live source answers at retrieve time."))
+    S.note_card(m, ctx_modes, tr("세 모드는 retrieve 때 무엇이 다른가", "What differs at retrieve across the 3 modes"), [
+        ("info", tr("mcp-only — MCP(Microsoft Learn 문서) 한 소스만 응답",
+                    "mcp-only — only MCP (Microsoft Learn docs) answers")),
+        ("info", tr("byo-fabric — 내 Fabric 업무 데이터 + MCP 문서가 함께 응답",
+                    "byo-fabric — your Fabric business data + MCP docs answer together")),
+        ("info", tr("full — 자동 생성된 Fabric 샘플 + MCP 가 함께 응답",
+                    "full — auto-created Fabric sample + MCP answer together")),
+        ("ok",   tr("어느 모드든 응답 형태는 동일: activity · references · sourceData",
+                    "Same response shape in every mode: activity · references · sourceData")),
+    ], settle=3.0)
+
     ctx3 = Ctx(3, TOTAL, lbl_local(),
                caption=tr("출력에서 볼 것 / 실패하면 어디를 보는지 정리.",
                           "What to read in the output / where to look on failure."))
@@ -578,11 +606,26 @@ def m5() -> Module:
     )
     S.zoom_term(
         m, res, (E.MARGIN, 250, 1500, 320),
-        tr("세 가지 모드 — 가장 빠른 시작은 mcp-only(파브릭 없이) 입니다.",
+        tr("세 가지 모드 — 가장 빠른 시작은 mcp-only(Fabric 없이) 입니다.",
            "Three modes — the fastest start is mcp-only (no Fabric)."),
         sub="--mode  byo-fabric | mcp-only | full",
         settle=2.6, font_size=23, lh=36,
     )
+
+    # three deployment modes — what each uses + when to pick (short intro)
+    ctx_modes = Ctx(5, TOTAL, lbl_deploy(),
+                    caption=tr("세 모드는 모두 같은 Knowledge Base 위에서 동작 — 라이브 소스 구성만 다릅니다.",
+                               "All three modes share one Knowledge Base — only the live sources differ."))
+    S.kv_card(m, ctx_modes, tr("세 가지 배포 모드 — 무엇을 쓰나", "Three deploy modes — what each uses"), [
+        ("mcp-only", "Microsoft Learn MCP Server KS",
+         tr("Fabric 없이 가장 빠른 라이브 검증", "fastest live check, no Fabric")),
+        ("byo-fabric", tr("MCP + 내 Fabric Ontology KS", "MCP + your Fabric Ontology KS"),
+         tr("이미 있는 Fabric workspace·ontology 연결", "connect your existing Fabric workspace")),
+        ("full", tr("MCP + 자동 생성 Fabric Ontology KS", "MCP + auto-created Fabric Ontology KS"),
+         tr("greenfield: 샘플 Fabric 자산까지 생성", "greenfield: also creates sample Fabric")),
+    ], note=tr("공통 기반: Azure AI Search Knowledge Base + Azure OpenAI — 모드는 소스 구성만 다릅니다.",
+               "Shared base: Azure AI Search Knowledge Base + Azure OpenAI — modes differ only in sources."),
+       settle=3.0)
 
     # required inputs
     ctx_in = Ctx(5, TOTAL, lbl_deploy(),
@@ -739,6 +782,12 @@ def m6() -> Module:
                "If blank: run azd env get-values, then re-run postprovision.py"),
         settle=2.8,
     )
+
+    # static web app showcase — what the deployed demo app actually lets you do
+    ctx_app = Ctx(6, TOTAL, lbl_verify(),
+                  caption=tr("App URL 을 열면 — 질문 → KB → 라이브 소스 → trace 를 브라우저에서 직접 봅니다.",
+                             "Open the App URL — see query → KB → live sources → trace right in the browser."))
+    S.webapp_showcase(m, ctx_app, settle=3.8)
 
     ctx2 = Ctx(6, TOTAL, lbl_verify(),
                caption=tr("데모 앱은 서버 라우트로 같은 trace 계약을 보여줍니다.",
