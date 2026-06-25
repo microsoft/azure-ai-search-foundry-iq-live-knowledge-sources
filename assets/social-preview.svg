@@ -1,103 +1,135 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="1280" height="640" viewBox="0 0 1280 640" role="img" aria-labelledby="title desc">
-  <title id="title">Live Knowledge Sources for Azure AI Search social preview</title>
-  <desc id="desc">Social preview card for an Azure AI Search sample showing Foundry IQ live knowledge sources with MCP Server and Fabric Ontology grounding.</desc>
+  <title id="title">Foundry IQ Live Knowledge Sources social preview</title>
+  <desc id="desc">GitHub social preview for an Azure AI Search sample that combines MCP Server and Fabric Ontology knowledge sources through a Knowledge Base retrieve trace.</desc>
   <defs>
     <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0" stop-color="#06111f"/>
-      <stop offset="0.54" stop-color="#0b1d32"/>
-      <stop offset="1" stop-color="#08251f"/>
+      <stop offset="0" stop-color="#06101f"/>
+      <stop offset="0.48" stop-color="#0a1b30"/>
+      <stop offset="1" stop-color="#08281f"/>
     </linearGradient>
-    <radialGradient id="blueGlow" cx="42%" cy="18%" r="62%">
-      <stop offset="0" stop-color="#2563eb" stop-opacity="0.35"/>
-      <stop offset="1" stop-color="#2563eb" stop-opacity="0"/>
+    <linearGradient id="heroText" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#f4f9ff"/>
+      <stop offset="0.62" stop-color="#d9ecff"/>
+      <stop offset="1" stop-color="#8bd2ff"/>
+    </linearGradient>
+    <linearGradient id="card" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#0f2b49"/>
+      <stop offset="1" stop-color="#081827"/>
+    </linearGradient>
+    <linearGradient id="trace" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#59b8ff"/>
+      <stop offset="0.48" stop-color="#8bd2ff"/>
+      <stop offset="1" stop-color="#48e6a0"/>
+    </linearGradient>
+    <radialGradient id="glowBlue" cx="36%" cy="28%" r="58%">
+      <stop offset="0" stop-color="#1d72ff" stop-opacity="0.35"/>
+      <stop offset="1" stop-color="#1d72ff" stop-opacity="0"/>
     </radialGradient>
-    <radialGradient id="greenGlow" cx="83%" cy="72%" r="52%">
-      <stop offset="0" stop-color="#10b981" stop-opacity="0.24"/>
-      <stop offset="1" stop-color="#10b981" stop-opacity="0"/>
+    <radialGradient id="glowGreen" cx="85%" cy="70%" r="55%">
+      <stop offset="0" stop-color="#19c787" stop-opacity="0.28"/>
+      <stop offset="1" stop-color="#19c787" stop-opacity="0"/>
     </radialGradient>
-    <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
-      <feDropShadow dx="0" dy="18" stdDeviation="20" flood-color="#000000" flood-opacity="0.35"/>
+    <pattern id="grid" width="42" height="42" patternUnits="userSpaceOnUse">
+      <path d="M42 0H0V42" fill="none" stroke="#1e3b5c" stroke-width="1" opacity="0.28"/>
+    </pattern>
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="150%">
+      <feDropShadow dx="0" dy="20" stdDeviation="22" flood-color="#000000" flood-opacity="0.36"/>
     </filter>
-    <filter id="softShadow" x="-20%" y="-20%" width="140%" height="140%">
-      <feDropShadow dx="0" dy="10" stdDeviation="12" flood-color="#000000" flood-opacity="0.28"/>
+    <filter id="soft" x="-20%" y="-20%" width="140%" height="150%">
+      <feDropShadow dx="0" dy="10" stdDeviation="12" flood-color="#000000" flood-opacity="0.26"/>
     </filter>
     <style>
-      .sans{font-family:"Segoe UI",Arial,sans-serif}
-      .mono{font-family:"SFMono-Regular",Consolas,Menlo,monospace}
-      .muted{fill:#a9bed6}
-      .ink{fill:#eef7ff}
-      .blue{fill:#6bb7ff}
-      .amber{fill:#f7b955}
-      .green{fill:#4ade9b}
-      .cardText{fill:#d8e7f7}
-      .tiny{font-size:19px}
-      .chip{font-size:22px;font-weight:700}
+      .sans { font-family: "Segoe UI", Arial, sans-serif; }
+      .mono { font-family: "SFMono-Regular", Consolas, Menlo, monospace; }
+      .ink { fill: #eef7ff; }
+      .muted { fill: #a8bdd4; }
+      .subtle { fill: #7190ae; }
+      .blue { fill: #74c2ff; }
+      .green { fill: #57e6a3; }
+      .amber { fill: #ffc25a; }
+      .panelText { fill: #d9e8f7; }
     </style>
   </defs>
 
   <rect width="1280" height="640" fill="url(#bg)"/>
-  <rect width="1280" height="640" fill="url(#blueGlow)"/>
-  <rect width="1280" height="640" fill="url(#greenGlow)"/>
-  <path d="M0 536 C226 494 382 588 628 534 C842 487 1018 414 1280 456 L1280 640 L0 640 Z" fill="#0f2237" opacity="0.64"/>
-  <path d="M0 132 C172 90 310 146 484 104 C690 55 834 70 1012 120 C1118 150 1194 160 1280 132" fill="none" stroke="#1e3a5f" stroke-width="2" opacity="0.55"/>
-  <path d="M0 170 C192 122 336 188 548 142 C714 106 842 116 1012 164 C1128 197 1200 202 1280 170" fill="none" stroke="#234a75" stroke-width="2" opacity="0.36"/>
+  <rect width="1280" height="640" fill="url(#grid)" opacity="0.45"/>
+  <rect width="1280" height="640" fill="url(#glowBlue)"/>
+  <rect width="1280" height="640" fill="url(#glowGreen)"/>
+  <path d="M0 516C176 486 334 562 534 530C738 498 922 404 1280 454V640H0Z" fill="#0d2438" opacity="0.7"/>
+  <path d="M0 145C150 104 312 139 470 107C650 72 811 67 972 111C1092 144 1192 154 1280 127" fill="none" stroke="#26537e" stroke-width="2" opacity="0.52"/>
+  <path d="M0 188C158 144 326 180 492 148C668 114 812 122 974 165C1102 199 1194 200 1280 170" fill="none" stroke="#1e456d" stroke-width="2" opacity="0.42"/>
 
-  <g transform="translate(72 58)">
-    <rect x="0" y="0" width="234" height="38" rx="19" fill="#0f2742" stroke="#315a82"/>
-    <text x="22" y="25" class="sans muted" font-size="17" font-weight="700">Azure AI Search sample</text>
+  <g transform="translate(70 52)">
+    <rect x="0" y="0" width="322" height="38" rx="19" fill="#102a47" stroke="#35628b"/>
+    <text x="22" y="25" class="sans muted" font-size="17" font-weight="750">Azure AI Search sample accelerator</text>
   </g>
 
-  <g transform="translate(72 126)">
-    <text x="0" y="0" class="sans ink" font-size="58" font-weight="800" letter-spacing="-1.1">Live Knowledge</text>
-    <text x="0" y="68" class="sans ink" font-size="58" font-weight="800" letter-spacing="-1.1">Sources</text>
-    <text x="0" y="128" class="sans blue" font-size="36" font-weight="750">Azure AI Search + Foundry IQ</text>
-    <text x="2" y="182" class="sans muted" font-size="25">One Knowledge Base composes live MCP tools</text>
-    <text x="2" y="218" class="sans muted" font-size="25">and governed Fabric ontology semantics.</text>
+  <g transform="translate(70 130)">
+    <text x="0" y="0" class="sans" font-size="50" font-weight="850" fill="url(#heroText)">Foundry IQ</text>
+    <text x="0" y="64" class="sans" font-size="68" font-weight="850" fill="url(#heroText)">Live Knowledge</text>
+    <text x="0" y="137" class="sans" font-size="68" font-weight="850" fill="url(#heroText)">Sources</text>
+    <text x="2" y="201" class="sans blue" font-size="30" font-weight="780">MCP Server KS + Fabric Ontology KS</text>
+    <text x="2" y="252" class="sans muted" font-size="25">One retrieve call composes live tools and</text>
+    <text x="2" y="287" class="sans muted" font-size="25">governed business semantics into traceable evidence.</text>
   </g>
 
-  <g transform="translate(74 476)">
-    <rect x="0" y="0" width="154" height="44" rx="22" fill="#102b47" stroke="#2b6cb0"/>
-    <text x="25" y="29" class="mono blue chip">activity</text>
-    <rect x="176" y="0" width="184" height="44" rx="22" fill="#102b47" stroke="#2b6cb0"/>
-    <text x="203" y="29" class="mono blue chip">references</text>
-    <rect x="382" y="0" width="180" height="44" rx="22" fill="#102b47" stroke="#2b6cb0"/>
-    <text x="409" y="29" class="mono blue chip">sourceData</text>
+  <g transform="translate(72 475)">
+    <rect x="0" y="0" width="612" height="70" rx="24" fill="#081827" stroke="#2b5d8a" opacity="0.95"/>
+    <rect x="22" y="18" width="140" height="34" rx="17" fill="#102b47" stroke="#2878bd"/>
+    <text x="47" y="41" class="mono blue" font-size="18" font-weight="850">activity</text>
+    <rect x="184" y="18" width="166" height="34" rx="17" fill="#102b47" stroke="#2878bd"/>
+    <text x="209" y="41" class="mono blue" font-size="18" font-weight="850">references</text>
+    <rect x="372" y="18" width="168" height="34" rx="17" fill="#102b47" stroke="#2878bd"/>
+    <text x="397" y="41" class="mono blue" font-size="18" font-weight="850">sourceData</text>
+    <path d="M562 35H592" stroke="url(#trace)" stroke-width="4" stroke-linecap="round"/>
   </g>
 
-  <g transform="translate(760 86)" filter="url(#shadow)">
-    <rect x="0" y="0" width="424" height="410" rx="30" fill="#0b1c31" stroke="#244f78" stroke-width="2"/>
-    <rect x="28" y="30" width="368" height="58" rx="17" fill="#0d2a48" stroke="#1d63a8"/>
-    <text x="54" y="66" class="mono blue" font-size="18" font-weight="800">Knowledge Base · answerSynthesis</text>
-    <text x="54" y="111" class="mono muted" font-size="17">knowledgeSources: [mcp, fabric]</text>
+  <g transform="translate(73 573)">
+    <circle cx="6" cy="-7" r="5" fill="#ffc25a"/>
+    <text x="20" y="0" class="sans muted" font-size="20">mcpServer</text>
+    <circle cx="142" cy="-7" r="5" fill="#57e6a3"/>
+    <text x="156" y="0" class="sans muted" font-size="20">fabricOntology</text>
+    <circle cx="335" cy="-7" r="5" fill="#74c2ff"/>
+    <text x="349" y="0" class="sans muted" font-size="20">Knowledge Base Retrieve API</text>
+    <rect x="0" y="26" width="340" height="31" rx="15.5" fill="#081827" stroke="#214a72" opacity="0.9"/>
+    <text x="22" y="47" class="mono subtle" font-size="14" font-weight="800">mcp-only · byo-fabric · full</text>
+  </g>
 
-    <line x1="212" y1="92" x2="102" y2="172" stroke="#345a7f" stroke-width="3"/>
-    <line x1="212" y1="92" x2="322" y2="172" stroke="#345a7f" stroke-width="3"/>
+  <g transform="translate(752 70)" filter="url(#shadow)">
+    <rect x="0" y="0" width="458" height="486" rx="34" fill="#071827" stroke="#2b5d8a" stroke-width="2"/>
 
-    <g filter="url(#softShadow)">
-      <rect x="30" y="168" width="174" height="106" rx="17" fill="#122033" stroke="#d68021" stroke-width="2"/>
-      <text x="48" y="202" class="mono amber" font-size="17" font-weight="800">MCP Server KS</text>
-      <text x="48" y="231" class="mono cardText" font-size="15">kind: mcpServer</text>
-      <text x="48" y="254" class="mono cardText" font-size="15">tool at retrieve</text>
+    <g transform="translate(42 30)">
+      <rect x="0" y="0" width="374" height="55" rx="18" fill="#0d2d4d" stroke="#2f83ca"/>
+      <text x="26" y="34" class="mono blue" font-size="18" font-weight="850">POST /knowledgebases/retrieve</text>
     </g>
 
-    <g filter="url(#softShadow)">
-      <rect x="224" y="168" width="174" height="106" rx="17" fill="#0e2630" stroke="#14946f" stroke-width="2"/>
-      <text x="242" y="202" class="mono green" font-size="17" font-weight="800">Fabric Ontology</text>
-      <text x="242" y="231" class="mono cardText" font-size="15">kind: fabricOntology</text>
-      <text x="242" y="254" class="mono cardText" font-size="15">semantic grounding</text>
+    <g transform="translate(66 121)">
+      <rect x="0" y="0" width="326" height="76" rx="21" fill="url(#card)" stroke="#3b89c8"/>
+      <text x="29" y="31" class="mono ink" font-size="20" font-weight="850">Knowledge Base</text>
+      <text x="29" y="56" class="mono muted" font-size="14">knowledgeSources: [mcp, fabric]</text>
     </g>
 
-    <g transform="translate(55 318)">
-      <rect x="0" y="0" width="314" height="52" rx="16" fill="#0d2a48" stroke="#1d63a8"/>
-      <text x="25" y="34" class="mono cardText" font-size="16">retrieve → inspectable trace</text>
-    </g>
-  </g>
+    <path d="M229 197L129 263" stroke="#315d86" stroke-width="3" stroke-linecap="round"/>
+    <path d="M229 197L329 263" stroke="#315d86" stroke-width="3" stroke-linecap="round"/>
 
-  <g transform="translate(74 560)">
-    <text x="0" y="0" class="sans muted" font-size="21">MCP Server KS</text>
-    <circle cx="158" cy="-6" r="5" fill="#f7b955"/>
-    <text x="178" y="0" class="sans muted" font-size="21">Fabric Ontology KS</text>
-    <circle cx="374" cy="-6" r="5" fill="#4ade9b"/>
-    <text x="394" y="0" class="sans muted" font-size="21">Azure AI Search 2026-05-01-preview</text>
+    <g transform="translate(34 258)" filter="url(#soft)">
+      <rect x="0" y="0" width="184" height="116" rx="20" fill="#111f31" stroke="#f59e22" stroke-width="2"/>
+      <text x="21" y="34" class="mono amber" font-size="18" font-weight="850">MCP Server KS</text>
+      <text x="21" y="66" class="mono panelText" font-size="15">kind: mcpServer</text>
+      <text x="21" y="91" class="mono subtle" font-size="14">live tool output</text>
+    </g>
+
+    <g transform="translate(232 258)" filter="url(#soft)">
+      <rect x="0" y="0" width="192" height="116" rx="20" fill="#0c2630" stroke="#13b981" stroke-width="2"/>
+      <text x="22" y="34" class="mono green" font-size="16" font-weight="850">Fabric Ontology</text>
+      <text x="22" y="66" class="mono panelText" font-size="13">kind: fabricOntology</text>
+      <text x="22" y="91" class="mono subtle" font-size="13">semantic grounding</text>
+    </g>
+
+    <g transform="translate(58 410)">
+      <rect x="0" y="0" width="342" height="50" rx="18" fill="#0d2d4d" stroke="#2f83ca"/>
+      <path d="M29 25H75" stroke="url(#trace)" stroke-width="4" stroke-linecap="round"/>
+      <text x="96" y="31" class="mono ink" font-size="17" font-weight="850">retrieve trace contract</text>
+    </g>
   </g>
 </svg>
