@@ -13,11 +13,11 @@
 
 One Knowledge Base can route a query to live MCP tools and governed Fabric semantics, then return the trace contract: `activity`, `references`, and `sourceData`.
 
-> 🎬 **New here?** Watch the ~5 min quickstart walkthrough (`clone → local mock → test → deploy → verify → cleanup`),
-> now with real footage of the demo app and an executed notebook:
-> [`video-guide/repo-quickstart-guide.mp4`](video-guide/repo-quickstart-guide.mp4) (Korean) ·
-> [`video-guide/repo-quickstart-guide-en.mp4`](video-guide/repo-quickstart-guide-en.mp4) (English).
-> See [`video-guide/README.md`](video-guide/README.md) for chapters and how to rebuild.
+**🎬 See it in action** — a ~5 min walkthrough from `git clone` to a verified deployment (`clone → local mock → test → deploy → verify → cleanup`), with real footage of the demo app and an executed notebook (offline / dry-run — no secrets on screen).
+
+[![Watch the full walkthrough — KO & EN](https://img.shields.io/badge/%E2%96%B6_Watch_the_full_walkthrough-KO_%26_EN-d29922?style=for-the-badge)](../../releases/tag/walkthrough-v1)
+
+⬇ Download the full video: [English (5 min)](../../releases/download/walkthrough-v1/repo-quickstart-guide-en.mp4) · [한국어 (5분)](../../releases/download/walkthrough-v1/repo-quickstart-guide.mp4) &nbsp;·&nbsp; [chapters &amp; how to rebuild](video-guide/README.md)
 
 ## What This Is
 
