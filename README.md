@@ -13,7 +13,8 @@
 
 One Knowledge Base can route a query to live MCP tools and governed Fabric semantics, then return the trace contract: `activity`, `references`, and `sourceData`.
 
-> 🎬 **New here?** Watch the ~5 min quickstart walkthrough (`clone → local mock → test → deploy → verify → cleanup`):
+> 🎬 **New here?** Watch the ~5 min quickstart walkthrough (`clone → local mock → test → deploy → verify → cleanup`),
+> now with real footage of the demo app and an executed notebook:
 > [`video-guide/repo-quickstart-guide.mp4`](video-guide/repo-quickstart-guide.mp4) (Korean) ·
 > [`video-guide/repo-quickstart-guide-en.mp4`](video-guide/repo-quickstart-guide-en.mp4) (English).
 > See [`video-guide/README.md`](video-guide/README.md) for chapters and how to rebuild.
