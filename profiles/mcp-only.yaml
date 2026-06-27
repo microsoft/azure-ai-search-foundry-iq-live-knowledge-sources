@@ -1,0 +1,31 @@
+profile: mcp-only
+purpose: Deploy the fastest live Azure AI Search MCP Server Knowledge Source validation path without Fabric dependencies.
+default: false
+required_tools:
+  - bash
+  - python3
+  - azd
+  - az
+  - node
+  - npm
+required_env: []
+optional_env:
+  - DEPLOYMENT_MODE
+  - MCP_KNOWLEDGE_SOURCE_NAME
+  - MCP_SERVER_URL
+  - MCP_TOOL_NAME
+  - AZURE_OPENAI_ENDPOINT
+  - AZURE_OPENAI_DEPLOYMENT_ID
+  - AZURE_OPENAI_MODEL_NAME
+commands:
+  - bash scripts/deploy.sh --mode mcp-only --env-name liveks-mcp --location eastus
+  - bash scripts/e2e-test.sh --mode mcp-only --env-name liveks-mcp-e2e --location eastus --cleanup
+success_criteria:
+  - MCP Server Knowledge Source is created.
+  - MCP-only Knowledge Base retrieve returns mcpServer activity or references.
+  - Demo app loads without exposing Search admin keys or Azure OpenAI keys in browser code.
+forbidden_outputs:
+  - Do not commit generated deployment summaries or logs.
+  - Do not publish Search endpoints or resource names from private runs unless sanitized.
+cleanup:
+  - bash scripts/destroy.sh --env-name liveks-mcp --yes
