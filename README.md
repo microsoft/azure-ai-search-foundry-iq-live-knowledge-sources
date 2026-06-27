@@ -15,9 +15,9 @@ One Knowledge Base can route a query to live MCP tools and governed Fabric seman
 
 **🎬 See it in action** — a ~5 min walkthrough from `git clone` to a verified deployment (`clone → local mock → test → deploy → verify → cleanup`), with real footage of the demo app and an executed notebook (offline / dry-run — no secrets on screen).
 
-[![Watch the full walkthrough — KO & EN](https://img.shields.io/badge/%E2%96%B6_Watch_the_full_walkthrough-KO_%26_EN-d29922?style=for-the-badge)](../../releases/tag/walkthrough-v1)
+[![Watch the full walkthrough — KO & EN](https://img.shields.io/badge/%E2%96%B6_Watch_the_full_walkthrough-KO_%26_EN-d29922?style=for-the-badge)](https://github.com/microsoft/azure-ai-search-foundry-iq-live-knowledge-sources/releases/tag/walkthrough-v1)
 
-⬇ Download the full video: [English (5 min)](../../releases/download/walkthrough-v1/repo-quickstart-guide-en.mp4) · [한국어 (5분)](../../releases/download/walkthrough-v1/repo-quickstart-guide.mp4) &nbsp;·&nbsp; [chapters &amp; how to rebuild](video-guide/README.md)
+⬇ Download the full video: [English (5 min)](https://github.com/microsoft/azure-ai-search-foundry-iq-live-knowledge-sources/releases/download/walkthrough-v1/repo-quickstart-guide-en.mp4) · [한국어 (5분)](https://github.com/microsoft/azure-ai-search-foundry-iq-live-knowledge-sources/releases/download/walkthrough-v1/repo-quickstart-guide.mp4) &nbsp;·&nbsp; [chapters &amp; how to rebuild](video-guide/README.md)
 
 ## What This Is
 
@@ -126,6 +126,7 @@ Generated deployment logs and reports stay under ignored paths such as `.deploym
 | Run the one-command deployment | [One-Command Demo Deployment](docs/10-one-command-deployment.md) |
 | Connect existing Fabric assets | [Fabric Live BYO Validation](docs/11-fabric-live-byo-validation.md) |
 | Inspect offline traces | [Offline Replay](docs/09-offline-replay.md) |
+| Review repo and agent boundaries | [Repo Boundaries](docs/12-repo-boundaries.md) |
 | Troubleshoot setup and retrieve issues | [Troubleshooting](docs/07-troubleshooting.md) |
 | Check common questions | [FAQ](docs/19-faq.md) |
 | Review preview caveats | [Public Preview Limitations](docs/13-public-preview-limitations.md) |
@@ -163,6 +164,13 @@ bash scripts/validate-local.sh
 ```
 
 The gate checks shell syntax, Python compile, Python contract tests, notebook JSON, Markdown links, sample hygiene, payload generation, offline responses, no-secret scan, Static Web Apps build, and Bicep build when Azure CLI is available.
+
+For agent-readable preflight, run:
+
+```bash
+python3 tools/doctor.py --format json
+python3 tools/validate.py --profile offline --format json
+```
 
 ## Security Notes
 
