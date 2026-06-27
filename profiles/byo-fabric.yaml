@@ -1,0 +1,33 @@
+profile: byo-fabric
+purpose: Connect an existing Fabric ontology to Azure AI Search and validate live Fabric Ontology Knowledge Source behavior.
+default: false
+required_tools:
+  - bash
+  - python3
+  - azd
+  - az
+  - node
+  - npm
+required_env:
+  - FABRIC_WORKSPACE_ID
+  - FABRIC_ONTOLOGY_ID
+optional_env:
+  - DEPLOYMENT_MODE
+  - EXTERNAL_TENANT_ID
+  - EXTERNAL_AZURE_CONFIG_DIR
+  - FABRIC_USER_SEARCH_TOKEN
+  - MCP_KNOWLEDGE_SOURCE_NAME
+  - FABRIC_ONTOLOGY_KNOWLEDGE_SOURCE_NAME
+commands:
+  - bash scripts/deploy.sh --mode byo-fabric --env-file .env.external.local --env-name liveks-byo --location eastus
+  - bash scripts/e2e-test.sh --mode byo-fabric --env-file .env.external.local --env-name liveks-byo-e2e --location eastus --cleanup
+success_criteria:
+  - Fabric Ontology Knowledge Source is created from provided workspace and ontology IDs.
+  - Combined Knowledge Base references MCP and Fabric sources.
+  - Live Fabric retrieve works only when delegated source authorization is provided.
+forbidden_outputs:
+  - Do not commit Fabric workspace IDs, ontology IDs, tenant IDs, or source authorization tokens.
+  - Do not document internal Fabric ontology authoring steps.
+  - Do not publish raw live retrieve responses from tenant runs.
+cleanup:
+  - bash scripts/destroy.sh --env-file .env.external.local --env-name liveks-byo --yes

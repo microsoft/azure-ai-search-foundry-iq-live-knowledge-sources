@@ -151,6 +151,8 @@ run_required "Python compile" \
     scripts/check-sample-hygiene.py \
     scripts/maintainers/summarize-e2e-evidence.py \
     scripts/maintainers/extract-review-evidence.py \
+    tools/validate.py \
+    tools/doctor.py \
     samples/python/build_payloads.py \
     samples/python/inspect_retrieve_response.py
 

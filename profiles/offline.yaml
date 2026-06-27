@@ -1,0 +1,21 @@
+profile: offline
+purpose: Inspect checked-in retrieve responses without Azure resources, tenant access, or live MCP/Fabric calls.
+default: true
+required_tools:
+  - python3
+required_env: []
+optional_env:
+  - RUN_LIVE_CALLS
+commands:
+  - python3 samples/python/inspect_retrieve_response.py samples/responses/mcp-retrieve.sample.json
+  - python3 samples/python/inspect_retrieve_response.py samples/responses/fabric-airline-ops-retrieve.sample.json
+  - python3 samples/python/inspect_retrieve_response.py samples/responses/combined-airline-ops-retrieve.sample.json
+success_criteria:
+  - MCP sample shows mcpServer activity and sourceData.
+  - Fabric sample shows fabricOntology activity and sourceData.
+  - Combined sample shows both Fabric and MCP evidence.
+forbidden_outputs:
+  - Do not treat offline replay as proof of live Fabric retrieval.
+  - Do not replace synthetic samples with tenant or customer data.
+cleanup:
+  - No cleanup required.
