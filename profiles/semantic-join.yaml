@@ -1,0 +1,22 @@
+profile: semantic-join
+purpose: Validate the walkthrough story where Fabric Ontology KS supplies governed operational data and MCP Server KS supplies implementation guidance.
+default: false
+required_tools:
+  - python3
+required_env: []
+optional_env:
+  - FABRIC_WORKSPACE_ID
+  - FABRIC_ONTOLOGY_ID
+  - FABRIC_USER_SEARCH_TOKEN
+commands:
+  - python3 samples/python/inspect_retrieve_response.py samples/responses/combined-airline-ops-retrieve.sample.json
+  - python3 tools/validate.py --profile semantic-join --format json
+success_criteria:
+  - Combined offline trace includes Fabric and MCP Knowledge Source names.
+  - Fabric sourceData includes Airline Ops customer-care exposure rows.
+  - MCP sourceData includes Microsoft Learn-style guidance evidence.
+forbidden_outputs:
+  - Do not claim deterministic live multi-source routing from offline replay alone.
+  - Do not make the whole repo look like an airline-only sample.
+cleanup:
+  - No cleanup required for offline semantic join inspection.
