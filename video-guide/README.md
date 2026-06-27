@@ -12,17 +12,17 @@ offline / dry-run mode — no secrets on screen).
 The video ships in two languages with identical scene order and timing
 (9085 frames / 303 s each); only the captions, callouts, and labels differ. The
 rendered MP4s are **hosted on GitHub Releases** (tag
-[`walkthrough-v1`](../../releases/tag/walkthrough-v1)) to keep the repository
+[`walkthrough-v1`](https://github.com/microsoft/azure-ai-search-foundry-iq-live-knowledge-sources/releases/tag/walkthrough-v1)) to keep the repository
 lean — this folder holds only the source that rebuilds them.
 
 | Language | Final video (release asset) | Per-chapter source |
 | --- | --- | --- |
-| 🇰🇷 Korean  | [`repo-quickstart-guide.mp4`](../../releases/download/walkthrough-v1/repo-quickstart-guide.mp4) | rebuilt from `build_guide_video.py` |
-| 🇬🇧 English | [`repo-quickstart-guide-en.mp4`](../../releases/download/walkthrough-v1/repo-quickstart-guide-en.mp4) | rebuilt from `build_guide_video.py --lang en` |
+| 🇰🇷 Korean  | [`repo-quickstart-guide.mp4`](https://github.com/microsoft/azure-ai-search-foundry-iq-live-knowledge-sources/releases/download/walkthrough-v1/repo-quickstart-guide.mp4) | rebuilt from `build_guide_video.py` |
+| 🇬🇧 English | [`repo-quickstart-guide-en.mp4`](https://github.com/microsoft/azure-ai-search-foundry-iq-live-knowledge-sources/releases/download/walkthrough-v1/repo-quickstart-guide-en.mp4) | rebuilt from `build_guide_video.py --lang en` |
 
 ## Play it
 
-Download a final video from the [`walkthrough-v1` release](../../releases/tag/walkthrough-v1),
+Download a final video from the [`walkthrough-v1` release](https://github.com/microsoft/azure-ai-search-foundry-iq-live-knowledge-sources/releases/tag/walkthrough-v1),
 or rebuild locally (see **Rebuild it** below) and open the result:
 
 ```bash
