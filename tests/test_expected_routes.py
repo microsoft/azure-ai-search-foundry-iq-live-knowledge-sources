@@ -29,6 +29,8 @@ def parse_scalar(value):
     value = value.strip()
     if value in {"true", "false"}:
         return value == "true"
+    if value.isdigit():
+        return int(value)
     if len(value) >= 2 and value[0] == value[-1] == '"':
         return value[1:-1]
     return value
@@ -93,6 +95,26 @@ def stringify_source_data(response):
     return "\n".join(parts)
 
 
+def count_source_data_references(response):
+    return sum(1 for reference in response.get("references", []) if "sourceData" in reference)
+
+
+def count_fabric_source_data_rows(response):
+    row_count = 0
+    for reference in response.get("references", []):
+        source_data = reference.get("sourceData")
+        if not isinstance(source_data, dict):
+            continue
+
+        raw_data = source_data.get("fabricRawData")
+        if isinstance(raw_data, str):
+            lines = [line for line in raw_data.splitlines() if line.strip()]
+            row_count += max(0, len(lines) - 1)
+        elif isinstance(raw_data, list):
+            row_count += len(raw_data)
+    return row_count
+
+
 class ExpectedRoutesContractTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
@@ -138,6 +160,29 @@ class ExpectedRoutesContractTests(unittest.TestCase):
 
                 if route.get("expected_reference_source_data"):
                     self.assertTrue(any("sourceData" in item for item in references))
+
+                expected_activity_source = route.get("expected_activity_source")
+                if expected_activity_source:
+                    activity_types = {item.get("type") for item in activity}
+                    self.assertIn(expected_activity_source, activity_types)
+
+                expected_activity_sources = route.get("expected_activity_sources")
+                if expected_activity_sources:
+                    activity_types = {item.get("type") for item in activity}
+                    for activity_source in expected_activity_sources:
+                        self.assertIn(activity_source, activity_types)
+
+                expected_min_references = route.get("expected_min_references")
+                if expected_min_references is not None:
+                    self.assertGreaterEqual(len(references), expected_min_references)
+
+                expected_min_source_data_references = route.get("expected_min_source_data_references")
+                if expected_min_source_data_references is not None:
+                    self.assertGreaterEqual(count_source_data_references(response), expected_min_source_data_references)
+
+                expected_source_data_rows = route.get("expected_source_data_rows")
+                if expected_source_data_rows is not None:
+                    self.assertEqual(count_fabric_source_data_rows(response), expected_source_data_rows)
 
                 expected_hint = route.get("expected_answer_hint")
                 if expected_hint:
