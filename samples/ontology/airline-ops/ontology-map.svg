@@ -24,7 +24,7 @@
 
   <rect x="0" y="0" width="1240" height="800" fill="#ffffff"/>
   <text class="heading" x="48" y="56">Airline Ops Ontology Relationship Map</text>
-  <text class="sub" x="48" y="84">Same shape as samples/ontology/airline-ops/ontology-contract.yaml · nodes join on the labelled key fields</text>
+  <text class="sub" x="48" y="84">Domain example for Fabric Ontology Knowledge Source demos - nodes join on the labelled key fields</text>
 
   <!-- ===== Operational core nodes (indigo) ===== -->
   <g filter="url(#sh)">
