@@ -87,7 +87,7 @@ Map equivalent entities to the sample contract:
 The most important validation measures are:
 
 - delayed flights over 15 minutes: `10`
-- customer-care exposure: `15800`
+- customer-care exposure: `15,800 USD`
 - controllable delay events: `7`
 - top customer-care exposure carrier: `Alpine Air`
 
@@ -122,7 +122,7 @@ Use these questions after the ontology is mapped:
 
 | Question | Expected check |
 | --- | --- |
-| Which airlines have the highest customer-care exposure this month? | Alpine Air is first; total exposure is 15800 USD. |
+| Which airlines have the highest customer-care exposure this month? | Alpine Air is first; total exposure is 15,800 USD. |
 | Which routes have the most delayed flights over 15 minutes? | The answer joins Route and Flight. |
 | Which delay categories are controllable and driving customer-care exposure? | Crew availability, maintenance, and late aircraft appear as controllable drivers. |
 | Which passenger-care policies or regulation topics explain the risk for the highest-exposure airline? | The answer joins through delay category and trigger condition, not real airline names. |
