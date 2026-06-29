@@ -1,4 +1,4 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="1240" height="800" viewBox="0 0 1240 800" role="img" aria-labelledby="title desc">
+<svg xmlns="http://www.w3.org/2000/svg" width="1240" height="760" viewBox="0 20 1240 760" role="img" aria-labelledby="title desc">
   <title id="title">Airline Ops ontology relationship map</title>
   <desc id="desc">Visual map of Airline, Flight, Route, Airport, DelayEvent, PassengerCarePolicy, and RegulatoryReference and the join fields linking them in the Airline Ops sample ontology.</desc>
   <defs>
@@ -27,6 +27,7 @@
   <text class="sub" x="48" y="84">Domain example for Fabric Ontology Knowledge Source demos - nodes join on the labelled key fields</text>
 
   <!-- ===== Operational core nodes (indigo) ===== -->
+  <g transform="translate(0 -40)">
   <g filter="url(#sh)">
     <rect class="card" x="60" y="300" width="200" height="96" rx="14"/>
     <rect x="60" y="300" width="6" height="96" rx="3" fill="#2563eb"/>
@@ -116,6 +117,7 @@
   <polygon class="arrow-sem" points="980,608 966,601 966,615"/>
   <rect class="elabel" x="828" y="630" width="124" height="26" rx="8"/>
   <text class="efield" x="890" y="647" text-anchor="middle">delay_category</text>
+  </g>
 
   <!-- ===== legend ===== -->
   <rect x="48" y="700" width="1144" height="64" rx="12" fill="#f8fafc" stroke="#e2e8f0" stroke-width="1.2"/>
