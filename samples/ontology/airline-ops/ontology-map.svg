@@ -95,13 +95,13 @@
 
   <path class="edge" d="M820,180 L966,180"/>
   <polygon class="arrow" points="980,180 966,173 966,187"/>
-  <rect class="elabel" x="838" y="150" width="124" height="26" rx="8"/>
-  <text class="efield" x="900" y="167" text-anchor="middle">origin_airport</text>
+  <rect class="elabel" x="814" y="150" width="162" height="26" rx="8"/>
+  <text class="efield" x="895" y="167" text-anchor="middle">origin_airport_code</text>
 
   <path class="edge" d="M820,216 L966,216"/>
   <polygon class="arrow" points="980,216 966,209 966,223"/>
-  <rect class="elabel" x="826" y="232" width="148" height="26" rx="8"/>
-  <text class="efield" x="900" y="249" text-anchor="middle">destination_airport</text>
+  <rect class="elabel" x="792" y="232" width="184" height="26" rx="8"/>
+  <text class="efield" x="884" y="249" text-anchor="middle">destination_airport_code</text>
 
   <path class="edge" d="M540,374 L580,374 L580,512 L606,512"/>
   <polygon class="arrow" points="620,512 606,505 606,519"/>
@@ -121,10 +121,11 @@
 
   <!-- ===== legend ===== -->
   <rect x="48" y="700" width="1144" height="64" rx="12" fill="#f8fafc" stroke="#e2e8f0" stroke-width="1.2"/>
-  <rect x="70" y="724" width="16" height="16" rx="4" fill="#2563eb"/><text class="leg" x="94" y="737">Operational core</text>
-  <rect x="230" y="724" width="16" height="16" rx="4" fill="#d97706"/><text class="leg" x="254" y="737">Disruption</text>
-  <rect x="356" y="724" width="16" height="16" rx="4" fill="#16a34a"/><text class="leg" x="380" y="737">Care policy</text>
-  <rect x="486" y="724" width="16" height="16" rx="4" fill="#0ea5e9"/><text class="leg" x="510" y="737">Regulatory</text>
-  <line x1="640" y1="732" x2="690" y2="732" stroke="#94a3b8" stroke-width="2.6"/><text class="leg" x="700" y="737">Key relationship</text>
-  <line x1="860" y1="732" x2="910" y2="732" stroke="#a78bfa" stroke-width="2.6" stroke-dasharray="7 6"/><text class="leg" x="920" y="737">Semantic join (delay_category)</text>
+  <rect x="70" y="714" width="16" height="16" rx="4" fill="#2563eb"/><text class="leg" x="94" y="727">Operational core</text>
+  <rect x="230" y="714" width="16" height="16" rx="4" fill="#d97706"/><text class="leg" x="254" y="727">Disruption</text>
+  <rect x="356" y="714" width="16" height="16" rx="4" fill="#16a34a"/><text class="leg" x="380" y="727">Care policy</text>
+  <rect x="486" y="714" width="16" height="16" rx="4" fill="#0ea5e9"/><text class="leg" x="510" y="727">Regulatory</text>
+  <rect class="keypill" x="70" y="738" width="92" height="20" rx="10"/><text class="key" x="116" y="752" text-anchor="middle">key: field</text><text class="leg" x="174" y="753">Primary key</text>
+  <line x1="340" y1="748" x2="390" y2="748" stroke="#94a3b8" stroke-width="2.6"/><text class="leg" x="400" y="753">Key relationship</text>
+  <line x1="600" y1="748" x2="650" y2="748" stroke="#a78bfa" stroke-width="2.6" stroke-dasharray="7 6"/><text class="leg" x="660" y="753">Semantic join (delay_category)</text>
 </svg>
