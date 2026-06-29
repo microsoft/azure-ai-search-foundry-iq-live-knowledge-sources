@@ -79,7 +79,9 @@ The default app is Azure Static Web Apps plus a managed Functions API. Browser c
 
 Safety defaults: the deploy wrapper validates templates, payloads, and the app before provisioning; failed deployments print cleanup commands; generated Fabric IDs are saved for teardown; and `destroy.sh` continues to `azd down --purge --force` even if Fabric cleanup needs manual follow-up.
 
-![Demo overview](assets/demo-overview.png)
+<p align="center">
+  <img src="https://raw.githubusercontent.com/microsoft/azure-ai-search-foundry-iq-live-knowledge-sources/main/assets/demo-overview.png" alt="Demo overview" width="900">
+</p>
 
 The app is one way to view the same trace contract. It reveals the response in stages so you can explain query, answer, source activity, references, and source data during a demo. For a longer presenter flow, see [Demo Walkthrough](docs/16-demo-walkthrough.md).
 
