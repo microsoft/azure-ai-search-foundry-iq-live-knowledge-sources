@@ -7,10 +7,10 @@ The main repo README stays focused on Azure AI Search Knowledge Sources and Foun
 | File | Purpose |
 | --- | --- |
 | [ontology-map.svg](ontology-map.svg) | Visual relationship map for the Airline Ops ontology, including key fields and semantic joins. |
-| [ontology-map.png](ontology-map.png) | PNG rendering of the same map for tools that do not render SVG inline. |
+| [ontology-map.png](ontology-map.png) | PNG rendering for environments that block inline SVG, such as some GitHub views, Notion, or PDF export. |
 | [ontology-contract.yaml](ontology-contract.yaml) | Entity, relationship, measure, synonym, and validation-question contract for the Airline Ops sample. |
 
-![Airline Ops ontology relationship map](ontology-map.svg)
+![Airline Ops ontology map: blue operational core, amber DelayEvent, green/cyan governance; dashed purple lines show delay_category semantic joins](ontology-map.svg)
 
 ## Reading The SVG
 
