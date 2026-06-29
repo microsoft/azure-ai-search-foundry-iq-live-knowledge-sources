@@ -122,6 +122,7 @@ Generated deployment logs and reports stay under ignored paths such as `.deploym
 | Understand the architecture | [Architecture](docs/01-architecture.md) |
 | Learn MCP Server KS | [MCP Server Knowledge Source](docs/03-mcp-server-ks.md) |
 | Learn Fabric Ontology KS | [Fabric Ontology Knowledge Source](docs/04-fabric-ontology-ks.md) |
+| Inspect the Airline Ops ontology map | [Airline Ops Ontology Contract](samples/ontology/airline-ops/README.md) |
 | Understand combined routing | [Combined Knowledge Base Routing](docs/05-combined-kb-routing.md) |
 | Run the one-command deployment | [One-Command Demo Deployment](docs/10-one-command-deployment.md) |
 | Connect existing Fabric assets | [Fabric Live BYO Validation](docs/11-fabric-live-byo-validation.md) |
