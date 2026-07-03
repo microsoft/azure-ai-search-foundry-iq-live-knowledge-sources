@@ -57,6 +57,8 @@ bash scripts/validate-local.sh
 
 For the full sequence, follow the [Execution Runbook](runbook.md).
 
+For a lightweight first checkout, use `git clone --depth 1`. Walkthrough videos belong on GitHub Releases, and generated app builds, dependency folders, deployment reports, screenshots, and scratch output should stay out of git.
+
 ## Success Signals
 
 | Path | Good first signal |
