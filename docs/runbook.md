@@ -61,6 +61,12 @@ azd env set FABRIC_LOCATION westus3
 
 If you run the REST samples manually instead of the deployment wrapper, use `.env.sample` as the full variable catalog. Manual REST calls need live values such as `SEARCH_ENDPOINT`, `SEARCH_API_KEY`, `AZURE_OPENAI_ENDPOINT`, `AZURE_OPENAI_DEPLOYMENT_ID`, and `AZURE_OPENAI_MODEL_NAME`. The one-command deployment writes the corresponding Azure runtime values into `azd` and app settings for you.
 
+This flow follows the official Azure Developer CLI environment model:
+
+- [`azd` environment variables](https://learn.microsoft.com/en-us/azure/developer/azure-developer-cli/manage-environment-variables) are scoped to named environments and stored under `.azure/<environment-name>/.env`.
+- The [`azd` environment FAQ](https://learn.microsoft.com/en-us/azure/developer/azure-developer-cli/environment-variables-faq) distinguishes `azd` environment values from shell/system environment variables.
+- For sensitive values, use [`azd env set-secret`](https://learn.microsoft.com/en-us/azure/developer/azure-developer-cli/environment-secrets) and Key Vault when moving beyond local sample validation.
+
 Validate a profile before a live run:
 
 ```bash
