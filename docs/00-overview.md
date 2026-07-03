@@ -78,7 +78,7 @@ The final answer alone is not enough. Good evidence shows which source was selec
 
 ## First-Time Reader Path
 
-1. Read the mode selector in [README.md](../README.md).
+1. Read the mode selector in [Live Knowledge Sources Manual](index.md).
 2. Use [Choose a Pattern](02-choose-a-pattern.md) to pick a path, and keep [FAQ](19-faq.md) open for mode, auth, offline replay, and endpoint questions.
 3. Run:
 
