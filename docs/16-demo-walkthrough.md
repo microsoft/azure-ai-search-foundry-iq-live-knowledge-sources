@@ -2,7 +2,7 @@
 
 Use this walkthrough when you need to show the repo in a workshop or short live demo.
 
-![Current demo flow](../assets/current-demo-flow.svg)
+![Current demo flow](assets/current-demo-flow.svg)
 
 The goal is to explain the sample through one simple loop:
 
@@ -49,7 +49,7 @@ Do not use private tenant values, generated deployment reports, or local screens
 
 ### 1. Start With The Mode Selector
 
-Open [README.md](../README.md) and show the three paths:
+Open [Live Knowledge Sources Manual](index.md) and show the three paths:
 
 | Mode | Message |
 | --- | --- |
@@ -174,10 +174,10 @@ Use this order when the audience needs to reproduce the sample:
 2. Read [Choose a Pattern](02-choose-a-pattern.md).
 3. Deploy `mcp-only`.
 4. Open the app and run the MCP query.
-5. Open [MCP Server KS Quickstart](../notebooks/01-mcp-server-ks-quickstart.ipynb).
+5. Open `notebooks/01-mcp-server-ks-quickstart.ipynb`.
 6. Inspect `samples/rest/01-create-mcp-server-ks.http` through `samples/rest/03-retrieve-mcp.http`.
 7. Move to `byo-fabric` when Fabric workspace and ontology IDs are ready.
-8. Open [Fabric Ontology KS Airline Ops](../notebooks/02-fabric-ontology-ks-airline-ops.ipynb).
+8. Open `notebooks/02-fabric-ontology-ks-airline-ops.ipynb`.
 9. Run the combined route and inspect source evidence.
 
 ## Demo Safety Checks

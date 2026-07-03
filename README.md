@@ -9,6 +9,8 @@
 ![Python 3.11](https://img.shields.io/badge/python-3.11-blue)
 ![PRs welcome](https://img.shields.io/badge/PRs-welcome-brightgreen)
 
+[Read the execution manual](docs/index.md) for the GitHub Pages-ready runbook: choose a path, run commands, inspect success signals, and follow the official Microsoft Learn links.
+
 ![Architecture](assets/live-knowledge-sources-architecture.svg)
 
 One Knowledge Base can route a query to live MCP tools and governed Fabric semantics, then return the trace contract: `activity`, `references`, and `sourceData`.

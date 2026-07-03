@@ -23,6 +23,7 @@ __pycache__/
 node_modules/
 dist/
 build/
+_site/
 coverage/
 .next/
 out/

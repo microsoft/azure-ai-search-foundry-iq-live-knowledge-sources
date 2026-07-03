@@ -1,6 +1,6 @@
 # Architecture
 
-![Live Knowledge Sources Architecture](../assets/live-knowledge-sources-architecture.svg)
+![Live Knowledge Sources Architecture](assets/live-knowledge-sources-architecture.svg)
 
 The architecture centers on Azure AI Search Knowledge Base retrieval. A user question enters through a Foundry Agent or custom app, the Knowledge Base calls configured live Knowledge Sources at retrieval time, and the response includes answer text plus inspectable `activity`, `references`, and `sourceData`.
 

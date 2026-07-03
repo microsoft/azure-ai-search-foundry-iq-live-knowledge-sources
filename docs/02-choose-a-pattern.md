@@ -1,6 +1,6 @@
 # Choose a Pattern
 
-![Deployment modes](../assets/deployment-modes.svg)
+![Deployment modes](assets/deployment-modes.svg)
 
 | Pattern | Use when | Start here |
 | --- | --- | --- |
