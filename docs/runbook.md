@@ -6,15 +6,24 @@ Use this sequence when you want to move from zero setup to a live validation pat
 
 Start by choosing the smallest profile that matches the run. Do not put real tenant IDs, workspace IDs, ontology IDs, tokens, endpoints, or keys in committed files.
 
-Copy examples into ignored local files only when you need to override defaults:
+For deployment, prefer the Azure Developer CLI environment as the primary configuration store. The wrapper sets common values for you from flags such as `--mode`, `--env-name`, `--location`, and `--fabric-location`, then writes them into the selected `azd` environment.
+
+Use ignored local env files only for values that are awkward or unsafe to type repeatedly, such as BYO Fabric IDs, an external tenant profile, or optional private-demo tokens:
 
 ```bash
-cp env/mcp-only.env.example .env.mcp.local
 cp env/byo-fabric.env.example .env.external.local
-cp .env.sample .env.full.local
 ```
 
-The deployment wrapper also accepts command-line values such as `--mode`, `--env-name`, `--location`, and `--fabric-location`. Those flags are usually clearer than putting every value into an env file.
+Use `.env.sample` as the complete variable catalog for manual REST testing and notebooks. Do not copy it into a committed file.
+
+When you want to set values directly in the selected `azd` environment, use:
+
+```bash
+azd env new liveks-mcp
+azd env set DEPLOYMENT_MODE mcp-only
+azd env set AZURE_LOCATION eastus
+azd env get-values
+```
 
 | Mode | Required env values before deploy | Usually optional | Recommended command shape |
 | --- | --- | --- | --- |
@@ -39,14 +48,15 @@ EXTERNAL_AZURE_CONFIG_DIR=~/.azure-foundry-iq-ext
 FABRIC_USER_SEARCH_TOKEN=<raw-user-token-for-https://search.azure.com/.default>
 ```
 
-For `full`, prefer command-line flags for the mode and regions. Add a local env file only when you need explicit Fabric capacity settings:
+For `full`, prefer command-line flags for the mode and regions. Use `azd env set` only when you need explicit Fabric capacity settings:
 
 ```bash
-DEPLOYMENT_MODE=full
-FABRIC_CAPACITY_MODE=create
-FABRIC_CAPACITY_SKU=F2
-FABRIC_CAPACITY_ADMIN=<admin-upn-for-created-capacity>
-FABRIC_LOCATION=westus3
+azd env new liveks-full
+azd env set DEPLOYMENT_MODE full
+azd env set FABRIC_CAPACITY_MODE create
+azd env set FABRIC_CAPACITY_SKU F2
+azd env set FABRIC_CAPACITY_ADMIN <admin-upn-for-created-capacity>
+azd env set FABRIC_LOCATION westus3
 ```
 
 If you run the REST samples manually instead of the deployment wrapper, use `.env.sample` as the full variable catalog. Manual REST calls need live values such as `SEARCH_ENDPOINT`, `SEARCH_API_KEY`, `AZURE_OPENAI_ENDPOINT`, `AZURE_OPENAI_DEPLOYMENT_ID`, and `AZURE_OPENAI_MODEL_NAME`. The one-command deployment writes the corresponding Azure runtime values into `azd` and app settings for you.
