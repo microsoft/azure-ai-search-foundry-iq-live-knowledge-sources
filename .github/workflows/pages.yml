@@ -19,6 +19,8 @@ on:
 
 permissions:
   contents: read
+  pages: write
+  id-token: write
 
 concurrency:
   group: pages
@@ -41,7 +43,10 @@ jobs:
           cache-dependency-path: requirements-docs.txt
 
       - name: Configure GitHub Pages
+        if: github.event_name != 'pull_request'
         uses: actions/configure-pages@v5
+        with:
+          enablement: true
 
       - name: Install documentation dependencies
         run: python -m pip install -r requirements-docs.txt
@@ -50,6 +55,7 @@ jobs:
         run: mkdocs build --strict --site-dir _site
 
       - name: Upload Pages artifact
+        if: github.event_name != 'pull_request'
         uses: actions/upload-pages-artifact@v5
         with:
           path: _site
