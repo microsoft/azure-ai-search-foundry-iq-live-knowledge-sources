@@ -9,6 +9,8 @@
 ![Python 3.11](https://img.shields.io/badge/python-3.11-blue)
 ![PRs welcome](https://img.shields.io/badge/PRs-welcome-brightgreen)
 
+[Read the execution manual](docs/index.md) for the GitHub Pages-ready runbook: choose a path, run commands, inspect success signals, and follow the official Microsoft Learn links.
+
 ![Architecture](assets/live-knowledge-sources-architecture.svg)
 
 One Knowledge Base can route a query to live MCP tools and governed Fabric semantics, then return the trace contract: `activity`, `references`, and `sourceData`.
@@ -60,6 +62,14 @@ python3 samples/python/inspect_retrieve_response.py samples/responses/combined-a
 ![Retrieve trace contract](assets/trace-contract.gif)
 
 It shows Fabric Ontology activity for Airline Ops business data and MCP Server activity for Microsoft Learn implementation guidance.
+
+For a lightweight first checkout, use a shallow clone:
+
+```bash
+git clone --depth 1 https://github.com/microsoft/azure-ai-search-foundry-iq-live-knowledge-sources.git
+```
+
+Walkthrough videos are hosted on GitHub Releases instead of git. Keep large recordings, generated app builds, deployment reports, and dependency folders out of source control so forks and fresh clones stay small.
 
 ## Deploy A Live Demo
 
@@ -166,7 +176,13 @@ Run this before opening a PR or sharing the sample broadly:
 bash scripts/validate-local.sh
 ```
 
-The gate checks shell syntax, Python compile, Python contract tests, notebook JSON, Markdown links, sample hygiene, payload generation, offline responses, no-secret scan, Static Web Apps build, and Bicep build when Azure CLI is available.
+The gate checks shell syntax, Python compile, Python contract tests, notebook JSON, Markdown links, sample hygiene, repository size hygiene, payload generation, offline responses, no-secret scan, Static Web Apps build, and Bicep build when Azure CLI is available.
+
+To check repository weight before a PR, run:
+
+```bash
+python3 scripts/check-repo-size.py
+```
 
 For agent-readable preflight, run:
 

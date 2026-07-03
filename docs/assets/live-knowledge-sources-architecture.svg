@@ -1,0 +1,87 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="900" viewBox="0 0 1600 900" role="img" aria-labelledby="title desc">
+  <title id="title">Azure AI Search Foundry IQ Live Knowledge Sources architecture</title>
+  <desc id="desc">Architecture diagram showing a user question flowing through an app or agent into an Azure AI Search Knowledge Base, which calls MCP Server and Fabric Ontology Knowledge Sources at retrieval time and returns activity, references, and source data.</desc>
+  <rect x="0" y="0" width="1600" height="900" fill="#F8FAFC"/>
+  <text x="80" y="72" font-family="Arial, sans-serif" font-size="42" font-weight="700" fill="#0F172A">Live Knowledge Sources Architecture</text>
+  <text x="82" y="110" font-family="Arial, sans-serif" font-size="20" fill="#475569">Azure AI Search Knowledge Base calling live MCP tools and governed Fabric ontology semantics at retrieval time</text>
+  <rect x="1194" y="48" width="306" height="44" rx="22" fill="#FFFFFF" stroke="#CBD5E1" stroke-width="2"/>
+  <text x="1222" y="76" font-family="Arial, sans-serif" font-size="15" font-weight="700" fill="#0F172A">2026-05-01-preview APIs</text>
+
+  <rect x="78" y="180" width="260" height="188" rx="18" fill="#FFFFFF" stroke="#CBD5E1" stroke-width="2"/>
+  <text x="108" y="224" font-family="Arial, sans-serif" font-size="24" font-weight="700" fill="#111827">User question</text>
+  <text x="108" y="258" font-family="Arial, sans-serif" font-size="17" fill="#475569">Enterprise user asks a</text>
+  <text x="108" y="282" font-family="Arial, sans-serif" font-size="17" fill="#475569">business or implementation</text>
+  <text x="108" y="306" font-family="Arial, sans-serif" font-size="17" fill="#475569">question.</text>
+  <rect x="108" y="326" width="178" height="32" rx="16" fill="#EFF6FF" stroke="#BFDBFE"/>
+  <text x="132" y="348" font-family="Consolas, monospace" font-size="14" font-weight="700" fill="#1D4ED8">App or Agent</text>
+
+  <rect x="460" y="156" width="392" height="236" rx="22" fill="#FFFFFF" stroke="#2563EB" stroke-width="4"/>
+  <rect x="460" y="156" width="392" height="72" rx="22" fill="#2563EB"/>
+  <rect x="460" y="206" width="392" height="22" fill="#2563EB"/>
+  <text x="496" y="201" font-family="Arial, sans-serif" font-size="27" font-weight="700" fill="#FFFFFF">Azure AI Search</text>
+  <text x="496" y="258" font-family="Arial, sans-serif" font-size="24" font-weight="700" fill="#111827">Knowledge Base retrieve</text>
+  <text x="496" y="292" font-family="Arial, sans-serif" font-size="17" fill="#475569">Routes across configured Knowledge</text>
+  <text x="496" y="316" font-family="Arial, sans-serif" font-size="17" fill="#475569">Sources and returns evidence.</text>
+  <rect x="496" y="340" width="132" height="32" rx="16" fill="#DBEAFE" stroke="#93C5FD"/>
+  <text x="520" y="362" font-family="Consolas, monospace" font-size="14" font-weight="700" fill="#1D4ED8">activity</text>
+  <rect x="642" y="340" width="132" height="32" rx="16" fill="#DBEAFE" stroke="#93C5FD"/>
+  <text x="662" y="362" font-family="Consolas, monospace" font-size="14" font-weight="700" fill="#1D4ED8">references</text>
+
+  <rect x="980" y="134" width="468" height="174" rx="20" fill="#FFFFFF" stroke="#F97316" stroke-width="4"/>
+  <text x="1018" y="181" font-family="Arial, sans-serif" font-size="25" font-weight="700" fill="#111827">MCP Server Knowledge Source</text>
+  <text x="1018" y="213" font-family="Arial, sans-serif" font-size="17" fill="#475569">Calls explicitly allowed tools on a remote</text>
+  <text x="1018" y="237" font-family="Arial, sans-serif" font-size="17" fill="#475569">HTTPS MCP-compatible endpoint.</text>
+  <rect x="1018" y="257" width="194" height="32" rx="16" fill="#FFEDD5" stroke="#FDBA74"/>
+  <text x="1040" y="279" font-family="Consolas, monospace" font-size="14" font-weight="700" fill="#9A3412">microsoft_docs_search</text>
+  <rect x="1230" y="257" width="152" height="32" rx="16" fill="#FFEDD5" stroke="#FDBA74"/>
+  <text x="1254" y="279" font-family="Consolas, monospace" font-size="14" font-weight="700" fill="#9A3412">outputParsing</text>
+
+  <rect x="980" y="424" width="468" height="170" rx="20" fill="#FFFFFF" stroke="#16A34A" stroke-width="4"/>
+  <text x="1018" y="470" font-family="Arial, sans-serif" font-size="25" font-weight="700" fill="#111827">Fabric Ontology Knowledge Source</text>
+  <text x="1018" y="502" font-family="Arial, sans-serif" font-size="17" fill="#475569">Queries governed Fabric ontology entities</text>
+  <text x="1018" y="526" font-family="Arial, sans-serif" font-size="17" fill="#475569">and relationships with source authorization.</text>
+  <rect x="1018" y="550" width="160" height="32" rx="16" fill="#DCFCE7" stroke="#86EFAC"/>
+  <text x="1042" y="572" font-family="Consolas, monospace" font-size="14" font-weight="700" fill="#166534">workspaceId</text>
+  <rect x="1192" y="550" width="144" height="32" rx="16" fill="#DCFCE7" stroke="#86EFAC"/>
+  <text x="1216" y="572" font-family="Consolas, monospace" font-size="14" font-weight="700" fill="#166534">ontologyId</text>
+
+  <rect x="1038" y="330" width="180" height="64" rx="16" fill="#FFF7ED" stroke="#FDBA74" stroke-width="2"/>
+  <text x="1062" y="358" font-family="Arial, sans-serif" font-size="18" font-weight="700" fill="#111827">Microsoft Learn</text>
+  <text x="1062" y="380" font-family="Arial, sans-serif" font-size="14" fill="#9A3412">public MCP endpoint</text>
+
+  <rect x="1262" y="646" width="180" height="66" rx="16" fill="#F0FDF4" stroke="#86EFAC" stroke-width="2"/>
+  <text x="1286" y="674" font-family="Arial, sans-serif" font-size="18" font-weight="700" fill="#111827">Microsoft Fabric</text>
+  <text x="1286" y="696" font-family="Arial, sans-serif" font-size="14" fill="#166534">ontology + GraphModel</text>
+
+  <rect x="458" y="622" width="396" height="128" rx="20" fill="#FFFFFF" stroke="#CBD5E1" stroke-width="2"/>
+  <text x="496" y="664" font-family="Arial, sans-serif" font-size="24" font-weight="700" fill="#111827">Grounded response</text>
+  <text x="496" y="696" font-family="Arial, sans-serif" font-size="17" fill="#475569">Answer text plus inspectable evidence:</text>
+  <text x="496" y="726" font-family="Consolas, monospace" font-size="15" font-weight="700" fill="#334155">activity + references + sourceData</text>
+
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#334155"/>
+    </marker>
+    <marker id="arrowBlue" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#2563EB"/>
+    </marker>
+  </defs>
+  <line x1="338" y1="274" x2="448" y2="274" stroke="#334155" stroke-width="3" marker-end="url(#arrow)"/>
+  <line x1="852" y1="248" x2="970" y2="220" stroke="#F97316" stroke-width="3" marker-end="url(#arrow)"/>
+  <line x1="852" y1="326" x2="970" y2="498" stroke="#16A34A" stroke-width="3" marker-end="url(#arrow)"/>
+  <line x1="1130" y1="308" x2="1130" y2="322" stroke="#F97316" stroke-width="3" stroke-dasharray="7 7" marker-end="url(#arrow)"/>
+  <line x1="1352" y1="594" x2="1352" y2="638" stroke="#16A34A" stroke-width="3" stroke-dasharray="7 7" marker-end="url(#arrow)"/>
+  <line x1="656" y1="392" x2="656" y2="612" stroke="#2563EB" stroke-width="3" marker-end="url(#arrowBlue)"/>
+
+  <rect x="80" y="800" width="1420" height="56" rx="22" fill="#FFFFFF" stroke="#CBD5E1" stroke-width="2"/>
+  <text x="112" y="835" font-family="Arial, sans-serif" font-size="18" font-weight="700" fill="#0F172A">Demo modes:</text>
+  <rect x="238" y="812" width="170" height="32" rx="16" fill="#FFEDD5" stroke="#FDBA74"/>
+  <text x="270" y="834" font-family="Consolas, monospace" font-size="14" font-weight="700" fill="#9A3412">mcp-only</text>
+  <text x="426" y="834" font-family="Arial, sans-serif" font-size="15" fill="#475569">fast MCP validation</text>
+  <rect x="618" y="812" width="170" height="32" rx="16" fill="#DCFCE7" stroke="#86EFAC"/>
+  <text x="640" y="834" font-family="Consolas, monospace" font-size="14" font-weight="700" fill="#166534">byo-fabric</text>
+  <text x="806" y="834" font-family="Arial, sans-serif" font-size="15" fill="#475569">existing Fabric ontology</text>
+  <rect x="1050" y="812" width="132" height="32" rx="16" fill="#DBEAFE" stroke="#93C5FD"/>
+  <text x="1090" y="834" font-family="Consolas, monospace" font-size="14" font-weight="700" fill="#1D4ED8">full</text>
+  <text x="1200" y="834" font-family="Arial, sans-serif" font-size="15" fill="#475569">greenfield Fabric + Azure deployment</text>
+</svg>
