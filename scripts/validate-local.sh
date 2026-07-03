@@ -22,6 +22,7 @@ This script performs local, non-deploying validation:
 - GitHub issue template structure check
 - Markdown local link check
 - sample packaging hygiene check
+- repository size check
 - sample payload generation
 - offline response inspection
 - no-secret scan
@@ -73,7 +74,7 @@ fi
 
 cd "$(git rev-parse --show-toplevel)"
 
-TOTAL=13
+TOTAL=14
 CURRENT=0
 FAILED=false
 SKIPPED=0
@@ -149,6 +150,7 @@ run_required "Python compile" \
     scripts/fabric-provision.py \
     scripts/fabric-destroy.py \
     scripts/check-sample-hygiene.py \
+    scripts/check-repo-size.py \
     scripts/maintainers/summarize-e2e-evidence.py \
     scripts/maintainers/extract-review-evidence.py \
     tools/validate.py \
@@ -192,6 +194,9 @@ run_required "Markdown links" \
 
 run_required "Sample packaging hygiene" \
   python3 scripts/check-sample-hygiene.py
+
+run_required "Repository size hygiene" \
+  python3 scripts/check-repo-size.py
 
 run_required "Sample payload generation" \
   bash -c 'python3 samples/python/build_payloads.py >/dev/null'
