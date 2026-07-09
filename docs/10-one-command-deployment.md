@@ -211,6 +211,42 @@ bash scripts/destroy.sh --env-name liveks-dev
 
 The cleanup wrapper first attempts generated Fabric cleanup, then calls `azd down --purge --force` even if Fabric cleanup needs manual follow-up. Fabric provisioning writes non-secret partial summaries under `deployments/<env>/` so `fabric-destroy.py` can find generated capacity/workspace assets after a failed `full` run.
 
+## Orphaned Fabric Capacity Cleanup
+
+Use this when a previous `full` or Fabric greenfield test left a Fabric capacity resource group behind, especially in an external tenant where portal scope and local CLI scope can differ.
+
+First verify the resource group is a generated sample artifact:
+
+```bash
+az account set --subscription <subscription-id-or-name>
+az group show --name <fabric-capacity-resource-group>
+az resource list \
+  --resource-group <fabric-capacity-resource-group> \
+  --query "[].{name:name,type:type,location:location,sku:sku.name}" \
+  --output table
+```
+
+It is normally safe to delete the resource group when all of these are true:
+
+- the resource group name is clearly from a dated sample/test run,
+- the resource list contains only generated sample resources, commonly `Microsoft.Fabric/capacities`,
+- the capacity is not a BYO/customer capacity reused by another workspace or demo,
+- any matching `deployments/<env>/fabric-summary.json` shows `"capacityCreated": true`.
+
+If a Fabric summary exists for the environment, prefer the repo cleanup script because it also deletes generated Fabric workspace items before deleting a generated capacity resource group:
+
+```bash
+python3 scripts/fabric-destroy.py --env-name <env-name> --yes
+```
+
+If only an orphaned capacity resource group remains and you have verified it is not shared, delete the resource group directly:
+
+```bash
+az group delete --name <fabric-capacity-resource-group> --yes --no-wait
+```
+
+Do not delete the resource group if it contains non-sample resources, if the capacity is an existing/BYO capacity, or if you cannot verify which workspace is assigned to it. In that case, check the Fabric admin portal and the Azure portal assignment before cleanup.
+
 ## Fabric Live Mode
 
 To test Fabric live mode in the demo app, configure one of these:

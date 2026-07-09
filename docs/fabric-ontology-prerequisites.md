@@ -55,6 +55,8 @@ Keep `DEPLOYMENT_MODE=byo-fabric` and `FABRIC_CAPACITY_MODE=byo` for existing Fa
 
 Generated Fabric IDs are written to ignored files under `deployments/<env>/` so cleanup can find partially created assets after a failed run.
 
+If the Azure portal shows a leftover generated Fabric capacity resource group after a test run, use [Orphaned Fabric Capacity Cleanup](10-one-command-deployment.md#orphaned-fabric-capacity-cleanup) before assuming the resource is still needed.
+
 ## Greenfield Graph Readiness
 
 Creating the ontology item is not enough for live retrieve. Fabric also creates an ontology-backed GraphModel. That graph must have a valid definition, finish graph loading, and become queryable before Azure AI Search Fabric Ontology KS can return `fabricOntology` activity.
