@@ -57,7 +57,7 @@ bash scripts/fabric-e2e-test.sh \
 
 - Resource group: `rg-ext-liveks-full-e2e`
 - Azure AI Search
-- Azure OpenAI account and `gpt-4o-mini` deployment
+- Azure OpenAI account and `gpt-5-mini` deployment
 - Storage account
 - Static Web App and managed Functions API
 - F2 Microsoft Fabric capacity when `FABRIC_CAPACITY_MODE=create`

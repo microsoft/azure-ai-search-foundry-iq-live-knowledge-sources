@@ -75,13 +75,13 @@ param fabricCapacitySku string = 'F2'
 param fabricCapacityAdmin string = ''
 
 @description('Azure OpenAI chat model deployment name.')
-param chatDeploymentName string = 'gpt-4o-mini'
+param chatDeploymentName string = 'gpt-5-mini'
 
 @description('Azure OpenAI chat model name.')
-param chatModelName string = 'gpt-4o-mini'
+param chatModelName string = 'gpt-5-mini'
 
 @description('Azure OpenAI chat model version.')
-param chatModelVersion string = '2024-07-18'
+param chatModelVersion string = '2025-08-07'
 
 @description('Azure OpenAI deployment capacity.')
 param chatDeploymentCapacity int = 10
