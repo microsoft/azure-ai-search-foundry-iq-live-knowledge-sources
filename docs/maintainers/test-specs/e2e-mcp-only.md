@@ -35,7 +35,7 @@ bash scripts/e2e-test.sh \
 
 - Resource group: `rg-ext-liveks-mcp-e2e`
 - Azure AI Search
-- Azure OpenAI account and `gpt-4o-mini` deployment
+- Azure OpenAI account and `gpt-5-mini` deployment
 - Storage account
 - Static Web App and managed Functions API
 

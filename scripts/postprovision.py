@@ -350,7 +350,7 @@ def main() -> None:
         "AZURE_OPENAI_ENDPOINT": get_setting("AZURE_OPENAI_ENDPOINT", azd_values),
         "AZURE_OPENAI_ACCOUNT_NAME": get_setting("AZURE_OPENAI_ACCOUNT_NAME", azd_values),
         "AZURE_OPENAI_DEPLOYMENT_ID": get_setting("AZURE_OPENAI_DEPLOYMENT_ID", azd_values),
-        "AZURE_OPENAI_MODEL_NAME": get_setting("AZURE_OPENAI_MODEL_NAME", azd_values, "gpt-4o-mini"),
+        "AZURE_OPENAI_MODEL_NAME": get_setting("AZURE_OPENAI_MODEL_NAME", azd_values, "gpt-5-mini"),
         "AZURE_OPENAI_API_KEY": get_setting("AZURE_OPENAI_API_KEY", azd_values),
         "AZURE_STORAGE_ACCOUNT_NAME": get_setting("AZURE_STORAGE_ACCOUNT_NAME", azd_values),
         "AZURE_HOSTING_MODE": get_setting("AZURE_HOSTING_MODE", azd_values, "staticwebapp"),
