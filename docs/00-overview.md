@@ -54,12 +54,12 @@ Use this map when you are reviewing the repo or deciding what to read next.
 | Understand combined routing | [Combined Knowledge Base Routing](05-combined-kb-routing.md) |
 | Review security posture | [Security and Governance](06-security-governance.md) |
 | Debug a run | [Troubleshooting](07-troubleshooting.md) |
-| Pick test questions | [Test Queries And Expected Traces](08-test-queries.md) |
+| Test a live deployment | [Post-Deployment Tests And Expected Traces](08-test-queries.md) |
 | Inspect traces without live resources | [Offline Replay](09-offline-replay.md) |
 | Deploy the app and resources | [One-Command Demo Deployment](10-one-command-deployment.md) |
 | Connect existing Fabric assets | [Fabric Live BYO Validation](11-fabric-live-byo-validation.md) |
 | Avoid unsafe preview claims | [Public Preview Limitations and Caveats](13-public-preview-limitations.md) |
-| Run a short demo | [Demo Walkthrough](16-demo-walkthrough.md) |
+| Run a short demo | [Guided Live Demo Walkthrough](16-demo-walkthrough.md) |
 | Answer common setup questions | [FAQ](19-faq.md) |
 
 ## Validation Loop

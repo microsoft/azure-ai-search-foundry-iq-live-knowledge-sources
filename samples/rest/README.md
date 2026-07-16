@@ -80,4 +80,4 @@ Then inspect:
 - `sourceData.fabricAnswer`
 - `sourceData.fabricRawData`
 
-For query and trace guidance, see [Test Queries And Expected Traces](../../docs/08-test-queries.md).
+For query and trace guidance, see [Post-Deployment Tests And Expected Traces](../../docs/08-test-queries.md).

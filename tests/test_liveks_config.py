@@ -113,6 +113,12 @@ class LiveKsConfigTests(unittest.TestCase):
         self.assertEqual(cli._evidence_types(fabric_only), ["fabricOntology"])
         self.assertEqual(cli._evidence_types(both), ["fabricOntology", "mcpServer"])
 
+    def test_live_evidence_rejects_offline_fixture_activity(self):
+        offline = {"mode": "offline", "activity": [{"type": "mcpServer"}], "references": []}
+        live = {"mode": "live", "activity": [{"type": "mcpServer"}], "references": []}
+        self.assertFalse(cli._response_has_live_evidence(offline, "mcpServer"))
+        self.assertTrue(cli._response_has_live_evidence(live, "mcpServer"))
+
     def test_e2e_reports_preserve_machine_and_maintainer_formats(self):
         config = resolve_config(profile="mcp-only", environment="unit-report")
         report = {

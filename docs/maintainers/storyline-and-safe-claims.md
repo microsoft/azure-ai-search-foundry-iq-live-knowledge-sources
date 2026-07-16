@@ -130,7 +130,7 @@ Use this when you have three to five minutes:
 5. Show combined trace.
 6. Close with evidence and caveats: validation gate, E2E reports, preview limitations.
 
-For the longer app sequence, use [Demo Walkthrough](../16-demo-walkthrough.md).
+For the longer app sequence, use [Guided Live Demo Walkthrough](../16-demo-walkthrough.md).
 
 ## Reviewer Ask
 

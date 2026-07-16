@@ -17,4 +17,4 @@ samples/rest/07-delete-resources.http
 
 Use the REST path when you want exact request shapes without the deployment wrapper. Keep live endpoints, API keys, and query-time authorization headers in local tooling only.
 
-Next: use [Test Queries](../08-test-queries.md) to pick validation prompts and expected trace signals.
+Next: use [Post-Deployment Tests](../08-test-queries.md) to pick validation prompts and expected trace signals.

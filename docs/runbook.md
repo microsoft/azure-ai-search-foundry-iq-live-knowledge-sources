@@ -97,11 +97,31 @@ Expected evidence:
 | `byo-fabric` | MCP evidence plus live Fabric and combined evidence using delegated Search authorization. |
 | `full` | Generated Fabric GraphModel is ready, separate checks prove both sources, and all Azure assets pass. |
 
+### Run The Manual Acceptance Test
+
+Do not stop at a successful deployment message. Open the **App URL** from:
+
+```text
+deployments/<environment>/deployment-summary.md
+```
+
+Then run this minimum screen check:
+
+1. On **Overview**, confirm the top status pill says `<deployment-mode> live`.
+2. Open **Deployment**, select **Re-check**, and confirm `reachabilityStatus: live` and `reachable: true`.
+3. Open **MCP Live**, select **Run retrieve**, and require a `live` answer with **MCP Server KS** activity or references.
+4. For `byo-fabric` or `full`, open **Fabric**, enter a raw delegated Search token without a `Bearer` prefix, select **Run retrieve**, and require a `live` answer with **Fabric Ontology KS** evidence.
+5. After both single-source checks pass, open **Combined Trace**, select **Run retrieve**, and describe the source selection shown in activity. Do not assume every combined query calls both sources.
+
+Use [Guided Live Demo Walkthrough](16-demo-walkthrough.md) for the exact click sequence, packaged questions, expected answers, presenter notes, and failure handling. Use [Post-Deployment Tests](08-test-queries.md) for trace-level pass/fail criteria and additional queries.
+
 Run verification again without redeploying:
 
 ```bash
 ./liveks verify --env liveks-mcp
 ```
+
+The manual app test proves the user-facing experience. `verify` independently repeats the applicable source checks and records sanitized evidence under the ignored `deployments/<environment>/` directory.
 
 Sanitized reports are written under ignored `deployments/<environment>/`.
 

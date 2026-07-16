@@ -38,6 +38,21 @@ The YAML ledger is written to ignored `.liveks/liveks-mcp.yaml`. `plan` performs
 
 The safe default progression is `offline -> mcp-only -> byo-fabric`. Use `full` only after checking Fabric quota, cost, tenant settings, and cleanup expectations.
 
+## After Deployment: Prove It Live
+
+`liveks up` provisions and verifies the environment, but the first user-facing success moment happens in the deployed app:
+
+1. Open the App URL from `deployments/<environment>/deployment-summary.md`.
+2. Confirm the deployment status is live.
+3. Select **MCP Live**, **Fabric**, or **Combined Trace**.
+4. Select **Run retrieve**.
+5. Require a `live` answer and inspect `activity`, `references`, and `sourceData` for the expected source.
+
+[Follow the click-by-click live demo](16-demo-walkthrough.md){ .md-button .md-button--primary }
+[Choose test queries and pass criteria](08-test-queries.md){ .md-button }
+
+An `offline` or `offline-replay` result is useful for learning the response contract, but it does not prove that a live Knowledge Source ran.
+
 ## Composition Model
 
 ![Live Knowledge Sources Architecture](assets/live-knowledge-sources-architecture.svg)
@@ -59,6 +74,8 @@ The app and CLI replay use the same canonical response fixtures as the serverles
 | Understand commands and exit codes | [LiveKS CLI](20-liveks-cli.md) |
 | Manage YAML and secrets | [Configuration](21-configuration.md) |
 | Deploy and clean up | [One-Command Deployment](10-one-command-deployment.md) |
+| Test the deployed sources | [Post-Deployment Tests](08-test-queries.md) |
+| Present the demo click by click | [Guided Live Demo](16-demo-walkthrough.md) |
 | Connect existing Fabric | [BYO Fabric Validation](11-fabric-live-byo-validation.md) |
 | Diagnose failures | [Troubleshooting](07-troubleshooting.md) |
 | Review safety boundaries | [Security and Governance](06-security-governance.md) |
