@@ -138,4 +138,4 @@ Before sharing outside the working team:
 [ ] Learn manual links and preview API version are current
 ```
 
-For setup and test guidance, see [One-Command Demo Deployment](10-one-command-deployment.md), [Test Queries](08-test-queries.md), and [Troubleshooting](07-troubleshooting.md).
+For setup and test guidance, see [One-Command Demo Deployment](10-one-command-deployment.md), [Post-Deployment Tests](08-test-queries.md), and [Troubleshooting](07-troubleshooting.md).

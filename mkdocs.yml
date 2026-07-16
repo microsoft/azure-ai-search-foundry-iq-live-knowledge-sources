@@ -69,8 +69,8 @@ nav:
       - One-Command Deployment: 10-one-command-deployment.md
       - BYO Fabric Validation: 11-fabric-live-byo-validation.md
   - Operate:
-      - Test Queries: 08-test-queries.md
-      - Demo Walkthrough: 16-demo-walkthrough.md
+      - Post-Deployment Tests: 08-test-queries.md
+      - Guided Live Demo: 16-demo-walkthrough.md
       - Troubleshooting: 07-troubleshooting.md
       - Security and Governance: 06-security-governance.md
       - External Tenant Login: external-tenant-login.md

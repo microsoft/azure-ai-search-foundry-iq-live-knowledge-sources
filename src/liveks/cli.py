@@ -418,6 +418,10 @@ def _response_has_evidence(payload: Any, source_type: str | None = None) -> bool
     return any(item.get("type") == source_type for item in evidence if isinstance(item, dict))
 
 
+def _response_has_live_evidence(payload: Any, source_type: str) -> bool:
+    return isinstance(payload, dict) and payload.get("mode") == "live" and _response_has_evidence(payload, source_type)
+
+
 def _evidence_types(payload: Any) -> list[str]:
     if not isinstance(payload, dict):
         return []
@@ -448,8 +452,8 @@ def verify_report(config: ResolvedConfig, *, quiet: bool = False) -> dict[str, A
             status_code, status_payload = http_json(f"{app_url}/api/status", attempts=18, delay_seconds=10, timeout=20)
             checks.append(_check("app-status", "pass" if status_code == 200 else "fail", f"HTTP {status_code}"))
             mcp_code, mcp_payload = http_json(f"{app_url}/api/retrieve/mcp", method="POST", body={"query": "What must be configured for an Azure AI Search MCP Server knowledge source?"}, attempts=3, delay_seconds=5, timeout=120)
-            mcp_ok = mcp_code == 200 and _response_has_evidence(mcp_payload, "mcpServer")
-            checks.append(_check("mcp-retrieve", "pass" if mcp_ok else "fail", "MCP activity/reference evidence returned" if mcp_ok else f"HTTP {mcp_code} without MCP evidence"))
+            mcp_ok = mcp_code == 200 and _response_has_live_evidence(mcp_payload, "mcpServer")
+            checks.append(_check("mcp-retrieve", "pass" if mcp_ok else "fail", "Live MCP activity/reference evidence returned" if mcp_ok else f"HTTP {mcp_code}; live MCP evidence missing"))
             if config.profile in {"byo-fabric", "full"}:
                 token_result = runner.run(["az", "account", "get-access-token", "--resource", "https://search.azure.com", "--query", "accessToken", "-o", "tsv"])
                 token = token_result.stdout.strip()
@@ -458,7 +462,7 @@ def verify_report(config: ResolvedConfig, *, quiet: bool = False) -> dict[str, A
                 else:
                     fabric_body = {"query": "Which airlines have the highest customer-care exposure this month?", "fabricUserSearchToken": token}
                     fabric_code, fabric_payload = http_json(f"{app_url}/api/retrieve/fabric", method="POST", body=fabric_body, attempts=3, delay_seconds=5, timeout=120)
-                    fabric_ok = fabric_code == 200 and _response_has_evidence(fabric_payload, "fabricOntology") and fabric_payload.get("mode") == "live"
+                    fabric_ok = fabric_code == 200 and _response_has_live_evidence(fabric_payload, "fabricOntology")
                     checks.append(_check("fabric-retrieve", "pass" if fabric_ok else "fail", "Live Fabric ontology evidence returned" if fabric_ok else f"HTTP {fabric_code}; live Fabric evidence missing"))
                     combined_body = {
                         "query": (

@@ -32,4 +32,4 @@ Offline replay is not proof of live retrieval.
 
 Use offline replay to understand trace shape and user experience. Use E2E reports and live retrieve activity when you need to prove a live MCP or Fabric path.
 
-For query and trace guidance, see [Test Queries And Expected Traces](../../docs/08-test-queries.md).
+For query and trace guidance, see [Post-Deployment Tests And Expected Traces](../../docs/08-test-queries.md).

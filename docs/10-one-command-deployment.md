@@ -111,6 +111,20 @@ The single-source KB checks prove the MCP and Fabric paths independently. The co
 
 Reports under `deployments/<environment>/` are ignored and must remain private unless sanitized.
 
+### Verify Through The Demo App
+
+`up` and `verify` provide automated evidence. Also test the interface that a workshop participant will use:
+
+1. Open the **App URL** in `deployments/<environment>/deployment-summary.md`.
+2. Select **Deployment** and then **Re-check** to confirm live Search reachability.
+3. Select **MCP Live** and then **Run retrieve**. Require a `live` badge and MCP activity or references.
+4. For a Fabric profile, select **Fabric**, enter a raw delegated Search token, and run retrieve. Require a `live` badge and Fabric evidence.
+5. Select **Combined Trace** only after the single-source paths pass, then describe the planner selection visible in activity and references.
+
+The answer text is not the acceptance criterion. An offline fixture can return the same useful answer, so require a `live` response mode plus the expected source trace.
+
+Continue with [Guided Live Demo Walkthrough](16-demo-walkthrough.md) for every click and presenter cue, or [Post-Deployment Tests](08-test-queries.md) for additional queries and expected trace fields.
+
 ## Demo App
 
 The build has two hosting contexts:

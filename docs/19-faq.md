@@ -146,5 +146,5 @@ Not through the supported `byo-fabric` path. BYO ownership is marked `reuse`, an
 | Pick a mode | [Choose a Pattern](02-choose-a-pattern.md) |
 | Understand architecture | [Architecture](01-architecture.md) |
 | Deploy the sample | [One-Command Deployment](10-one-command-deployment.md) |
-| Prepare a short demo | [Demo Walkthrough](16-demo-walkthrough.md) |
+| Prepare a short demo | [Guided Live Demo](16-demo-walkthrough.md) |
 | Check preview caveats | [Public Preview Limitations](13-public-preview-limitations.md) |

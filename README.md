@@ -109,6 +109,8 @@ See [Configuration](docs/21-configuration.md) for precedence, fields, external-t
 ./liveks down --env liveks-mcp
 ```
 
+Before cleanup, open the deployed App URL and run the packaged MCP, Fabric, and Combined queries that apply to the profile. Follow the [Guided Live Demo](docs/16-demo-walkthrough.md) for the exact controls and presenter sequence, and use [Post-Deployment Tests](docs/08-test-queries.md) for expected answers and trace-level pass/fail criteria.
+
 For a complete create, call, verify, and delete rehearsal:
 
 ```bash
@@ -156,6 +158,8 @@ The default app is Azure Static Web Apps with a managed Node.js API. Browser cod
 | Learn the CLI lifecycle | [LiveKS CLI](docs/20-liveks-cli.md) |
 | Author the YAML ledger | [Configuration](docs/21-configuration.md) |
 | Deploy and clean up | [One-Command Deployment](docs/10-one-command-deployment.md) |
+| Test a deployed Knowledge Source | [Post-Deployment Tests](docs/08-test-queries.md) |
+| Present the app click by click | [Guided Live Demo](docs/16-demo-walkthrough.md) |
 | Connect existing Fabric assets | [BYO Fabric Validation](docs/11-fabric-live-byo-validation.md) |
 | Inspect the evidence contract | [Offline Replay](docs/09-offline-replay.md) |
 | Troubleshoot a run | [Troubleshooting](docs/07-troubleshooting.md) |
