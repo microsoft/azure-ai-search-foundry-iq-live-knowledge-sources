@@ -2,54 +2,50 @@
 
 ![Deployment modes](assets/deployment-modes.svg)
 
-| Pattern | Use when | Start here |
-| --- | --- | --- |
-| MCP Server KS | You need a low-friction public preview quickstart or tool-backed live retrieval | `samples/rest/01-create-mcp-server-ks.http` |
-| Fabric Ontology KS | You need governed business semantics from Microsoft Fabric | `samples/rest/04-create-fabric-ontology-ks.http` |
-| Combined KB | You need to validate multi-source routing and trace behavior | `samples/rest/05-create-combined-kb.http` |
+Start with offline replay, then choose the smallest live profile that proves the behavior you need.
 
-## Deployment Modes
+| Profile | Use when | Main risk or prerequisite | Success signal |
+| --- | --- | --- | --- |
+| `offline` | You need to inspect the response contract immediately. | It proves shape, not live retrieval. | Answer plus MCP and Fabric trace evidence. |
+| `mcp-only` | You want the lowest-friction live path. | Azure AI Search preview and model availability. | `microsoft_docs_search` appears in activity or references. |
+| `byo-fabric` | Existing governed Fabric semantics should ground retrieval. | Workspace/ontology IDs and delegated user authorization. | Separate checks prove both KS paths; the combined KB shows planner-selected routing. |
+| `full` | A greenfield platform demo must create everything. | Billable Fabric F2 quota, longer duration, tenant settings, cleanup. | Fabric GraphModel, both KS paths, app, and teardown pass. |
 
-Start with `mcp-only` unless you already have Fabric workspace and ontology IDs ready.
-If you are choosing between `byo-fabric` and `full`, skim the [FAQ](19-faq.md) before deploying. It calls out the most common points of confusion: offline replay, Fabric source authorization, Fabric quota, and MCP endpoint requirements.
+## Decision
 
-| Mode | Use when | Success signal |
-| --- | --- | --- |
-| `mcp-only` | You want the fastest Azure AI Search MCP Server KS validation without Fabric. | MCP retrieve returns activity or references from `microsoft_docs_search`. |
-| `byo-fabric` | You already have a Fabric workspace and ontology and want the validated live Fabric path. | Fabric KS is created and live retrieve works with delegated source authorization, or offline replay explains what is missing. |
-| `full` | You want a greenfield path that creates the Fabric sample stack and connects it to Azure AI Search. | Fabric IDs are generated, KS/KB assets are created, app loads, and cleanup evidence is recorded. |
+Use `mcp-only` unless the answer to one of these is yes:
 
-Command shapes:
+- Existing Fabric workspace and ontology IDs are ready: use `byo-fabric`.
+- The audience must see Fabric sample creation from zero and quota is confirmed: use `full`.
+- No cloud mutation should occur: remain on `offline`.
+
+## Command Shapes
 
 ```bash
-bash scripts/deploy.sh --mode mcp-only --env-name liveks-mcp --location eastus
-
-bash scripts/deploy.sh \
-  --mode byo-fabric \
-  --env-file .env.external.local \
-  --env-name liveks-byo \
-  --location eastus
-
-bash scripts/deploy.sh \
-  --mode full \
-  --env-name liveks-full \
-  --location eastus \
-  --fabric-location westus3
+./liveks init --profile mcp-only --env liveks-mcp
+./liveks plan --env liveks-mcp
+./liveks up --env liveks-mcp
 ```
 
-## Recommended Order
+```bash
+./liveks init --profile byo-fabric --env liveks-byo
+# Add fabric.workspace_id and fabric.ontology_id to .liveks/liveks-byo.yaml.
+./liveks plan --env liveks-byo
+./liveks up --env liveks-byo
+```
 
-1. Create the MCP Server KS.
-2. Create the MCP-only Knowledge Base.
-3. Retrieve from MCP and inspect `activity`, `references`, and source data.
-4. Add Fabric Ontology KS with BYO Fabric IDs or run `--mode full` to create the sample Fabric assets.
-5. Create a combined Knowledge Base and repeat trace validation.
+```bash
+./liveks init --profile full --env liveks-full
+./liveks plan --env liveks-full
+./liveks up --env liveks-full --accept-fabric-capacity
+```
 
-## How To Check A Run
+## Source Pattern
 
-The short version:
+| Knowledge Source pattern | Sample entry point |
+| --- | --- |
+| MCP Server KS | `samples/rest/01-create-mcp-server-ks.http` |
+| Fabric Ontology KS | `samples/rest/04-create-fabric-ontology-ks.http` |
+| Combined Knowledge Base | `samples/rest/05-create-combined-kb.http` |
 
-- local validation proves the repo shape,
-- E2E reports prove create-call-load-delete behavior,
-- retrieve traces prove source selection,
-- screenshots explain the experience but are not enough by themselves.
+Validate single-source Knowledge Bases first when deterministic source evidence matters. In a combined Knowledge Base, query-time `knowledgeSourceParams` provide source options and arguments; the returned `activity` and `references` are the evidence of what actually ran.

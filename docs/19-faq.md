@@ -95,6 +95,8 @@ At minimum:
 
 ```text
 [ ] bash scripts/validate-local.sh passes
+[ ] liveks doctor passes for the selected environment
+[ ] liveks plan matches the expected resources and ownership
 [ ] GitHub Actions Validate passes for the commit being reviewed
 [ ] E2E report exists for any deployment behavior being claimed
 [ ] retrieve response includes activity or references for the source being claimed
@@ -111,6 +113,8 @@ Share only summarized PASS / FAIL / SKIP counts and sanitized screenshots. Do no
 Do not commit:
 
 - `.env` or `.env.*`,
+- `.liveks/`,
+- `.azure/`,
 - `.deployment/`,
 - `deployments/`,
 - `scratch/`,
@@ -120,6 +124,20 @@ Do not commit:
 - screenshots from private deployments unless reviewed and sanitized.
 
 The repo intentionally keeps generated evidence under ignored paths.
+
+## Is YAML or azd env the source of truth?
+
+The ignored `.liveks/<environment>.yaml` file is the v2 authoring ledger. Profiles provide defaults and the schema validates the resolved values. `liveks up` projects non-secret values into the selected `azd` environment immediately before provisioning.
+
+The redacted lock records the resolved values, their sources, and cleanup ownership. Do not hand-maintain `azd env` as a second configuration ledger.
+
+## Does plan create cloud resources?
+
+No. `plan` performs read-only cloud diagnostics and local Bicep, payload, and app builds. It writes ignored local plan and lock files but does not run `azd env set`, Fabric provisioning, or `azd up`.
+
+## Can cleanup delete my existing Fabric workspace?
+
+Not through the supported `byo-fabric` path. BYO ownership is marked `reuse`, and Fabric deletion is skipped. For `full`, deletion is allowed only when both the resolved configuration and environment lock identify Fabric assets as generated.
 
 ## Where should I go next?
 

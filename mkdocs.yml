@@ -29,6 +29,9 @@ theme:
         icon: material/weather-sunny
         name: Switch to light mode
 
+extra_css:
+  - stylesheets/extra.css
+
 plugins:
   - search
 
@@ -52,6 +55,8 @@ nav:
   - Start Here:
       - Home: index.md
       - Runbook: runbook.md
+      - LiveKS CLI: 20-liveks-cli.md
+      - Configuration: 21-configuration.md
       - Overview: 00-overview.md
       - Choose a Pattern: 02-choose-a-pattern.md
       - Offline Replay: 09-offline-replay.md

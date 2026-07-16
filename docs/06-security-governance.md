@@ -34,8 +34,18 @@ flowchart LR
 
 ## Repository Safety
 
-- Keep only placeholders in `.env.sample`.
+- Keep only placeholders in tracked YAML and dotenv examples.
+- Store authored deployment values under ignored `.liveks/`; secret fields must contain environment references, not literals.
+- Treat `azd env` as generated deployment state and the redacted LiveKS lock as the cleanup ownership record.
 - Do not commit live retrieve payloads that contain sensitive source data.
 - Keep sample responses synthetic.
+- GitHub Pages runs canonical offline fixtures only. Live credentials and Search requests remain behind the Azure managed API.
+
+## Cleanup Governance
+
+- `byo-fabric` owns no Fabric capacity, workspace, or ontology and must never delete them.
+- `full` can delete only assets created for its environment.
+- LiveKS compares configuration and lock ownership before Fabric deletion; disagreement preserves the asset.
+- Manual resource-group deletion requires an inventory and a separate check that no shared Fabric workspace is assigned.
 
 For a reviewer-facing list of preview caveats, quota expectations, and safe public claims, see [Public Preview Limitations and Caveats](13-public-preview-limitations.md).

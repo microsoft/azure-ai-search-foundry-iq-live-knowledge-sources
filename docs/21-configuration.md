@@ -1,0 +1,136 @@
+# Configuration
+
+LiveKS v2 uses one ignored YAML file as the human-managed deployment ledger. Profile defaults, schema validation, Bicep parameters, scripts, and generated dotenv examples all resolve from the same configuration contract.
+
+## Create A Ledger
+
+```bash
+./liveks init --profile mcp-only --env liveks-mcp
+./liveks init --profile byo-fabric --env liveks-byo
+./liveks init --profile full --env liveks-full
+```
+
+The default location is `.liveks/<environment>.yaml`. The directory is ignored by git and files are written with owner-only permissions where the operating system supports them.
+
+## MCP-only Example
+
+```yaml
+version: 2
+profile: mcp-only
+environment: liveks-mcp
+azure:
+  location: eastus
+```
+
+Profile defaults supply Search, OpenAI, MCP, hosting, and naming values. Add only intentional overrides.
+
+## BYO Fabric Example
+
+```yaml
+version: 2
+profile: byo-fabric
+environment: liveks-byo
+azure:
+  location: eastus
+fabric:
+  workspace_id: 11111111-1111-1111-1111-111111111111
+  ontology_id: 22222222-2222-2222-2222-222222222222
+  user_search_token:
+    env: FABRIC_USER_SEARCH_TOKEN
+```
+
+Set the optional delegated token only in the process environment:
+
+```bash
+export FABRIC_USER_SEARCH_TOKEN="$(az account get-access-token --resource https://search.azure.com --query accessToken -o tsv)"
+```
+
+The YAML stores the environment variable name, never the token. LiveKS does not project this secret into `azd env` or serialize it into the lock.
+
+## Full Example
+
+```yaml
+version: 2
+profile: full
+environment: liveks-full
+azure:
+  location: eastus
+fabric:
+  mode: create
+  location: westus3
+  capacity_sku: F2
+```
+
+`full` rejects `fabric.workspace_id` and `fabric.ontology_id`. Use `byo-fabric` to reuse existing assets.
+
+## External Tenant Example
+
+```yaml
+version: 2
+profile: byo-fabric
+environment: external-liveks-byo
+azure:
+  tenant_id: 33333333-3333-3333-3333-333333333333
+  subscription_id: 44444444-4444-4444-4444-444444444444
+  cli_config_dir: ~/.azure-liveks-external
+  location: eastus
+fabric:
+  workspace_id: 11111111-1111-1111-1111-111111111111
+  ontology_id: 22222222-2222-2222-2222-222222222222
+```
+
+`azure.cli_config_dir` becomes `AZURE_CONFIG_DIR` only for child processes. `doctor` confirms that the active Azure CLI tenant and subscription match the authored values before planning.
+
+## Field Groups
+
+The complete machine-readable contract is [`config/schema.yaml`](https://github.com/microsoft/azure-ai-search-foundry-iq-live-knowledge-sources/blob/main/config/schema.yaml). Common groups are:
+
+| Group | Examples |
+| --- | --- |
+| `deployment` | `mode` |
+| `azure` | location, subscription, tenant, resource group, hosting mode |
+| `search` | API version, SKU, index, KS, and KB names |
+| `mcp` | HTTPS server URL and allowed tool name |
+| `openai` | deployment, model name/version, capacity |
+| `fabric` | create/BYO mode, location, capacity, workspace, ontology, secret reference |
+| `runtime` | telemetry and optional live-call behavior |
+
+Unknown fields fail validation. GUIDs, HTTPS URLs, enumerations, integer bounds, booleans, required BYO values, and profile/mode agreement are checked before cloud mutation.
+
+## Resolution Order
+
+Lowest to highest precedence:
+
+1. Executable profile defaults in `profiles/<profile>.yaml`.
+2. Optional legacy dotenv values supplied with `--env-file`.
+3. Authored YAML values.
+4. Hidden v1 compatibility flags such as `--location`.
+5. Derived resource group, name salt, and generated Fabric names when absent.
+
+The final redacted result and the source of each value are written to `.liveks/<environment>.lock.json` by `plan` and later lifecycle commands.
+
+`azd env` is a deployment projection, not the authored source of truth. `up` selects or creates the named `azd` environment and writes resolved non-secret values immediately before preview and provisioning.
+
+## Legacy Dotenv Migration
+
+Existing ignored dotenv files can be imported without shell evaluation:
+
+```bash
+./liveks init \
+  --profile byo-fabric \
+  --env liveks-byo \
+  --from-env .env.external.local
+```
+
+The parser accepts dotenv-style assignments but does not execute command substitutions or shell syntax. Secret values become environment references. Review the generated YAML, then stop using the dotenv file for the deployment path.
+
+Generated `.env.sample` and `env/*.env.example` files remain for REST, notebook, and v1 compatibility. They are produced from the YAML schema and profiles by `scripts/generate_env_examples.py`; they are not the v2 configuration authority.
+
+## Safe Review
+
+```bash
+./liveks doctor --env liveks-byo --format json
+./liveks plan --env liveks-byo --format json
+```
+
+Do not commit `.liveks/`, `.azure/`, dotenv files, deployment reports, or token-bearing shell history. Use placeholders in tracked examples and sanitized names/counts in review evidence.

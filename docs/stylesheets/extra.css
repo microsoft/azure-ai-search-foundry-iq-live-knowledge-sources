@@ -1,0 +1,26 @@
+.md-typeset img,
+.md-typeset video {
+  max-width: 100%;
+  height: auto;
+}
+
+.md-typeset .md-button {
+  margin: 0 0.4rem 0.5rem 0;
+}
+
+.md-typeset table:not([class]) {
+  display: table;
+  width: 100%;
+}
+
+@media screen and (max-width: 44.984375em) {
+  .md-typeset table:not([class]) {
+    display: block;
+    width: 100%;
+    overflow-x: auto;
+  }
+
+  .md-typeset pre {
+    max-width: calc(100vw - 2rem);
+  }
+}

@@ -1,97 +1,75 @@
-# Fabric Live BYO Validation
+# BYO Fabric Validation
 
-This is the fastest way to prove the Fabric Ontology Knowledge Source path after the one-command Azure deployment is working.
+Use this profile when the Fabric workspace and ontology already exist. LiveKS creates the Azure and Foundry IQ side, connects the existing ontology, and never takes ownership of the BYO Fabric assets.
 
-## What Happens In Two Minutes
-
-```text
-1. Put Fabric workspace + ontology IDs in a local env file.
-2. Run the deployment wrapper with `--mode byo-fabric`.
-3. postprovision creates the Fabric Ontology Knowledge Source.
-4. The combined Knowledge Base references MCP + Fabric.
-5. Open the demo app.
-6. Paste a transient end-user Search access token only when you want live Fabric retrieve.
-```
-
-The repo never commits tenant IDs, tokens, or generated deployment summaries.
-
-## Local Env Values
-
-Copy `.env.sample` to `.env.external.local` or another ignored file:
+## Configure
 
 ```bash
-DEPLOYMENT_MODE=byo-fabric
-EXTERNAL_TENANT_ID=<external-tenant-guid>
-EXTERNAL_AZURE_CONFIG_DIR=~/.azure-foundry-iq-ext
-
-FABRIC_WORKSPACE_ID=<fabric-workspace-guid>
-FABRIC_ONTOLOGY_ID=<fabric-ontology-guid>
-FABRIC_USER_SEARCH_TOKEN=<optional-raw-delegated-token>
+./liveks init --profile byo-fabric --env liveks-byo
 ```
 
-Do not commit this file.
+Edit `.liveks/liveks-byo.yaml`:
 
-## Run
+```yaml
+version: 2
+profile: byo-fabric
+environment: liveks-byo
+azure:
+  location: eastus
+fabric:
+  workspace_id: 11111111-1111-1111-1111-111111111111
+  ontology_id: 22222222-2222-2222-2222-222222222222
+  user_search_token:
+    env: FABRIC_USER_SEARCH_TOKEN
+```
+
+Do not put a token literal in YAML. The token reference is optional for deployment but live Fabric verification needs a raw end-user token scoped to `https://search.azure.com/.default`.
 
 ```bash
-bash scripts/deploy.sh \
-  --mode byo-fabric \
-  --env-file .env.external.local \
-  --env-name liveks-fabric-byo \
-  --location eastus
+export FABRIC_USER_SEARCH_TOKEN="$(az account get-access-token --resource https://search.azure.com --query accessToken -o tsv)"
 ```
 
-The generated `deployments/<env>/deployment-summary.md` should show:
+Do not add a `Bearer` prefix.
 
-- Fabric workspace configured: `yes`
-- Fabric KS: `fabric-ontology-ks`
-- Combined KB: `live-knowledge-sources-kb`
-
-For full create-call-load-delete validation:
+## Plan And Deploy
 
 ```bash
-bash scripts/e2e-test.sh \
-  --mode byo-fabric \
-  --env-file .env.external.local \
-  --env-name ext-liveks-e2e-20260616 \
-  --location eastus \
-  --cleanup
+./liveks doctor --env liveks-byo
+./liveks plan --env liveks-byo
+./liveks up --env liveks-byo
 ```
 
-The E2E report includes a Fabric KS check when the Fabric IDs are configured. If `FABRIC_USER_SEARCH_TOKEN` is present in the process environment, the report also requires live Fabric retrieve evidence instead of offline replay.
+The BYO doctor check uses a transient Fabric API token to read the configured workspace and ontology. A missing asset or tenant permission therefore fails before `azd up`; no token is written to YAML, the lock, or `azd env`.
 
-## App Validation
+The generated deployment summary should identify the Fabric KS and combined KB without exposing workspace or ontology IDs publicly.
 
-Open the app URL from the deployment summary:
-
-- **MCP Live** runs immediately against Microsoft Learn MCP.
-- **Fabric Ontology** uses offline replay until an end-user Search access token is provided.
-- **Combined Trace** shows the same user experience path that will call both sources when Fabric live auth is configured.
-
-For Fabric live retrieve, paste a raw end-user access token for:
-
-```text
-https://search.azure.com/.default
-```
-
-Do not prefix it with `Bearer`. The app sends the token once to the server-side API and does not store it.
-
-## Notebook Validation
-
-Open `notebooks/02-fabric-ontology-ks-airline-ops.ipynb`.
-
-The notebook reads the same local env values:
+## Verify
 
 ```bash
-FABRIC_WORKSPACE_ID
-FABRIC_ONTOLOGY_ID
-FABRIC_USER_SEARCH_TOKEN
+./liveks verify --env liveks-byo
 ```
 
-Run it in dry-run/offline mode first, then set `RUN_LIVE_CALLS=true` only when your tenant, ontology, Search endpoint, and end-user Search token are ready.
+Required evidence:
 
-## Boundary
+1. the resource group and demo app are reachable,
+2. MCP retrieve returns MCP activity or references,
+3. Fabric retrieve returns `fabricOntology` evidence in live mode,
+4. combined retrieve returns live evidence from the source or sources selected by the planner; the two preceding checks prove each path independently.
 
-This BYO path does not create Fabric workspace, capacity, lakehouse, or ontology items. It proves the public-preview Azure AI Search binding and the application experience around an existing Fabric semantic asset.
+The verifier acquires a delegated Search token transiently from the active Azure CLI account. It sends the token in the request body to the managed API and does not serialize it into reports or locks.
 
-Use `--mode full` when you want the greenfield sample to create Fabric capacity, workspace, Lakehouse tables, ontology, GraphModel readiness, Azure AI Search resources, Knowledge Sources, Knowledge Bases, and the demo app in one flow.
+## App And Notebook
+
+The app's MCP tab runs immediately. Fabric and Combined tabs require delegated authorization for live retrieval; without it, the API returns clearly labeled offline replay.
+
+The Fabric notebook reads compatible environment variables for manual exploration. Keep `RUN_LIVE_CALLS=false` until Search, Fabric, and delegated authorization are ready.
+
+## Cleanup Boundary
+
+```bash
+./liveks down --env liveks-byo
+```
+
+Cleanup deletes the generated Azure resources only. The YAML profile and environment lock both mark the Fabric capacity, workspace, and ontology as `reuse`; Fabric deletion is not invoked.
+
+Use `full` only when LiveKS should create and later delete the Fabric capacity and sample assets.

@@ -21,26 +21,25 @@ Run the local validation gate:
 bash scripts/validate-local.sh
 ```
 
-For a live deployment, choose one mode:
+For a live deployment, initialize and plan one profile before running `up`:
 
 ```bash
-bash scripts/deploy.sh --mode mcp-only --env-name liveks-mcp --location eastus
+./liveks init --profile mcp-only --env liveks-mcp
+./liveks plan --env liveks-mcp
+./liveks up --env liveks-mcp
 ```
 
 ```bash
-bash scripts/deploy.sh \
-  --mode byo-fabric \
-  --env-file .env.external.local \
-  --env-name liveks-byo \
-  --location eastus
+./liveks init --profile byo-fabric --env liveks-byo
+# Add the existing Fabric IDs to .liveks/liveks-byo.yaml.
+./liveks plan --env liveks-byo
+./liveks up --env liveks-byo
 ```
 
 ```bash
-bash scripts/deploy.sh \
-  --mode full \
-  --env-name liveks-full \
-  --location eastus \
-  --fabric-location westus3
+./liveks init --profile full --env liveks-full
+./liveks plan --env liveks-full
+./liveks up --env liveks-full --accept-fabric-capacity
 ```
 
 Do not use private tenant values, generated deployment reports, or local screenshots in public docs unless they have been sanitized.
@@ -170,9 +169,9 @@ The same Knowledge Base pattern can route across live tools and semantic busines
 
 Use this order when the audience needs to reproduce the sample:
 
-1. Run `bash scripts/validate-local.sh`.
+1. Run `./liveks try`, then `bash scripts/validate-local.sh`.
 2. Read [Choose a Pattern](02-choose-a-pattern.md).
-3. Deploy `mcp-only`.
+3. Initialize, plan, and deploy `mcp-only`.
 4. Open the app and run the MCP query.
 5. Open `notebooks/01-mcp-server-ks-quickstart.ipynb`.
 6. Inspect `samples/rest/01-create-mcp-server-ks.http` through `samples/rest/03-retrieve-mcp.http`.

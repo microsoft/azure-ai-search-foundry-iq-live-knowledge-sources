@@ -12,6 +12,8 @@ This repository is a reusable sample accelerator for Azure AI Search and Foundry
 
 ## Before Submitting Changes
 
+- Run `./liveks try` and confirm the answer-first replay shows both source paths.
+- Run `./liveks bootstrap` once, then `./liveks doctor --profile offline --format json`.
 - Run `bash scripts/validate-local.sh`.
 - Run `git diff --check`.
 - Wait for the GitHub Actions `Validate` workflow when opening a PR.
@@ -19,6 +21,8 @@ This repository is a reusable sample accelerator for Azure AI Search and Foundry
 - Keep API versions explicit.
 - Update troubleshooting notes for known failure modes.
 - Confirm `.env.sample` contains safe placeholders only.
+- Confirm `scripts/generate_env_examples.py --check` reports no drift from the YAML schema and profiles.
+- Keep `.liveks/` configuration and locks out of git; never put literal secrets in YAML.
 - Keep generated deployment reports, screenshots, logs, and scratch notes out of git.
 - Keep large videos, recordings, archives, generated builds, and dependency folders out of git. Use GitHub Releases or another artifact store for walkthrough media.
 - Run `python3 scripts/check-repo-size.py` before PRs that add assets or generated outputs.

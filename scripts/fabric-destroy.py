@@ -55,7 +55,10 @@ def fabric_delete(path: str, token: str) -> None:
             if response.status not in (200, 202, 204):
                 raise RuntimeError(f"DELETE {path} returned {response.status}")
     except urllib.error.HTTPError as error:
-        detail = error.read().decode("utf-8", errors="replace")
+        try:
+            detail = error.read().decode("utf-8", errors="replace")
+        finally:
+            error.close()
         if error.code == 404:
             print(f"[skip] Fabric item already deleted: {path}")
             return

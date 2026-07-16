@@ -1,33 +1,55 @@
+schema_version: 2
 profile: byo-fabric
-purpose: Connect an existing Fabric ontology to Azure AI Search and validate live Fabric Ontology Knowledge Source behavior.
+kind: deployment
+purpose: Connect an existing Fabric ontology to Azure AI Search and validate live ontology grounding.
 default: false
-required_tools:
-  - bash
-  - python3
-  - azd
-  - az
-  - node
-  - npm
-required_env:
-  - FABRIC_WORKSPACE_ID
-  - FABRIC_ONTOLOGY_ID
-optional_env:
-  - DEPLOYMENT_MODE
-  - EXTERNAL_TENANT_ID
-  - EXTERNAL_AZURE_CONFIG_DIR
-  - FABRIC_USER_SEARCH_TOKEN
-  - MCP_KNOWLEDGE_SOURCE_NAME
-  - FABRIC_ONTOLOGY_KNOWLEDGE_SOURCE_NAME
-commands:
-  - bash scripts/deploy.sh --mode byo-fabric --env-file .env.external.local --env-name liveks-byo --location eastus
-  - bash scripts/e2e-test.sh --mode byo-fabric --env-file .env.external.local --env-name liveks-byo-e2e --location eastus --cleanup
+required_tools: [python3, azd, az, node, npm]
+estimated_duration: 10-25 minutes
+cost: Azure resources may incur charges; the existing Fabric assets are never owned or deleted by LiveKS.
+defaults:
+  deployment:
+    mode: byo-fabric
+  azure:
+    location: eastus
+    base_name: fiqliveks
+    hosting_mode: staticwebapp
+    static_web_app_location: eastus2
+    app_service_sku: F1
+  search:
+    api_version: 2026-05-01-preview
+    sku: basic
+    index_name: airline-ops-regulatory-docs
+    mcp_knowledge_source_name: microsoft-learn-mcp-ks
+    fabric_knowledge_source_name: fabric-ontology-ks
+    mcp_knowledge_base_name: live-knowledge-sources-mcp-kb
+    combined_knowledge_base_name: live-knowledge-sources-kb
+  mcp:
+    server_url: https://learn.microsoft.com/api/mcp
+    tool_name: microsoft_docs_search
+  openai:
+    deployment_name: gpt-5-mini
+    model_name: gpt-5-mini
+    model_version: '2025-08-07'
+    capacity: 10
+  fabric:
+    mode: byo
+    location: eastus
+    capacity_sku: F2
+    lakehouse_name: airline_ops_lakehouse
+    ontology_name: AirlineOpsOntology
+  runtime:
+    telemetry_disabled: true
+    run_live_calls: false
+required:
+  - fabric.workspace_id
+  - fabric.ontology_id
+resources:
+  - Azure AI Search Basic
+  - Azure OpenAI model deployment
+  - Storage account
+  - Static Web App and managed API
+  - Existing Fabric workspace and ontology (reused)
 success_criteria:
-  - Fabric Ontology Knowledge Source is created from provided workspace and ontology IDs.
-  - Combined Knowledge Base references MCP and Fabric sources.
-  - Live Fabric retrieve works only when delegated source authorization is provided.
-forbidden_outputs:
-  - Do not commit Fabric workspace IDs, ontology IDs, tenant IDs, or source authorization tokens.
-  - Do not document internal Fabric ontology authoring steps.
-  - Do not publish raw live retrieve responses from tenant runs.
-cleanup:
-  - bash scripts/destroy.sh --env-file .env.external.local --env-name liveks-byo --yes
+  - Fabric Ontology Knowledge Source references the provided IDs.
+  - Separate live checks prove both Fabric and MCP paths; the combined KB returns evidence from the source or sources selected by its planner.
+cleanup: Delete generated Azure resources only; preserve BYO Fabric assets.

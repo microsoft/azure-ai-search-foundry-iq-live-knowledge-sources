@@ -58,39 +58,29 @@ Generated deployment reports, local screenshots, logs, and scratch notes stay ig
 
 ### Full run
 
-Use the deployment mode that matches the review goal.
+Use the deployment mode that matches the review goal after creating and reviewing each ignored YAML ledger with `liveks init`.
 
 ```bash
-bash scripts/e2e-test.sh \
-  --mode mcp-only \
-  --env-name ext-liveks-mcp-e2e \
-  --location eastus \
-  --cleanup
+./liveks e2e --env ext-liveks-mcp-e2e --cleanup --yes
 ```
 
 ```bash
-bash scripts/e2e-test.sh \
-  --mode byo-fabric \
-  --env-file .env.external.local \
-  --env-name ext-liveks-byo-e2e \
-  --location eastus \
-  --cleanup
+./liveks e2e --env ext-liveks-byo-e2e --cleanup --yes
 ```
 
 ```bash
-bash scripts/e2e-test.sh \
-  --mode full \
-  --env-file .env.external.local \
-  --env-name ext-liveks-full-e2e \
-  --location eastus \
-  --fabric-location westus3 \
-  --cleanup
+./liveks e2e \
+  --env ext-liveks-full-e2e \
+  --cleanup \
+  --yes \
+  --accept-fabric-capacity
 ```
 
 Each run writes:
 
 ```text
 deployments/<env>/test-report.md
+deployments/<env>/e2e-report.json
 ```
 
 The report is intentionally ignored by git.
@@ -227,9 +217,9 @@ Use these proof points to decide whether a run supports a claim.
 | --- | --- |
 | MCP Server KS works | `microsoft-learn-mcp-ks` exists, MCP-only KB exists, retrieve returns MCP activity or Microsoft Learn references. |
 | Fabric Ontology KS works | Fabric KS exists, combined KB includes it, live retrieve with delegated source authorization returns Fabric activity or Fabric source data. |
-| Combined routing works | Combined KB includes both source names and retrieve output includes activity or references from the expected sources for the query. |
+| Combined routing works | Combined KB includes both source names and retrieve output contains recognized live evidence from the source or sources selected for the query. Separate checks prove MCP and Fabric independently. |
 | Demo app works | App root returns HTTP 200, `/api/status` exposes no secrets, and retrieve routes return live evidence or clearly marked offline replay. |
-| Full greenfield path works | Fabric sample assets are created, generated Fabric IDs are consumed by Azure AI Search KS creation, app loads, and cleanup completes. |
+| Full greenfield path works | Fabric sample assets are created, generated Fabric IDs are consumed by Azure AI Search KS creation, app loads, and deployment RG, generated capacity RG, and generated capacity absence checks pass. |
 | Blog or public claim is safe | Evidence above exists and wording follows [Public Preview Limitations and Caveats](../13-public-preview-limitations.md). |
 
 ## What Is Not Enough

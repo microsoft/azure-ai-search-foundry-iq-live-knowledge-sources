@@ -16,6 +16,7 @@ Options:
 
 This script performs local, non-deploying validation:
 - shell syntax
+- LiveKS CLI dependencies and profile schema
 - Python compile
 - Python contract tests
 - notebook JSON parse
@@ -74,7 +75,7 @@ fi
 
 cd "$(git rev-parse --show-toplevel)"
 
-TOTAL=14
+TOTAL=15
 CURRENT=0
 FAILED=false
 SKIPPED=0
@@ -131,6 +132,7 @@ BANNER
 
 run_required "Shell syntax" \
   bash -n \
+    liveks \
     scripts/deploy.sh \
     scripts/e2e-test.sh \
     scripts/destroy.sh \
@@ -143,6 +145,9 @@ run_required "Shell syntax" \
     scripts/maintainers/check-promotion-readiness.sh \
     scripts/validate-local.sh
 
+run_required "LiveKS CLI profiles" \
+  bash -c 'PYTHONPATH=src python3 -m liveks.cli profiles --format json >/dev/null && PYTHONPATH=src python3 scripts/generate_env_examples.py --check >/dev/null && bash -n .env.sample env/*.env.example'
+
 run_required "Python compile" \
   python3 -m py_compile \
     scripts/check-doc-links.py \
@@ -151,10 +156,15 @@ run_required "Python compile" \
     scripts/fabric-destroy.py \
     scripts/check-sample-hygiene.py \
     scripts/check-repo-size.py \
+    scripts/ensure_azd_defaults.py \
+    scripts/azd_postprovision.py \
+    scripts/deploy_static_webapp_api.py \
+    scripts/generate_env_examples.py \
     scripts/maintainers/summarize-e2e-evidence.py \
     scripts/maintainers/extract-review-evidence.py \
     tools/validate.py \
     tools/doctor.py \
+    tools/try_offline.py \
     samples/python/build_payloads.py \
     samples/python/inspect_retrieve_response.py
 

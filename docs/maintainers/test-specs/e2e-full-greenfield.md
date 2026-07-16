@@ -4,43 +4,31 @@ This test validates the greenfield path for users who have neither Azure AI Sear
 
 ## Purpose
 
-Prove that `--mode full` can create the Azure side, create the Fabric sample side, connect the generated Fabric ontology to Azure AI Search, run live retrieve, load the demo app, and clean up generated resources.
+Prove that the `full` profile can create the Azure side, create the Fabric sample side, connect the generated Fabric ontology to Azure AI Search, run live retrieve, load the demo app, and clean up generated resources.
 
 ## Inputs
 
-Use an ignored local env file, such as `.env.external.local`:
+Create the ignored YAML ledger:
 
 ```bash
-DEPLOYMENT_MODE=full
-EXTERNAL_TENANT_ID=<tenant-guid>
-EXTERNAL_AZURE_CONFIG_DIR=~/.azure-foundry-iq-ext
-
-FABRIC_CAPACITY_MODE=create
-FABRIC_LOCATION=<fabric-region-with-quota>
-FABRIC_CAPACITY_SKU=F2
-FABRIC_CAPACITY_ADMIN=<admin-upn>
+./liveks init --profile full --env ext-liveks-full-e2e
 ```
 
-Optional values if an existing Fabric ontology should be connected instead of creating new Fabric assets:
+Set `fabric.location` to a region with quota and add the external Azure context when needed. `full` rejects existing workspace and ontology IDs; use `byo-fabric` for those assets.
 
-```bash
-FABRIC_WORKSPACE_ID=<fabric-workspace-guid>
-FABRIC_ONTOLOGY_ID=<fabric-ontology-guid>
-FABRIC_USER_SEARCH_TOKEN=<optional raw end-user Search token>
-```
+The F2 capacity is billable until cleanup. The command requires the explicit capacity acknowledgement even with non-interactive confirmation.
 
 ## Command
 
 Greenfield run:
 
 ```bash
-bash scripts/e2e-test.sh \
-  --mode full \
-  --env-file .env.external.local \
-  --env-name ext-liveks-full-e2e \
-  --location eastus \
-  --fabric-location westus3 \
-  --cleanup
+./liveks e2e \
+  --env ext-liveks-full-e2e \
+  --cleanup \
+  --yes \
+  --accept-fabric-capacity \
+  --format json
 ```
 
 Fabric-only rehearsal:
@@ -73,6 +61,7 @@ deployments/ext-liveks-full-e2e/deployment-summary.md
 deployments/ext-liveks-full-e2e/fabric-summary.md
 deployments/ext-liveks-full-e2e/fabric.env
 deployments/ext-liveks-full-e2e/fabric-summary.json
+deployments/ext-liveks-full-e2e/e2e-report.json
 deployments/ext-liveks-full-e2e/test-report.md
 ```
 
@@ -90,48 +79,38 @@ All generated files must be git ignored and must not contain secrets.
 
 | Check | Expected |
 | --- | --- |
-| External tenant login | PASS |
-| Subscription and tenant match | PASS |
-| Tool preflight | PASS |
+| Tool, login, tenant, and provider preflight | PASS |
 | Bicep build | PASS |
-| postprovision dry-run | PASS |
+| Payload dry-run | PASS |
 | Static app build | PASS |
+| ARM preview | PASS without provisioning |
+| Fabric preprovision | PASS |
 | `azd up` | PASS |
 | Resource group exists | PASS |
-| Azure resources exist | PASS |
-| Fabric capacity active | PASS when capacity is created or BYO capacity is found |
+| Fabric capacity active | PASS when the generated capacity is created |
 | Fabric workspace created | PASS |
 | Lakehouse tables loaded | PASS |
 | Ontology definition readable | PASS |
 | Ontology-backed GraphModel queryable | PASS |
-| Deployment summary exists | PASS |
-| Fabric summary exists | PASS |
-| MCP KS exists | PASS |
-| Fabric KS exists | PASS |
-| MCP-only KB exists | PASS |
-| Combined KB exists | PASS |
-| Airline Ops index has docs | PASS |
-| MCP retrieve | PASS |
-| Fabric live retrieve | PASS when an end-user Search token is available; SKIP only if token minting fails |
-| App root HTTP 200 | PASS |
-| `/api/status` | PASS and shows `deploymentMode=full` |
-| `/api/retrieve/mcp` | PASS |
-| `/api/retrieve/fabric` | PASS live with token; offline only when token is absent |
-| `/api/retrieve/combined` | PASS live with token; offline only when token is absent |
-| Cleanup | PASS |
+| MCP retrieve | PASS with MCP evidence |
+| Fabric live retrieve | PASS with `fabricOntology` evidence |
+| Combined retrieve | PASS with recognized planner-selected live evidence |
+| App status | HTTP 200 |
+| Generated Fabric cleanup | PASS |
+| Azure cleanup | PASS |
 | Azure resource group deleted | PASS |
-| Generated Fabric workspace deleted | PASS |
+| Generated Fabric capacity and workspace absent | PASS |
 
 ## Pass Criteria
 
 The run passes when:
 
 - Azure resources are created.
-- Fabric capacity/workspace/lakehouse/ontology are created or explicitly reused before Azure AI Search retrieve validation.
+- Fabric capacity/workspace/lakehouse/ontology are created before Azure AI Search retrieve validation.
 - The ontology-backed GraphModel is queryable before Azure AI Search retrieve is tested.
 - `fabric-provision.py` writes Fabric IDs into `azd env`.
 - Azure AI Search creates `fabric-ontology-ks`.
-- Combined KB includes both MCP and Fabric sources.
+- The dedicated checks prove MCP and Fabric independently, while the combined KB returns live evidence from one or both planner-selected sources.
 - Cleanup removes Azure resources and generated Fabric workspace/items.
 
 If the region has no Fabric capacity quota, the run must fail clearly with the ARM quota error and the report must recommend using a region with quota or `byo-fabric`.

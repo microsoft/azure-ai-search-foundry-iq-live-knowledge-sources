@@ -39,6 +39,9 @@ GRAPH_TYPE_SCHEMA = "https://developer.microsoft.com/json-schemas/fabric/item/gr
 GRAPH_STYLING_SCHEMA = "https://developer.microsoft.com/json-schemas/fabric/item/graphInstance/definition/stylingConfiguration/1.0.0/schema.json"
 TRANSIENT_HTTP_STATUS_CODES = {429, 503}
 TRANSIENT_RETRY_DELAYS_SECONDS = (2, 4, 8)
+ONELAKE_TRANSIENT_STATUS_CODES = {404, 408, 429, 500, 502, 503, 504}
+ONELAKE_METADATA_ATTEMPTS = 30
+ONELAKE_METADATA_DELAY_SECONDS = 10
 FABRIC_CAPACITY_LIST_ATTEMPTS = 72
 FABRIC_GRAPH_PROBE_ATTEMPTS = 60
 FABRIC_GRAPH_SECOND_PROBE_ATTEMPTS = 45
@@ -141,6 +144,16 @@ def get_token(resource: str) -> str:
     return run(["az", "account", "get-access-token", "--resource", resource, "--query", "accessToken", "-o", "tsv"])
 
 
+def close_http_error(error: urllib.error.HTTPError) -> None:
+    """Close HTTPError across Python versions, including fp-less test doubles."""
+    try:
+        error.close()
+    except (AttributeError, KeyError):
+        response = getattr(error, "fp", None)
+        if response is not None:
+            response.close()
+
+
 def request_json(
     *,
     method: str,
@@ -178,13 +191,20 @@ def request_json(
                 retry_after = error.headers.get("Retry-After")
                 delay = int(retry_after) if retry_after and retry_after.isdigit() else retry_delay
                 print(f"[warn] {method} {url} returned {error.code}; retrying in {delay}s.", file=sys.stderr)
+                close_http_error(error)
                 time.sleep(delay)
                 continue
-            detail = error.read().decode("utf-8", errors="replace")
+            try:
+                detail = error.read().decode("utf-8", errors="replace")
+            finally:
+                close_http_error(error)
             raise RuntimeError(f"{method} {url} failed: {error.code}\n{detail}") from error
 
     if last_error:
-        detail = last_error.read().decode("utf-8", errors="replace")
+        try:
+            detail = last_error.read().decode("utf-8", errors="replace")
+        finally:
+            close_http_error(last_error)
         raise RuntimeError(f"{method} {url} failed: {last_error.code}\n{detail}") from last_error
     raise RuntimeError(f"{method} {url} failed without an HTTP response.")
 
@@ -288,11 +308,7 @@ def ensure_capacity(settings: dict[str, str], token: str, *, dry_run: bool) -> t
     if mode == "skip":
         raise RuntimeError("FABRIC_CAPACITY_MODE=skip cannot create a greenfield Fabric workspace.")
 
-    capacity_id = settings.get("FABRIC_CAPACITY_ID", "")
     capacity_name = settings["FABRIC_CAPACITY_NAME"]
-    if capacity_id:
-        return capacity_id, {"displayName": capacity_name, "id": capacity_id, "state": "Configured", "created": False}
-
     existing = capacity_by_name_with_retry(token, capacity_name) if not dry_run else None
     if existing:
         return str(existing["id"]), {**existing, "created": False}
@@ -330,8 +346,6 @@ def list_by_display_name(path: str, token: str, display_name: str) -> dict[str, 
 
 
 def ensure_workspace(settings: dict[str, str], token: str, capacity_id: str, *, dry_run: bool) -> tuple[str, dict[str, Any]]:
-    if settings.get("FABRIC_WORKSPACE_ID"):
-        return settings["FABRIC_WORKSPACE_ID"], {"id": settings["FABRIC_WORKSPACE_ID"], "displayName": settings["FABRIC_WORKSPACE_NAME"], "created": False}
     name = settings["FABRIC_WORKSPACE_NAME"]
     if dry_run:
         return "00000000-0000-0000-0000-000000000020", {"id": "dry-run-workspace", "displayName": name, "created": True}
@@ -353,8 +367,6 @@ def ensure_workspace(settings: dict[str, str], token: str, capacity_id: str, *, 
 
 
 def ensure_lakehouse(settings: dict[str, str], token: str, workspace_id: str, *, dry_run: bool) -> tuple[str, dict[str, Any]]:
-    if settings.get("FABRIC_LAKEHOUSE_ID"):
-        return settings["FABRIC_LAKEHOUSE_ID"], {"id": settings["FABRIC_LAKEHOUSE_ID"], "displayName": settings["FABRIC_LAKEHOUSE_NAME"], "created": False}
     name = settings["FABRIC_LAKEHOUSE_NAME"]
     if dry_run:
         return "00000000-0000-0000-0000-000000000030", {"id": "dry-run-lakehouse", "displayName": name, "created": True}
@@ -380,7 +392,17 @@ def onelake_path(workspace_id: str, lakehouse_id: str, relative_path: str) -> st
     return f"{ONELAKE_DFS}/{workspace_id}/{lakehouse_id}/{encoded}"
 
 
-def onelake_request(method: str, url: str, token: str, body: bytes | None = None, *, extra_headers: dict[str, str] | None = None, ok_statuses: tuple[int, ...] = (200, 201)) -> None:
+def onelake_request(
+    method: str,
+    url: str,
+    token: str,
+    body: bytes | None = None,
+    *,
+    extra_headers: dict[str, str] | None = None,
+    ok_statuses: tuple[int, ...] = (200, 201),
+    attempts: int = ONELAKE_METADATA_ATTEMPTS,
+    delay_seconds: int = ONELAKE_METADATA_DELAY_SECONDS,
+) -> None:
     headers = {
         "Authorization": f"Bearer {token}",
         "x-ms-version": "2021-06-08",
@@ -388,13 +410,26 @@ def onelake_request(method: str, url: str, token: str, body: bytes | None = None
     if extra_headers:
         headers.update(extra_headers)
     request = urllib.request.Request(url, data=body, headers=headers, method=method)
-    try:
-        with urllib.request.urlopen(request, timeout=180) as response:
-            if response.status not in ok_statuses:
-                raise RuntimeError(f"{method} {url} returned {response.status}")
-    except urllib.error.HTTPError as error:
-        detail = error.read().decode("utf-8", errors="replace")
-        raise RuntimeError(f"{method} {url} failed: {error.code}\n{detail}") from error
+    for attempt in range(1, attempts + 1):
+        try:
+            with urllib.request.urlopen(request, timeout=180) as response:
+                if response.status not in ok_statuses:
+                    raise RuntimeError(f"{method} {url} returned {response.status}")
+                return
+        except urllib.error.HTTPError as error:
+            try:
+                detail = error.read().decode("utf-8", errors="replace")
+            finally:
+                close_http_error(error)
+            metadata_pending = error.code == 400 and "couldn't find one lake details" in detail.lower()
+            retryable = error.code in ONELAKE_TRANSIENT_STATUS_CODES or metadata_pending
+            if retryable and attempt < attempts:
+                retry_after = error.headers.get("Retry-After")
+                delay = int(retry_after) if retry_after and retry_after.isdigit() else delay_seconds
+                print(f"[warn] OneLake metadata is not ready (HTTP {error.code}); retrying in {delay}s.", file=sys.stderr)
+                time.sleep(delay)
+                continue
+            raise RuntimeError(f"{method} {url} failed: {error.code}\n{detail}") from error
 
 
 def upload_to_onelake(workspace_id: str, lakehouse_id: str, storage_token: str, *, dry_run: bool) -> list[str]:
@@ -748,10 +783,6 @@ def build_graph_model_definition(workspace_id: str, lakehouse_id: str, ontology_
 
 
 def ensure_ontology(settings: dict[str, str], token: str, workspace_id: str, lakehouse_id: str, *, dry_run: bool) -> tuple[str, dict[str, Any], dict[str, Any]]:
-    if settings.get("FABRIC_ONTOLOGY_ID"):
-        definition, manifest = build_ontology_definition(workspace_id, lakehouse_id, settings["FABRIC_ONTOLOGY_NAME"])
-        return settings["FABRIC_ONTOLOGY_ID"], {"id": settings["FABRIC_ONTOLOGY_ID"], "displayName": settings["FABRIC_ONTOLOGY_NAME"], "created": False}, manifest
-
     name = settings["FABRIC_ONTOLOGY_NAME"]
     definition, manifest = build_ontology_definition(workspace_id, lakehouse_id, name)
     if dry_run:
@@ -1094,6 +1125,21 @@ def print_cleanup_hint(settings: dict[str, str], error: BaseException) -> None:
     print(f"  bash scripts/destroy.sh --env-name {env_name} --yes", file=sys.stderr)
 
 
+def load_previous_summary(env_name: str) -> dict[str, Any]:
+    path = DEPLOYMENTS_DIR / env_name / "fabric-summary.json"
+    if not path.exists():
+        return {}
+    try:
+        payload = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return {}
+    return payload if payload.get("environmentName") == env_name else {}
+
+
+def retain_created_ownership(previous: dict[str, Any], kind: str, item_id: str, created_now: bool) -> bool:
+    return created_now or bool(previous.get(f"{kind}Created") and str(previous.get(f"{kind}Id") or "") == item_id)
+
+
 def main() -> None:
     args = parse_args()
     azd_values = load_azd_env()
@@ -1118,6 +1164,7 @@ def main() -> None:
         print(json.dumps({"dryRun": True, "ontologyManifest": manifest, "definitionPartCount": len(definition["parts"])}, indent=2))
         return
 
+    previous_summary = load_previous_summary(settings["AZURE_ENV_NAME"])
     summary = base_summary(settings)
 
     try:
@@ -1133,7 +1180,7 @@ def main() -> None:
                 "capacityState": capacity.get("state", ""),
                 "capacityArmId": capacity.get("armId") or settings.get("FABRIC_CAPACITY_ARM_ID", ""),
                 "capacityResourceGroup": settings["FABRIC_CAPACITY_RESOURCE_GROUP"],
-                "capacityCreated": bool(capacity.get("created")),
+                "capacityCreated": retain_created_ownership(previous_summary, "capacity", capacity_id, bool(capacity.get("created"))),
             }
         )
         write_partial_outputs(settings, summary)
@@ -1144,7 +1191,7 @@ def main() -> None:
             {
                 "workspaceId": workspace_id,
                 "workspaceName": workspace.get("displayName") or settings["FABRIC_WORKSPACE_NAME"],
-                "workspaceCreated": bool(workspace.get("created")),
+                "workspaceCreated": retain_created_ownership(previous_summary, "workspace", workspace_id, bool(workspace.get("created"))),
             }
         )
         write_partial_outputs(settings, summary)
@@ -1154,7 +1201,7 @@ def main() -> None:
             {
                 "lakehouseId": lakehouse_id,
                 "lakehouseName": lakehouse.get("displayName") or settings["FABRIC_LAKEHOUSE_NAME"],
-                "lakehouseCreated": bool(lakehouse.get("created")),
+                "lakehouseCreated": retain_created_ownership(previous_summary, "lakehouse", lakehouse_id, bool(lakehouse.get("created"))),
             }
         )
         write_partial_outputs(settings, summary)
@@ -1179,7 +1226,7 @@ def main() -> None:
             {
                 "ontologyId": ontology_id,
                 "ontologyName": ontology.get("displayName") or settings["FABRIC_ONTOLOGY_NAME"],
-                "ontologyCreated": bool(ontology.get("created")),
+                "ontologyCreated": retain_created_ownership(previous_summary, "ontology", ontology_id, bool(ontology.get("created"))),
                 "ontologyManifest": manifest,
             }
         )

@@ -1,0 +1,54 @@
+schema_version: 2
+profile: full
+kind: deployment
+purpose: Create a greenfield Fabric Airline Ops stack and connect it to Azure AI Search.
+default: false
+required_tools: [python3, azd, az, node, npm]
+estimated_duration: 30-60 minutes
+cost: Adds a billable Fabric F2 capacity until cleanup, plus the Azure resources used by other live modes.
+defaults:
+  deployment:
+    mode: full
+  azure:
+    location: eastus
+    base_name: fiqliveks
+    hosting_mode: staticwebapp
+    static_web_app_location: eastus2
+    app_service_sku: F1
+  search:
+    api_version: 2026-05-01-preview
+    sku: basic
+    index_name: airline-ops-regulatory-docs
+    mcp_knowledge_source_name: microsoft-learn-mcp-ks
+    fabric_knowledge_source_name: fabric-ontology-ks
+    mcp_knowledge_base_name: live-knowledge-sources-mcp-kb
+    combined_knowledge_base_name: live-knowledge-sources-kb
+  mcp:
+    server_url: https://learn.microsoft.com/api/mcp
+    tool_name: microsoft_docs_search
+  openai:
+    deployment_name: gpt-5-mini
+    model_name: gpt-5-mini
+    model_version: '2025-08-07'
+    capacity: 10
+  fabric:
+    mode: create
+    location: westus3
+    capacity_sku: F2
+    lakehouse_name: airline_ops_lakehouse
+    ontology_name: AirlineOpsOntology
+  runtime:
+    telemetry_disabled: true
+    run_live_calls: false
+required: []
+resources:
+  - Fabric F2 capacity
+  - Fabric workspace, Lakehouse, ontology, and GraphModel
+  - Azure AI Search Basic
+  - Azure OpenAI model deployment
+  - Storage account
+  - Static Web App and managed API
+success_criteria:
+  - Generated Fabric GraphModel is queryable.
+  - Separate live checks prove both Fabric and MCP paths; the combined KB returns evidence from the source or sources selected by its planner.
+cleanup: Delete all generated Fabric and Azure resources, then verify absence.

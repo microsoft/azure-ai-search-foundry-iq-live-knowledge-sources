@@ -1,270 +1,202 @@
-# One-Command Demo Deployment
+# One-Command Deployment
 
-This repo includes a one-command deployment path using Azure Developer CLI, Bicep, Fabric preprovisioning, and post-provision scripts.
-
-The goal is to give a field engineer or customer a working platform demo with an explicit deployment mode.
-
-## Choose A Deployment Mode
-
-| Mode | What it creates | Fabric behavior | Recommended use |
-| --- | --- | --- | --- |
-| `byo-fabric` | Azure AI Search, Azure OpenAI, MCP KS/KB, Search index, demo app | Connects an existing Fabric workspace and ontology | Primary live Fabric sample path |
-| `mcp-only` | Azure AI Search, Azure OpenAI, MCP KS/KB, Search index, demo app | Skips Fabric KS creation | First MCP validation or tenants without Fabric |
-| `full` | Azure/Foundry/Search/MCP/app resources plus Fabric capacity/workspace/lakehouse/ontology | Creates sample Airline Ops Fabric assets, then connects Fabric Ontology KS | Greenfield end-to-end sample path |
+After an environment is initialized and planned, `liveks up` is the single command that previews, confirms, provisions, deploys, and verifies the accelerator.
 
 ## Prerequisites
 
-Install or confirm:
-
-```text
-azd, az, python3, node, npm
-```
-
-Sign in before deploying:
+| Tool or access | Requirement |
+| --- | --- |
+| Python | 3.11 or newer |
+| Azure Developer CLI | 1.27.0 or newer |
+| Azure CLI | Installed and signed into the target subscription |
+| Node.js | 22 or newer, with npm |
+| Azure | Permission to create the profile's resources |
+| Fabric BYO | Existing workspace and ontology access |
+| Fabric full | F2 quota, capacity permission, and supported tenant settings |
 
 ```bash
+az login --tenant <tenant-guid>
 azd auth login
-az login --tenant <tenant-id>
+./liveks bootstrap
 ```
 
-For isolated external-tenant testing, create an ignored `.env.external.local` file from `.env.sample`, set `EXTERNAL_TENANT_ID` and `EXTERNAL_AZURE_CONFIG_DIR`, then run:
+Run `./liveks doctor --env <environment>` before planning. It checks versions, both authentication contexts, configured tenant/subscription alignment, provider registration, and profile requirements.
+
+## Initialize
 
 ```bash
-scripts/external-tenant-login.sh --env-file .env.external.local
+./liveks init --profile mcp-only --env liveks-mcp
+./liveks init --profile byo-fabric --env liveks-byo
+./liveks init --profile full --env liveks-full
 ```
 
-For Fabric paths:
+Each command writes `.liveks/<environment>.yaml`. Add overrides there and keep the file untracked. See [Configuration](21-configuration.md).
 
-- `byo-fabric`: provide `FABRIC_WORKSPACE_ID` and `FABRIC_ONTOLOGY_ID`.
-- `full`: confirm Fabric capacity quota and choose `--fabric-location` for a region where capacity creation is allowed.
-- live Fabric retrieve: provide a raw user token only in ignored local env/app settings or transient UI input; do not commit it.
-
-The wrapper requires a mode unless `DEPLOYMENT_MODE` is already set in the loaded env file or the selected azd environment:
+## Plan
 
 ```bash
-bash scripts/deploy.sh --mode byo-fabric
+./liveks plan --env liveks-mcp
 ```
 
-Direct `azd up` remains supported for template users. The preprovision hook defaults direct `azd up` to `mcp-only` so it can run without Fabric IDs, but the recommended tutorial path is `scripts/deploy.sh` with an explicit mode.
+The plan compiles Bicep, dry-runs Search payload generation, builds the Static Web Apps frontend/API bundle, reports expected resources and cost, and writes a redacted lock. It performs no cloud mutation.
 
-## Wrapper Behavior
-
-The wrapper prints an ASCII step bar, streams the underlying Azure output, and writes a local ignored log:
-
-```text
-.deployment/deploy-YYYYMMDD-HHMMSS.log
-```
-
-It does not parse `azd` or Bicep progress output. It uses command exit codes for required steps and treats version/environment displays as diagnostics, so Azure CLI or SDK output format changes should not break the deployment flow.
-
-For `full` mode, the wrapper provisions Fabric capacity/workspace/lakehouse/ontology/GraphModel before `azd up`. This keeps long Fabric graph-loading work outside the Azure Developer CLI postprovision hook. After `azd up` finishes, the normal postprovision path creates the Azure AI Search Knowledge Sources, Knowledge Bases, Search index, and smoke-test summary.
-
-Common options:
+## Up
 
 ```bash
-bash scripts/deploy.sh --mode byo-fabric --env-file .env.external.local --env-name liveks-byo --location eastus
-bash scripts/deploy.sh --mode mcp-only --env-name liveks-mcp --location eastus
-bash scripts/deploy.sh --mode full --env-name liveks-full --location eastus --fabric-location westus3
-bash scripts/deploy.sh --skip-app-build
-bash scripts/deploy.sh --postprovision-only
+./liveks up --env liveks-mcp
 ```
 
-For a full live rehearsal that creates resources, validates Knowledge Sources, loads the demo app, and deletes the resources afterward:
+Execution order:
+
+1. repeat the complete plan,
+2. select or create the named `azd` environment,
+3. project resolved non-secret YAML values into `azd env`,
+4. run `azd provision --preview`,
+5. require exact confirmation,
+6. preprovision generated Fabric assets for `full`,
+7. run `azd up`, including cross-platform Python hooks,
+8. verify the app and retrieve evidence,
+9. write a redacted lifecycle lock and ignored reports.
+
+Automation can use `--yes`. Full mode still requires the separate cost acknowledgement:
 
 ```bash
-bash scripts/e2e-test.sh \
-  --mode byo-fabric \
-  --env-file .env.external.local \
-  --env-name ext-liveks-e2e-20260616 \
-  --location eastus \
-  --cleanup
+./liveks up --env liveks-full --yes --accept-fabric-capacity
 ```
 
-The E2E harness writes:
+## Profile Behavior
 
-```text
-deployments/<env>/test-report.md
+| Profile | Azure resources | Fabric behavior |
+| --- | --- | --- |
+| `mcp-only` | Search, OpenAI, Storage, app, MCP KS, MCP-only KB, sample index | Skipped |
+| `byo-fabric` | Same Azure assets plus Fabric KS and combined KB | Existing workspace/ontology reused |
+| `full` | Same Azure assets plus generated Fabric KS and combined KB | F2 capacity, workspace, Lakehouse, ontology, and GraphModel created |
+
+The Search managed identity receives Azure OpenAI access for answer synthesis. The default frontend is Azure Static Web Apps with a managed Node.js API, which keeps Search and OpenAI credentials out of browser code.
+
+## Fabric Full Details
+
+Full mode creates the Fabric stack before `azd up` so long Lakehouse and GraphModel readiness work does not run inside the Azure postprovision timeout. Generated IDs are projected into the selected `azd` environment, then postprovision creates the Fabric Ontology KS and combined KB.
+
+Each fresh run clears stale generated IDs, resolves the assets created for the environment by name, and waits through the initial OneLake metadata propagation window. During Azure deployment, Bicep consumes the preprovisioned capacity as an existing asset; the YAML ledger remains `fabric.mode: create` so cleanup ownership stays explicit.
+
+The profile defaults to:
+
+```yaml
+fabric:
+  mode: create
+  location: westus3
+  capacity_sku: F2
 ```
 
-The report is ignored by git and includes a checklist, progress bar, resource names, app URL, and pass/fail notes.
-Use [Public Preview Limitations and Caveats](13-public-preview-limitations.md) before turning deployment results into customer-facing or blog claims.
+Change `fabric.location` only after confirming quota. Full mode rejects existing workspace and ontology IDs to keep creation and cleanup ownership unambiguous.
 
-The default hosting path is Azure Static Web Apps with a managed Functions API. This avoids the `Microsoft.Web/serverFarms` quota problem that can block App Service Plan creation in constrained demo subscriptions.
+## Verify
 
-Static Web Apps is not available in every Azure region. The template deploys Search/OpenAI/Storage to `AZURE_LOCATION` and deploys Static Web Apps to `AZURE_STATIC_WEB_APP_LOCATION`, defaulting to `eastus2`.
+`up` verifies automatically. Rerun without provisioning:
 
-If you opt into App Service hosting and the run fails while creating `Microsoft.Web/serverFarms` with `Current Limit (Total VMs): 0`, the subscription cannot create an App Service Plan in that region. Use the default Static Web Apps path, request quota for at least one App Service worker, or use a subscription with App Service quota.
-
-## What v1 Deploys
-
-- Azure AI Search
-- Azure OpenAI account and chat model deployment
-- Search managed identity with `Cognitive Services User` access to Azure OpenAI for Knowledge Base answer synthesis
-- Storage account for generated/sample assets
-- Azure Static Web Apps demo frontend
-- Managed Azure Functions API for server-side retrieve calls
-- Microsoft Learn MCP Server Knowledge Source
-- MCP-only Knowledge Base
-- Combined Knowledge Base skeleton
-- Search index for Airline Ops regulation-style sample documents
-- Optional F2 Microsoft Fabric capacity for `full` mode
-- Fabric workspace, Airline Ops Lakehouse tables, and Airline Ops ontology for `full` mode
-- Ontology-backed GraphModel definition and readiness probe for `full` mode
-- Generated local deployment summary markdown
-
-## Fabric Automation Status
-
-Fabric deployment is mode-dependent:
-
-- `byo-fabric` requires `FABRIC_WORKSPACE_ID` and `FABRIC_ONTOLOGY_ID` and creates the Azure AI Search Fabric Ontology Knowledge Source.
-- `mcp-only` ignores Fabric IDs and creates only the MCP path.
-- `full` creates or reuses a Fabric capacity before `azd up`, creates a Fabric workspace, creates a Lakehouse, uploads the Airline Ops CSV files, loads Delta tables, creates an ontology definition, updates the ontology-backed GraphModel definition, waits for a passing GraphModel probe, writes generated Fabric IDs into `azd env`, and then creates the Azure AI Search Fabric Ontology Knowledge Source.
-- If your subscription has no Fabric quota in the chosen region, set `--fabric-location` to a region with quota or use `byo-fabric`.
-- Fabric live retrieval requires an end-user Search access token for source authorization. The demo app uses offline replay unless `FABRIC_USER_SEARCH_TOKEN` or a transient raw user token is provided.
-- SharePoint PDF upload is not automated. Use the local synthetic regulatory documents for v1. Add Microsoft Graph upload later when tenant/admin consent and content governance are clear.
-
-## Generated Summary
-
-`scripts/postprovision.py` writes:
-
-```text
-deployments/<env>/deployment-summary.md
+```bash
+./liveks verify --env liveks-mcp
 ```
 
-The file is ignored by git. It contains:
+The verifier checks:
 
-- App URL
-- deployment mode
-- hosting mode and Static Web Apps region
-- Search endpoint
-- OpenAI endpoint
-- resource names
-- Knowledge Source and Knowledge Base names
-- notebook environment values
-- MCP smoke-test trace summary
+- resource group existence,
+- app status endpoint,
+- live MCP retrieve evidence,
+- live Fabric and combined evidence for Fabric profiles,
+- response source types rather than final answer text alone.
 
-It does not include API keys, tokens, or customer data.
+The single-source KB checks prove the MCP and Fabric paths independently. The combined KB planner may select one or both attached sources for a query, so verification records the recognized live source types instead of requiring both on every call.
+
+Reports under `deployments/<environment>/` are ignored and must remain private unless sanitized.
 
 ## Demo App
 
-The default demo app is under `static-app/`. It deploys as Azure Static Web Apps plus managed Functions API, so browser code never receives Search admin keys or OpenAI keys.
+The build has two hosting contexts:
 
-Required API routes:
+- GitHub Pages: canonical offline replay only, labeled `offline-replay`.
+- Azure Static Web Apps: managed API first, with canonical replay used when a source is intentionally unavailable.
 
-| Route | Purpose |
-| --- | --- |
-| `GET /api/status` | Show runtime configuration without secrets. |
-| `GET /api/deployment-summary` | Show generated/deployed resource metadata. |
-| `POST /api/retrieve/mcp` | Run MCP-only retrieve or offline replay fallback. |
-| `POST /api/retrieve/fabric` | Run Fabric retrieve when source authorization exists; otherwise offline replay. |
-| `POST /api/retrieve/combined` | Run combined retrieve when Fabric live config exists; otherwise offline replay. |
+The same response fixtures drive CLI replay, Pages, and API fallback. The managed API uses Node.js 22 and keeps Search admin keys server-side.
 
-All live retrieve calls go through server-side API routes.
-
-The Knowledge Base model configuration uses Azure OpenAI through Search managed identity RBAC by default. If you run the REST samples manually, `AZURE_OPENAI_API_KEY` remains available as an optional local testing path, but the one-command deployment does not require it.
-
-## Local Validation
-
-Before deploying or pushing to a Microsoft org repo, run the local validation gate:
+## Down
 
 ```bash
-bash scripts/validate-local.sh
+./liveks down --env liveks-mcp
 ```
 
-Use strict mode when you want missing optional tools, such as Azure CLI for Bicep validation, to fail instead of skip:
+Cleanup order:
+
+1. select the exact named `azd` environment,
+2. compare resolved ownership with the redacted lock,
+3. delete Fabric only when both identify it as generated,
+4. run `azd down --purge --force`,
+5. verify the generated deployment resource group is absent,
+6. when this run created a Fabric capacity, verify its dedicated resource group is absent and the matching ARM capacity count is zero.
+
+For `byo-fabric`, Fabric cleanup is always skipped. For `full`, a Fabric cleanup failure is reported as partial but Azure cleanup continues.
+
+Successful `down --format json` output contains these checks:
+
+| Check | Applies to | Required result |
+| --- | --- | --- |
+| `resource-group-absent` | Every live profile | `pass` |
+| `fabric-capacity-resource-group-absent` | `full` when the run created capacity | `pass` |
+| `fabric-capacity-absent` | `full` when the run created capacity | `pass` |
+
+For an independent Azure CLI confirmation, take the generated names from the ignored Fabric summary and expect `false`, `false`, and `0`:
 
 ```bash
-bash scripts/validate-local.sh --strict
-```
-
-The validation script runs:
-
-- shell syntax checks
-- Python compile checks
-- notebook JSON validation
-- sample payload generation
-- offline response inspection
-- no-secret scan
-- Static Web Apps demo build
-- Bicep build when Azure CLI is available
-
-You can also run the no-secret scan directly:
-
-```bash
-bash scripts/no-secret-scan.sh
-```
-
-The scan checks tracked and unignored local files for known tenant values, raw JWT-shaped tokens, and API-key-like env values. Keep real tenant IDs, tokens, keys, deployment logs, generated reports, and local screenshots in ignored files only.
-
-After deploying:
-
-```bash
-azd env get-values
-python3 scripts/postprovision.py
-```
-
-Cleanup:
-
-```bash
-bash scripts/destroy.sh --env-name liveks-dev
-```
-
-The cleanup wrapper first attempts generated Fabric cleanup, then calls `azd down --purge --force` even if Fabric cleanup needs manual follow-up. Fabric provisioning writes non-secret partial summaries under `deployments/<env>/` so `fabric-destroy.py` can find generated capacity/workspace assets after a failed `full` run.
-
-## Orphaned Fabric Capacity Cleanup
-
-Use this when a previous `full` or Fabric greenfield test left a Fabric capacity resource group behind, especially in an external tenant where portal scope and local CLI scope can differ.
-
-First verify the resource group is a generated sample artifact:
-
-```bash
-az account set --subscription <subscription-id-or-name>
-az group show --name <fabric-capacity-resource-group>
+az group exists --name <deployment-resource-group>
+az group exists --name <fabric-capacity-resource-group>
 az resource list \
-  --resource-group <fabric-capacity-resource-group> \
-  --query "[].{name:name,type:type,location:location,sku:sku.name}" \
-  --output table
+  --resource-type Microsoft.Fabric/capacities \
+  --query "length([?name=='<fabric-capacity-name>'])" \
+  --output tsv
 ```
 
-It is normally safe to delete the resource group when all of these are true:
+Do not apply the Fabric absence checks to `byo-fabric`: preserving its existing capacity, workspace, and ontology is the required result.
 
-- the resource group name is clearly from a dated sample/test run,
-- the resource list contains only generated sample resources, commonly `Microsoft.Fabric/capacities`,
-- the capacity is not a BYO/customer capacity reused by another workspace or demo,
-- any matching `deployments/<env>/fabric-summary.json` shows `"capacityCreated": true`.
-
-If a Fabric summary exists for the environment, prefer the repo cleanup script because it also deletes generated Fabric workspace items before deleting a generated capacity resource group:
+## Full Lifecycle Evidence
 
 ```bash
-python3 scripts/fabric-destroy.py --env-name <env-name> --yes
+./liveks e2e --env liveks-mcp --cleanup --yes
 ```
 
-If only an orphaned capacity resource group remains and you have verified it is not shared, delete the resource group directly:
+Full mode:
 
 ```bash
+./liveks e2e \
+  --env liveks-full \
+  --cleanup \
+  --yes \
+  --accept-fabric-capacity
+```
+
+Choose exactly one of `--cleanup` or `--keep-resources`. Use the latter only for active debugging with an assigned cleanup owner.
+
+The lifecycle writes ignored `deployments/<environment>/e2e-report.json` and `test-report.md` files for machine inspection and the existing maintainer evidence workflow.
+
+## Residual Fabric Capacity
+
+If full cleanup reports a residual capacity:
+
+1. inspect `deployments/<environment>/fabric-summary.json`,
+2. confirm the capacity was created by this exact environment,
+3. list every resource in its Azure resource group,
+4. confirm no shared workspace is assigned in Fabric,
+5. delete only the generated capacity or its dedicated empty resource group.
+
+```bash
+az resource list --resource-group <fabric-capacity-resource-group> -o table
 az group delete --name <fabric-capacity-resource-group> --yes --no-wait
 ```
 
-Do not delete the resource group if it contains non-sample resources, if the capacity is an existing/BYO capacity, or if you cannot verify which workspace is assigned to it. In that case, check the Fabric admin portal and the Azure portal assignment before cleanup.
+Do not delete a group that contains non-sample resources, a BYO capacity, or an asset whose ownership cannot be proven. Inspect both Azure and the Fabric admin portal before manual cleanup.
 
-## Fabric Live Mode
+## Direct azd Compatibility
 
-To test Fabric live mode in the demo app, configure one of these:
+Direct `azd up` remains available for template users after prerequisites are installed. Cross-platform Python hooks supply safe MCP-only defaults, configure postprovision assets, and deploy the managed API. It does not provide the YAML plan, ownership lock, explicit full-capacity acknowledgement, or integrated verification of the LiveKS path, so the documented workflow is `liveks up`.
 
-- server-side app setting `FABRIC_USER_SEARCH_TOKEN`, for a private demo only,
-- or paste a transient raw end-user Search token in the Fabric tab.
-
-The token must be scoped to:
-
-```text
-https://search.azure.com/.default
-```
-
-Do not prefix the token with `Bearer`.
-
-## Phase 2 Candidates
-
-- Production-grade Fabric ontology authoring refinements if public APIs and PM guidance evolve beyond the current sample automation.
-- Microsoft Graph upload for SharePoint-hosted policy PDFs.
-- Production app token acquisition and OBO plumbing for user-specific Fabric live retrieval.
-- Optional Search Index Knowledge Source path for indexed regulation documents.
+The old shell wrappers remain compatibility shims and delegate to LiveKS. New scripts should call `./liveks` or `./liveks.ps1` directly.

@@ -1,31 +1,52 @@
+schema_version: 2
 profile: mcp-only
-purpose: Deploy the fastest live Azure AI Search MCP Server Knowledge Source validation path without Fabric dependencies.
+kind: deployment
+purpose: Deploy the fastest live Azure AI Search MCP Server Knowledge Source path without Fabric.
 default: false
-required_tools:
-  - bash
-  - python3
-  - azd
-  - az
-  - node
-  - npm
-required_env: []
-optional_env:
-  - DEPLOYMENT_MODE
-  - MCP_KNOWLEDGE_SOURCE_NAME
-  - MCP_SERVER_URL
-  - MCP_TOOL_NAME
-  - AZURE_OPENAI_ENDPOINT
-  - AZURE_OPENAI_DEPLOYMENT_ID
-  - AZURE_OPENAI_MODEL_NAME
-commands:
-  - bash scripts/deploy.sh --mode mcp-only --env-name liveks-mcp --location eastus
-  - bash scripts/e2e-test.sh --mode mcp-only --env-name liveks-mcp-e2e --location eastus --cleanup
+required_tools: [python3, azd, az, node, npm]
+estimated_duration: 10-20 minutes
+cost: Search Basic, Azure OpenAI usage, Storage, and app hosting may incur charges until cleanup.
+defaults:
+  deployment:
+    mode: mcp-only
+  azure:
+    location: eastus
+    base_name: fiqliveks
+    hosting_mode: staticwebapp
+    static_web_app_location: eastus2
+    app_service_sku: F1
+  search:
+    api_version: 2026-05-01-preview
+    sku: basic
+    index_name: airline-ops-regulatory-docs
+    mcp_knowledge_source_name: microsoft-learn-mcp-ks
+    fabric_knowledge_source_name: fabric-ontology-ks
+    mcp_knowledge_base_name: live-knowledge-sources-mcp-kb
+    combined_knowledge_base_name: live-knowledge-sources-kb
+  mcp:
+    server_url: https://learn.microsoft.com/api/mcp
+    tool_name: microsoft_docs_search
+  openai:
+    deployment_name: gpt-5-mini
+    model_name: gpt-5-mini
+    model_version: '2025-08-07'
+    capacity: 10
+  fabric:
+    mode: skip
+    location: eastus
+    capacity_sku: F2
+    lakehouse_name: airline_ops_lakehouse
+    ontology_name: AirlineOpsOntology
+  runtime:
+    telemetry_disabled: true
+    run_live_calls: false
+required: []
+resources:
+  - Azure AI Search Basic
+  - Azure OpenAI model deployment
+  - Storage account
+  - Static Web App and managed API
 success_criteria:
-  - MCP Server Knowledge Source is created.
-  - MCP-only Knowledge Base retrieve returns mcpServer activity or references.
-  - Demo app loads without exposing Search admin keys or Azure OpenAI keys in browser code.
-forbidden_outputs:
-  - Do not commit generated deployment summaries or logs.
-  - Do not publish Search endpoints or resource names from private runs unless sanitized.
-cleanup:
-  - bash scripts/destroy.sh --env-name liveks-mcp --yes
+  - MCP Knowledge Source and MCP-only Knowledge Base exist.
+  - MCP retrieve returns activity or reference evidence.
+cleanup: Delete resources created for the selected environment.

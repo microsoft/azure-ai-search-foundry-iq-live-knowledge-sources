@@ -9,16 +9,17 @@ mock, local validation gate, dry-run, generated deployment summary) plus **real
 captured footage of the demo app and an executed notebook** (run locally in
 offline / dry-run mode — no secrets on screen).
 
-The video ships in two languages with identical scene order and timing
-(9085 frames / 303 s each); only the captions, callouts, and labels differ. The
-rendered MP4s are **hosted on GitHub Releases** (tag
+The storyboard builds two languages with identical scene order and timing; only
+the captions, callouts, and labels differ. Rendered MP4s are **hosted on GitHub Releases** (tag
 [`walkthrough-v1`](https://github.com/microsoft/azure-ai-search-foundry-iq-live-knowledge-sources/releases/tag/walkthrough-v1)) to keep the repository
 lean — this folder holds only the source that rebuilds them.
 
 | Language | Final video (release asset) | Per-chapter source |
 | --- | --- | --- |
-| 🇰🇷 Korean  | [`repo-quickstart-guide.mp4`](https://github.com/microsoft/azure-ai-search-foundry-iq-live-knowledge-sources/releases/download/walkthrough-v1/repo-quickstart-guide.mp4) | rebuilt from `build_guide_video.py` |
-| 🇬🇧 English | [`repo-quickstart-guide-en.mp4`](https://github.com/microsoft/azure-ai-search-foundry-iq-live-knowledge-sources/releases/download/walkthrough-v1/repo-quickstart-guide-en.mp4) | rebuilt from `build_guide_video.py --lang en` |
+| Korean | [`repo-quickstart-guide.mp4`](https://github.com/microsoft/azure-ai-search-foundry-iq-live-knowledge-sources/releases/download/walkthrough-v1/repo-quickstart-guide.mp4) | rebuilt from `build_guide_video.py` |
+| English | [`repo-quickstart-guide-en.mp4`](https://github.com/microsoft/azure-ai-search-foundry-iq-live-knowledge-sources/releases/download/walkthrough-v1/repo-quickstart-guide-en.mp4) | rebuilt from `build_guide_video.py --lang en` |
+
+> The published `walkthrough-v1` assets show the compatibility wrapper names. The tracked bilingual storyboard now uses the v2 LiveKS `try → doctor → plan → up → verify → down` lifecycle. Publish rebuilt videos as a separate release asset only after the v2 branch is approved.
 
 ## Play it
 
@@ -36,10 +37,10 @@ clips cover:
 | Clip | Chapter | Covers |
 | --- | --- | --- |
 | `01-intro.mp4` | Overview | What the repo does, the 6 modules, why use it |
-| `02-clone.mp4` | Clone & structure | Where to clone, folder tree, README / `.env.sample`, files to read |
-| `03-local.mp4` | Local mock | `python3` only, offline `inspect_retrieve_response.py`, reading the trace, the two `.ipynb` notebooks **plus real footage of notebook 01 executed in dry-run** (`RUN_LIVE_CALLS=False`), and how the three modes differ at retrieve time |
-| `04-test.mp4` | Tests | `validate-local.sh` (13/13), `unittest`, `py_compile`, `bash -n` |
-| `05-deploy.mp4` | Deploy | `deploy.sh --help`, the three modes (mcp-only / byo-fabric / full) and what each uses, input values, dry-run, 8-step run (guide), cleanup |
+| `02-clone.mp4` | Clone & structure | Where to clone, `liveks`, schema/profiles, README, files to read |
+| `03-local.mp4` | Offline replay | Dependency-free `liveks try`, answer-first trace, and the two notebooks |
+| `04-test.mp4` | Tests | `validate-local.sh` (15/15), contract tests, `py_compile`, `bash -n` |
+| `05-deploy.mp4` | Deploy | Profiles, ignored YAML ledger, doctor, non-mutating plan, confirmed up, ownership-safe cleanup |
 | `06-verify.mp4` | Verify | `deployment-summary.md`, **real footage of the running demo app** (3 modes, MCP Live answer + Source Trace, `activity`/`references` JSON, Combined trace, Deployment status — no keys in the browser), API routes, `/api/status` |
 | `07-summary.mp4` | Summary | 30-second recap + deliverable paths and playback |
 

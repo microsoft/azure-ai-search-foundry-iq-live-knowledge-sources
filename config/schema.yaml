@@ -1,0 +1,178 @@
+schema_version: 2
+environment_pattern: '^[A-Za-z][A-Za-z0-9-]{2,62}$'
+
+fields:
+  deployment.mode:
+    type: enum
+    values: [offline, mcp-only, byo-fabric, full]
+    azd: DEPLOYMENT_MODE
+  azure.location:
+    type: string
+    azd: AZURE_LOCATION
+  azure.subscription_id:
+    type: guid
+    optional: true
+    azd: AZURE_SUBSCRIPTION_ID
+  azure.tenant_id:
+    type: guid
+    optional: true
+    azd: EXTERNAL_TENANT_ID
+  azure.cli_config_dir:
+    type: path
+    optional: true
+    azd: EXTERNAL_AZURE_CONFIG_DIR
+  azure.resource_group:
+    type: string
+    optional: true
+    azd: AZURE_RESOURCE_GROUP
+  azure.name_salt:
+    type: string
+    optional: true
+    azd: AZURE_NAME_SALT
+  azure.base_name:
+    type: string
+    azd: AZURE_BASE_NAME
+  azure.hosting_mode:
+    type: enum
+    values: [staticwebapp, appservice]
+    azd: AZURE_HOSTING_MODE
+  azure.static_web_app_location:
+    type: enum
+    values: [centralus, eastasia, eastus2, westeurope, westus2]
+    azd: AZURE_STATIC_WEB_APP_LOCATION
+  azure.app_service_sku:
+    type: enum
+    values: [F1, B1, S1]
+    azd: AZURE_APP_SERVICE_SKU
+  search.api_version:
+    type: string
+    azd: AZURE_SEARCH_API_VERSION
+  search.sku:
+    type: enum
+    values: [basic, standard]
+    azd: AZURE_SEARCH_SKU
+  search.index_name:
+    type: string
+    azd: AIRLINE_OPS_INDEX_NAME
+  search.mcp_knowledge_source_name:
+    type: string
+    azd: MCP_KNOWLEDGE_SOURCE_NAME
+  search.fabric_knowledge_source_name:
+    type: string
+    azd: FABRIC_ONTOLOGY_KNOWLEDGE_SOURCE_NAME
+  search.mcp_knowledge_base_name:
+    type: string
+    azd: MCP_ONLY_KNOWLEDGE_BASE_NAME
+  search.combined_knowledge_base_name:
+    type: string
+    azd: KNOWLEDGE_BASE_NAME
+  mcp.server_url:
+    type: https_url
+    azd: MCP_SERVER_URL
+  mcp.tool_name:
+    type: string
+    azd: MCP_TOOL_NAME
+  openai.deployment_name:
+    type: string
+    azd: AZURE_OPENAI_DEPLOYMENT_ID
+  openai.model_name:
+    type: string
+    azd: AZURE_OPENAI_MODEL_NAME
+  openai.model_version:
+    type: string
+    azd: AZURE_OPENAI_MODEL_VERSION
+  openai.capacity:
+    type: integer
+    minimum: 1
+    azd: AZURE_OPENAI_DEPLOYMENT_CAPACITY
+  fabric.mode:
+    type: enum
+    values: [skip, byo, create]
+    azd: FABRIC_CAPACITY_MODE
+  fabric.location:
+    type: string
+    azd: FABRIC_LOCATION
+  fabric.capacity_sku:
+    type: string
+    azd: FABRIC_CAPACITY_SKU
+  fabric.capacity_name:
+    type: string
+    optional: true
+    azd: FABRIC_CAPACITY_NAME
+  fabric.capacity_admin:
+    type: string
+    optional: true
+    azd: FABRIC_CAPACITY_ADMIN
+  fabric.capacity_resource_group:
+    type: string
+    optional: true
+    azd: FABRIC_CAPACITY_RESOURCE_GROUP
+  fabric.workspace_id:
+    type: guid
+    optional: true
+    azd: FABRIC_WORKSPACE_ID
+  fabric.workspace_name:
+    type: string
+    optional: true
+    azd: FABRIC_WORKSPACE_NAME
+  fabric.lakehouse_name:
+    type: string
+    azd: FABRIC_LAKEHOUSE_NAME
+  fabric.ontology_id:
+    type: guid
+    optional: true
+    azd: FABRIC_ONTOLOGY_ID
+  fabric.ontology_name:
+    type: string
+    azd: FABRIC_ONTOLOGY_NAME
+  fabric.user_search_token:
+    type: secret_ref
+    optional: true
+    secret: true
+    env: FABRIC_USER_SEARCH_TOKEN
+  runtime.telemetry_disabled:
+    type: boolean
+    azd: NEXT_TELEMETRY_DISABLED
+  runtime.run_live_calls:
+    type: boolean
+
+legacy_env:
+  DEPLOYMENT_MODE: deployment.mode
+  AZURE_LOCATION: azure.location
+  AZURE_SUBSCRIPTION_ID: azure.subscription_id
+  EXTERNAL_TENANT_ID: azure.tenant_id
+  EXTERNAL_AZURE_CONFIG_DIR: azure.cli_config_dir
+  AZURE_RESOURCE_GROUP: azure.resource_group
+  AZURE_NAME_SALT: azure.name_salt
+  AZURE_BASE_NAME: azure.base_name
+  AZURE_HOSTING_MODE: azure.hosting_mode
+  AZURE_STATIC_WEB_APP_LOCATION: azure.static_web_app_location
+  AZURE_APP_SERVICE_SKU: azure.app_service_sku
+  AZURE_SEARCH_API_VERSION: search.api_version
+  SEARCH_API_VERSION: search.api_version
+  AZURE_SEARCH_SKU: search.sku
+  AIRLINE_OPS_INDEX_NAME: search.index_name
+  MCP_KNOWLEDGE_SOURCE_NAME: search.mcp_knowledge_source_name
+  FABRIC_ONTOLOGY_KNOWLEDGE_SOURCE_NAME: search.fabric_knowledge_source_name
+  MCP_ONLY_KNOWLEDGE_BASE_NAME: search.mcp_knowledge_base_name
+  KNOWLEDGE_BASE_NAME: search.combined_knowledge_base_name
+  MCP_SERVER_URL: mcp.server_url
+  MCP_TOOL_NAME: mcp.tool_name
+  AZURE_OPENAI_DEPLOYMENT_ID: openai.deployment_name
+  AZURE_OPENAI_MODEL_NAME: openai.model_name
+  AZURE_OPENAI_MODEL_VERSION: openai.model_version
+  AZURE_OPENAI_DEPLOYMENT_CAPACITY: openai.capacity
+  FABRIC_CAPACITY_MODE: fabric.mode
+  FABRIC_LOCATION: fabric.location
+  FABRIC_CAPACITY_SKU: fabric.capacity_sku
+  FABRIC_CAPACITY_NAME: fabric.capacity_name
+  FABRIC_CAPACITY_ADMIN: fabric.capacity_admin
+  FABRIC_CAPACITY_RESOURCE_GROUP: fabric.capacity_resource_group
+  FABRIC_WORKSPACE_ID: fabric.workspace_id
+  FABRIC_WORKSPACE_NAME: fabric.workspace_name
+  FABRIC_LAKEHOUSE_NAME: fabric.lakehouse_name
+  FABRIC_ONTOLOGY_ID: fabric.ontology_id
+  FABRIC_ONTOLOGY_NAME: fabric.ontology_name
+  FABRIC_USER_SEARCH_TOKEN: fabric.user_search_token
+  NEXT_TELEMETRY_DISABLED: runtime.telemetry_disabled
+  RUN_LIVE_CALLS: runtime.run_live_calls

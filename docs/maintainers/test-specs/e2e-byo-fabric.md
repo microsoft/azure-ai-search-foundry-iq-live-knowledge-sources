@@ -10,34 +10,30 @@ This is the validated public sample path.
 
 ## Inputs
 
-Use an ignored local env file, such as `.env.external.local`:
+Create the ignored YAML ledger:
 
 ```bash
-DEPLOYMENT_MODE=byo-fabric
-EXTERNAL_TENANT_ID=<tenant-guid>
-EXTERNAL_AZURE_CONFIG_DIR=~/.azure-foundry-iq-ext
-
-FABRIC_WORKSPACE_ID=<fabric-workspace-guid>
-FABRIC_ONTOLOGY_ID=<fabric-ontology-guid>
+./liveks init --profile byo-fabric --env ext-liveks-byo-e2e
 ```
 
-Optional for live Fabric retrieve:
+Set the existing IDs and, for an external tenant, the Azure context in `.liveks/ext-liveks-byo-e2e.yaml`:
 
-```bash
-FABRIC_USER_SEARCH_TOKEN=<raw end-user Search token for https://search.azure.com/.default>
+```yaml
+fabric:
+  workspace_id: <fabric-workspace-guid>
+  ontology_id: <fabric-ontology-guid>
 ```
 
-Do not prefix the token with `Bearer`.
+Doctor reads both Fabric assets with a transient Fabric API token. Verify obtains a transient delegated Search token; neither token is serialized.
 
 ## Command
 
 ```bash
-bash scripts/e2e-test.sh \
-  --mode byo-fabric \
-  --env-file .env.external.local \
-  --env-name ext-liveks-byo-e2e \
-  --location eastus \
-  --cleanup
+./liveks e2e \
+  --env ext-liveks-byo-e2e \
+  --cleanup \
+  --yes \
+  --format json
 ```
 
 ## Expected Azure Resources
@@ -61,37 +57,29 @@ bash scripts/e2e-test.sh \
 
 | Check | Expected |
 | --- | --- |
-| External tenant login | PASS |
-| Subscription and tenant match | PASS |
-| Tool preflight | PASS |
+| Tool and login preflight | PASS |
+| Configured tenant match | PASS |
+| Fabric workspace and ontology readability | PASS |
 | Bicep build | PASS |
-| postprovision dry-run | PASS |
+| Payload dry-run | PASS |
 | Static app build | PASS |
+| ARM preview | PASS without provisioning |
 | `azd up` | PASS |
 | Resource group exists | PASS |
-| Azure resources exist | PASS |
-| Deployment summary exists | PASS |
-| MCP KS exists | PASS |
-| Fabric KS exists | PASS |
-| MCP-only KB exists | PASS |
-| Combined KB exists | PASS |
-| Airline Ops index has docs | PASS |
 | MCP retrieve | PASS with MCP activity or references |
-| Fabric live retrieve | PASS if token is provided; SKIP if token is absent |
-| App root HTTP 200 | PASS |
-| `/api/status` | PASS and no secrets exposed |
-| `/api/retrieve/mcp` | PASS |
-| `/api/retrieve/fabric` | PASS live if token provided; offline replay if token absent |
-| `/api/retrieve/combined` | PASS live if token provided; offline replay if token absent |
-| Cleanup | PASS |
-| Resource group deleted | PASS |
+| Fabric live retrieve | PASS with `fabricOntology` evidence |
+| Combined retrieve | PASS with recognized planner-selected live evidence |
+| App status | HTTP 200 |
+| BYO Fabric cleanup | PASS without deleting Fabric assets |
+| Azure cleanup and resource group absence | PASS |
 
 ## Pass Criteria
 
 The run passes when all required checks pass and Fabric-specific behavior is clear:
 
-- With `FABRIC_USER_SEARCH_TOKEN`, retrieve responses contain `fabricOntology` activity and do not return `No relevant content was found`.
-- Without `FABRIC_USER_SEARCH_TOKEN`, Fabric app routes return offline replay with a clear reason.
+- The dedicated MCP and Fabric checks prove each source independently.
+- The combined check records one or both source types selected by the Knowledge Base planner.
+- The existing Fabric workspace and ontology remain readable after cleanup.
 - Cleanup confirms the resource group no longer exists.
 
 ## Failure Conditions
@@ -106,22 +94,20 @@ Fail the run if:
 
 ## Reporting Requirements
 
-The run must write:
+The run writes:
 
 ```text
+deployments/ext-liveks-byo-e2e/e2e-report.json
 deployments/ext-liveks-byo-e2e/test-report.md
 ```
 
-The report must include deployment mode, location, cleanup status, resource group, hosting mode, app URL, Search endpoint, progress bar, and pass/fail/skip checklist.
+The JSON report preserves the nested lifecycle result. The Markdown report preserves the legacy maintainer summary format and pass/fail/skip checklist.
 
 The report must not include API keys, raw access tokens, customer data, internal tenant secrets, passwords, or connection strings.
 
 ## Static Validation Before Live Run
 
 ```bash
-bash -n scripts/deploy.sh scripts/e2e-test.sh scripts/destroy.sh scripts/ensure-azd-defaults.sh scripts/postprovision.sh scripts/deploy-static-webapp-api.sh
-python3 -m py_compile scripts/postprovision.py
-az bicep build --file infra/main.bicep --outfile .deployment/main.bicep.validate.json
-npm --prefix static-app run build
+bash scripts/validate-local.sh --strict
 git diff --check
 ```

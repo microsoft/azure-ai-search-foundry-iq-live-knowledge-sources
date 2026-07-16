@@ -1,205 +1,211 @@
-# Live Knowledge Sources for Azure AI Search
+# Foundry IQ Live Knowledge Sources Accelerator
 
-> Query-time MCP and Fabric Ontology grounding for Foundry IQ:
-> see which live source answered, which tool ran, and which references came back.
+> Deploy and inspect Azure AI Search MCP Server and Fabric Ontology Knowledge Sources through one Foundry IQ Knowledge Base, with source-level evidence for every answer.
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
-![Validate](https://img.shields.io/badge/validate-local%20gate-blue)
-![Preview API](https://img.shields.io/badge/Azure%20AI%20Search-2026--05--01--preview-orange)
-![Python 3.11](https://img.shields.io/badge/python-3.11-blue)
-![PRs welcome](https://img.shields.io/badge/PRs-welcome-brightgreen)
+![Azure AI Search](https://img.shields.io/badge/Azure%20AI%20Search-2026--05--01--preview-orange)
+![Python](https://img.shields.io/badge/Python-3.11%2B-blue)
+![Node.js](https://img.shields.io/badge/Node.js-22%2B-green)
 
-[Read the execution manual](docs/index.md) for the GitHub Pages-ready runbook: choose a path, run commands, inspect success signals, and follow the official Microsoft Learn links.
+[Open the interactive trace demo](https://microsoft.github.io/azure-ai-search-foundry-iq-live-knowledge-sources/demo/?demo=combined) | [Read the execution manual](https://microsoft.github.io/azure-ai-search-foundry-iq-live-knowledge-sources/) | [Watch the KO/EN walkthrough](https://github.com/microsoft/azure-ai-search-foundry-iq-live-knowledge-sources/releases/tag/walkthrough-v1)
 
-![Architecture](assets/live-knowledge-sources-architecture.svg)
+## Try It Before Installing
 
-One Knowledge Base can route a query to live MCP tools and governed Fabric semantics, then return the trace contract: `activity`, `references`, and `sourceData`.
-
-**🎬 See it in action** — a ~5 min walkthrough from `git clone` to a verified deployment (`clone → local mock → test → deploy → verify → cleanup`), with real footage of the demo app and an executed notebook (offline / dry-run — no secrets on screen).
-
-[![Watch the full walkthrough — KO & EN](https://img.shields.io/badge/%E2%96%B6_Watch_the_full_walkthrough-KO_%26_EN-d29922?style=for-the-badge)](https://github.com/microsoft/azure-ai-search-foundry-iq-live-knowledge-sources/releases/tag/walkthrough-v1)
-
-⬇ Download the full video: [English (5 min)](https://github.com/microsoft/azure-ai-search-foundry-iq-live-knowledge-sources/releases/download/walkthrough-v1/repo-quickstart-guide-en.mp4) · [한국어 (5분)](https://github.com/microsoft/azure-ai-search-foundry-iq-live-knowledge-sources/releases/download/walkthrough-v1/repo-quickstart-guide.mp4) &nbsp;·&nbsp; [chapters &amp; how to rebuild](video-guide/README.md)
-
-## What This Is
-
-- **MCP Server Knowledge Source** calls allowed tools on a remote HTTPS MCP server during Knowledge Base retrieval.
-- **Fabric Ontology Knowledge Source** grounds answers in governed Fabric semantics with delegated source authorization.
-- **One Knowledge Base** can route across both sources and return inspectable `activity`, `references`, and `sourceData`.
-
-This is a reusable sample accelerator, not a production reference architecture. It uses Azure AI Search public preview Knowledge Source APIs (`2026-05-01-preview`). Keep the [official Learn manuals](#primary-manuals) as the source of truth while preview behavior evolves.
-
-## Why This Repo
-
-- **See the trace, not just the docs.** Offline responses show the actual retrieve contract: which source ran, which tool was called, and what evidence came back.
-- **Run it in 30 seconds with zero setup.** Learn the contract without Azure keys, tenant access, or a Fabric workspace.
-- **Go live with one command.** Move from offline replay to `mcp-only`, `byo-fabric`, or `full` deployment paths when you are ready.
-
-This repo complements the official Learn manuals by packaging runnable payloads, notebooks, deployment scripts, and offline evidence around the same preview APIs.
-
-## What You'll Learn
-
-1. Inspect offline retrieve traces with no cloud setup.
-2. Walk through MCP Server KS and Fabric Ontology KS in notebooks.
-3. Deploy a live demo app and verify the same trace contract against your tenant.
-
-## Try It In 30 Seconds
-
-No Azure subscription, keys, tenant, or Fabric workspace required:
-
-```bash
-python3 samples/python/inspect_retrieve_response.py samples/responses/mcp-retrieve.sample.json
-```
-
-You should see `Activity`, `References`, and `Source Data Preview` sections.
-
-Try the combined offline trace:
-
-```bash
-python3 samples/python/inspect_retrieve_response.py samples/responses/combined-airline-ops-retrieve.sample.json
-```
-
-![Retrieve trace contract](assets/trace-contract.gif)
-
-It shows Fabric Ontology activity for Airline Ops business data and MCP Server activity for Microsoft Learn implementation guidance.
-
-For a lightweight first checkout, use a shallow clone:
+No Azure subscription, tenant access, Fabric workspace, or keys are required:
 
 ```bash
 git clone --depth 1 https://github.com/microsoft/azure-ai-search-foundry-iq-live-knowledge-sources.git
+cd azure-ai-search-foundry-iq-live-knowledge-sources
+./liveks try
 ```
 
-Walkthrough videos are hosted on GitHub Releases instead of git. Keep large recordings, generated app builds, deployment reports, and dependency folders out of source control so forks and fresh clones stay small.
+The answer is printed first, followed by MCP Server KS and Fabric Ontology KS evidence from the checked-in combined response. Add `--details` to inspect `activity`, `references`, and `sourceData`.
 
-## Deploy A Live Demo
+On Windows PowerShell, run `./liveks.ps1 try`.
 
-Choose the path that matches your tenant state.
+![Retrieve trace contract](assets/trace-contract.gif)
 
-![Deployment modes](assets/deployment-modes.svg)
+## What This Accelerator Does
 
-| Mode | Use when | Command |
+- **MCP Server Knowledge Source** calls an allowed tool on a remote HTTPS MCP server during Knowledge Base retrieval. The sample uses Microsoft Learn MCP.
+- **Fabric Ontology Knowledge Source** grounds the same question in governed Fabric entities and relationships. The sample uses a synthetic Airline Operations domain.
+- **Foundry IQ composition** can route one question across either or both sources and returns one answer with inspectable `activity`, `references`, and `sourceData`.
+- **Plan-first automation** validates tools, configuration, Bicep, payloads, and the demo app before it creates cloud resources.
+- **Ownership-aware cleanup** deletes generated Azure and Fabric assets while preserving BYO Fabric workspaces and ontologies.
+
+This is a reusable public-preview accelerator, not a production reference architecture. The Azure AI Search API version is pinned to `2026-05-01-preview`; use the [official Microsoft manuals](#official-manuals) as the source of truth while preview behavior evolves.
+
+## Go Live
+
+Bootstrap the local CLI once:
+
+```bash
+./liveks bootstrap
+./liveks profiles
+```
+
+Create an ignored YAML configuration, inspect the non-mutating plan, then deploy:
+
+```bash
+./liveks init --profile mcp-only --env liveks-mcp
+./liveks doctor --env liveks-mcp
+./liveks plan --env liveks-mcp
+./liveks up --env liveks-mcp
+```
+
+`up` shows an Azure preview and cost context, then requires `create liveks-mcp` before provisioning. Use `--yes` only in controlled automation.
+
+| Profile | Use when | Required configuration |
 | --- | --- | --- |
-| `mcp-only` | You want the fastest live validation without Fabric. | `bash scripts/deploy.sh --mode mcp-only --env-name liveks-mcp --location eastus` |
-| `byo-fabric` | You already have a Fabric workspace and ontology. | `bash scripts/deploy.sh --mode byo-fabric --env-file .env.external.local --env-name liveks-byo --location eastus` |
-| `full` | You want a greenfield run that creates sample Fabric assets first. | `bash scripts/deploy.sh --mode full --env-name liveks-full --location eastus --fabric-location westus3` |
+| `offline` | You want to learn the retrieve contract without cloud resources. | None |
+| `mcp-only` | You want the fastest live validation without Fabric. | Azure sign-in; defaults are otherwise runnable |
+| `byo-fabric` | You already have a Fabric workspace and ontology. | `fabric.workspace_id` and `fabric.ontology_id` |
+| `full` | You want a greenfield Fabric and Azure deployment. | Fabric quota and explicit `--accept-fabric-capacity` |
 
-Before deploying, install `azd`, `az`, `python3`, `node`, and `npm`, then sign in. See [deployment prerequisites](docs/10-one-command-deployment.md#prerequisites).
+For BYO Fabric:
 
-The default app is Azure Static Web Apps plus a managed Functions API. Browser code never receives Search admin keys or Azure OpenAI keys.
+```bash
+./liveks init --profile byo-fabric --env liveks-byo
+# Edit .liveks/liveks-byo.yaml with the existing workspace and ontology GUIDs.
+./liveks plan --env liveks-byo
+./liveks up --env liveks-byo
+```
 
-Safety defaults: the deploy wrapper validates templates, payloads, and the app before provisioning; failed deployments print cleanup commands; generated Fabric IDs are saved for teardown; and `destroy.sh` continues to `azd down --purge --force` even if Fabric cleanup needs manual follow-up.
+For a greenfield run:
 
-<p align="center">
-  <img src="https://raw.githubusercontent.com/microsoft/azure-ai-search-foundry-iq-live-knowledge-sources/main/assets/demo-overview.png" alt="Demo overview" width="900">
-</p>
+```bash
+./liveks init --profile full --env liveks-full
+./liveks plan --env liveks-full
+./liveks up --env liveks-full --accept-fabric-capacity
+```
 
-The app is one way to view the same trace contract. It reveals the response in stages so you can explain query, answer, source activity, references, and source data during a demo. For a longer presenter flow, see [Demo Walkthrough](docs/16-demo-walkthrough.md).
+The `full` profile creates a billable Fabric F2 capacity. It never accepts BYO workspace or ontology IDs. Review the plan and run cleanup when the demo is complete.
 
-## How It Works
+## One YAML Ledger
 
-The Knowledge Base composes the live sources. Each retrieve call can hint which sources to use through `knowledgeSourceParams`, then the response exposes `activity`, `references`, and `sourceData`.
+Deployment settings live in ignored `.liveks/<environment>.yaml` files:
 
-<p align="center">
-  <img src="assets/how-it-works.gif"
-       alt="One retrieve call against a Knowledge Base composes a live MCP Server source and a Fabric Ontology source, then returns an inspectable trace contract: activity, references, sourceData."
-       width="900">
-</p>
+```yaml
+version: 2
+profile: byo-fabric
+environment: liveks-byo
+azure:
+  location: eastus
+fabric:
+  workspace_id: 11111111-1111-1111-1111-111111111111
+  ontology_id: 22222222-2222-2222-2222-222222222222
+  user_search_token:
+    env: FABRIC_USER_SEARCH_TOKEN
+```
 
-Every path follows the same loop:
+Secret values are environment references, never YAML literals. LiveKS validates the file, derives names, projects the resolved values into the selected `azd` environment, and writes a redacted lock under `.liveks/`. Legacy dotenv inputs remain available through `--env-file`, but YAML is the canonical v2 path.
+
+See [Configuration](docs/21-configuration.md) for precedence, fields, external-tenant settings, and secret handling.
+
+## Verify And Clean Up
+
+```bash
+./liveks verify --env liveks-mcp
+./liveks down --env liveks-mcp
+```
+
+For a complete create, call, verify, and delete rehearsal:
+
+```bash
+./liveks e2e --env liveks-mcp --cleanup --yes
+```
+
+`byo-fabric` cleanup deletes only generated Azure resources. `full` cleanup deletes the generated Fabric stack first and then Azure resources; disagreement between the YAML and deployment lock fails closed for Fabric deletion. Successful output includes `resource-group-absent`; when `full` created the capacity, it also includes `fabric-capacity-resource-group-absent` and `fabric-capacity-absent`.
+
+## Architecture
+
+![Architecture](assets/live-knowledge-sources-architecture.svg)
+
+One Knowledge Base composes the live sources. Query-time source options influence routing, while the response itself provides the evidence contract.
 
 ```text
-Create Knowledge Source
-  -> attach it to a Knowledge Base
-    -> retrieve with a test question
-      -> inspect activity, references, and sourceData
+Question
+  -> Foundry IQ Knowledge Base
+    -> MCP Server KS: implementation guidance
+    -> Fabric Ontology KS: governed business semantics
+  -> one answer + activity + references + sourceData
 ```
 
-The sample uses a synthetic Airline Operations domain with fictional carrier names and real airport geography. It is safe for public demos while still showing realistic semantic joins and trace behavior.
+The Airline Ops ontology is supporting sample data, not the main product surface. Its entities, relationships, SVG map, and PNG rendering are documented in the [Airline Ops Ontology Contract](samples/ontology/airline-ops/README.md).
 
 ## What Gets Created
 
-| Path | Knowledge Sources | Other assets |
+| Profile | Knowledge Sources | Other assets |
 | --- | --- | --- |
 | `mcp-only` | Microsoft Learn MCP Server KS | Azure AI Search, Azure OpenAI, MCP-only KB, Search index, demo app |
-| `byo-fabric` | MCP Server KS + Fabric Ontology KS | Everything in `mcp-only`, plus a combined KB connected to your Fabric ontology |
-| `full` | MCP Server KS + generated Fabric Ontology KS | Fabric capacity/workspace/Lakehouse/ontology/GraphModel, Azure resources, combined KB, demo app |
+| `byo-fabric` | MCP Server KS + Fabric Ontology KS | The same Azure assets plus a combined KB connected to existing Fabric assets |
+| `full` | MCP Server KS + generated Fabric Ontology KS | Fabric capacity, workspace, Lakehouse, ontology, GraphModel, Azure assets, combined KB, demo app |
 
-Generated deployment logs and reports stay under ignored paths such as `.deployment/` and `deployments/`.
+The default app is Azure Static Web Apps with a managed Node.js API. Browser code never receives Search admin keys or Azure OpenAI keys.
 
-## Learn More
+<p align="center">
+  <img src="assets/demo-overview.png" alt="Foundry IQ combined retrieve answer and source trace" width="900">
+</p>
+
+## Manual
 
 | Need | Start here |
 | --- | --- |
-| Pick a deployment path | [Choose a Pattern](docs/02-choose-a-pattern.md) |
-| Understand the architecture | [Architecture](docs/01-architecture.md) |
-| Learn MCP Server KS | [MCP Server Knowledge Source](docs/03-mcp-server-ks.md) |
-| Learn Fabric Ontology KS | [Fabric Ontology Knowledge Source](docs/04-fabric-ontology-ks.md) |
-| Inspect the Airline Ops ontology map | [Airline Ops Ontology Contract](samples/ontology/airline-ops/README.md) |
-| Understand combined routing | [Combined Knowledge Base Routing](docs/05-combined-kb-routing.md) |
-| Run the one-command deployment | [One-Command Demo Deployment](docs/10-one-command-deployment.md) |
-| Connect existing Fabric assets | [Fabric Live BYO Validation](docs/11-fabric-live-byo-validation.md) |
-| Inspect offline traces | [Offline Replay](docs/09-offline-replay.md) |
-| Review repo and agent boundaries | [Repo Boundaries](docs/12-repo-boundaries.md) |
-| Troubleshoot setup and retrieve issues | [Troubleshooting](docs/07-troubleshooting.md) |
+| Follow the shortest end-to-end sequence | [Execution Runbook](docs/runbook.md) |
+| Choose a profile | [Choose a Pattern](docs/02-choose-a-pattern.md) |
+| Learn the CLI lifecycle | [LiveKS CLI](docs/20-liveks-cli.md) |
+| Author the YAML ledger | [Configuration](docs/21-configuration.md) |
+| Deploy and clean up | [One-Command Deployment](docs/10-one-command-deployment.md) |
+| Connect existing Fabric assets | [BYO Fabric Validation](docs/11-fabric-live-byo-validation.md) |
+| Inspect the evidence contract | [Offline Replay](docs/09-offline-replay.md) |
+| Troubleshoot a run | [Troubleshooting](docs/07-troubleshooting.md) |
+| Review safety boundaries | [Security and Governance](docs/06-security-governance.md) |
 | Check common questions | [FAQ](docs/19-faq.md) |
-| Review preview caveats | [Public Preview Limitations](docs/13-public-preview-limitations.md) |
 
-## Primary Manuals
+## Repository Map
+
+```text
+liveks, liveks.ps1     Cross-platform lifecycle entry points
+config/, profiles/    Canonical schema and executable profile defaults
+src/liveks/            Configuration, planning, deploy, verify, and cleanup CLI
+infra/                 Bicep for Azure AI Search, Azure OpenAI, Storage, and hosting
+scripts/               Hooks, compatibility wrappers, Fabric automation, validation
+static-app/            Pages replay UI and Azure Static Web Apps managed API
+samples/               REST, Python, responses, synthetic data, and ontology contract
+notebooks/             Guided MCP and Fabric walkthroughs
+docs/                  Concept, deployment, troubleshooting, and operations manual
+```
+
+Generated configuration, locks, deployment evidence, app builds, and logs stay under ignored `.liveks/`, `.deployment/`, `deployments/`, and build directories.
+
+## Local Validation
+
+```bash
+bash scripts/validate-local.sh
+git diff --check
+```
+
+The gate checks CLI profiles and generated examples, Python contracts, notebooks, links, sample and repository hygiene, secrets, the Pages demo build, and Bicep.
+
+Agent-readable commands support JSON output:
+
+```bash
+./liveks doctor --profile offline --format json
+./liveks plan --env liveks-mcp --format json
+```
+
+## Security Notes
+
+- Do not commit tenant IDs, service URLs, API keys, bearer tokens, raw live responses, generated reports, or private screenshots.
+- MCP Server KS requires a remote HTTPS MCP server. Local stdio MCP servers cannot be attached directly.
+- Fabric live retrieve requires a raw end-user Search token in `x-ms-query-source-authorization`; do not prefix it with `Bearer`.
+- Offline replay demonstrates response shape. It is not evidence of live Fabric retrieval.
+
+## Official Manuals
 
 - [Create an MCP Server knowledge source](https://learn.microsoft.com/azure/search/agentic-knowledge-source-how-to-mcp-server)
 - [Create a Fabric Ontology knowledge source](https://learn.microsoft.com/azure/search/agentic-knowledge-source-how-to-fabric-ontology)
 - [Create a knowledge base](https://learn.microsoft.com/azure/search/agentic-retrieval-how-to-create-knowledge-base)
 - [Query a knowledge base](https://learn.microsoft.com/azure/search/agentic-retrieval-how-to-retrieve)
 
-## Repository Map
-
-```text
-docs/                 Concept, deployment, troubleshooting, and FAQ
-infra/                Bicep for Azure AI Search, Azure OpenAI, Storage, and app hosting
-scripts/              Deploy, destroy, E2E, Fabric, validation, and postprovision helpers
-static-app/           Canonical demo app for Azure Static Web Apps + Functions
-samples/rest/         Raw REST request sequence
-samples/python/       Small helper scripts for payload generation and trace inspection
-samples/responses/    Offline retrieve responses
-samples/data/         Synthetic Airline Ops data
-samples/ontology/     Airline Ops ontology contract
-notebooks/            Guided MCP and Fabric tutorials
-src/ks_factory/       Reusable Python payload builders
-assets/               Diagrams and demo screenshots
-```
-
-## Local Validation
-
-Run this before opening a PR or sharing the sample broadly:
-
-```bash
-bash scripts/validate-local.sh
-```
-
-The gate checks shell syntax, Python compile, Python contract tests, notebook JSON, Markdown links, sample hygiene, repository size hygiene, payload generation, offline responses, no-secret scan, Static Web Apps build, and Bicep build when Azure CLI is available.
-
-To check repository weight before a PR, run:
-
-```bash
-python3 scripts/check-repo-size.py
-```
-
-For agent-readable preflight, run:
-
-```bash
-python3 tools/doctor.py --format json
-python3 tools/validate.py --profile offline --format json
-```
-
-## Security Notes
-
-- Do not commit tenant IDs, service URLs, API keys, bearer tokens, raw live responses, generated deployment reports, or local screenshots with sensitive values.
-- MCP Server KS requires a remote HTTPS MCP server. Local stdio MCP servers cannot be attached directly.
-- Fabric live retrieve requires a raw end-user Search access token in `x-ms-query-source-authorization`; do not prefix it with `Bearer`.
-- Offline replay is for learning trace shape. It is not proof of live Fabric retrieval.
-
-## Contributing
-
-Issues and PRs are welcome. Please read [CONTRIBUTING.md](CONTRIBUTING.md), [SECURITY.md](SECURITY.md), and [SUPPORT.md](SUPPORT.md).
-
-This project is licensed under the [MIT License](LICENSE).
+Issues and PRs are welcome. Read [CONTRIBUTING.md](CONTRIBUTING.md), [SECURITY.md](SECURITY.md), and [SUPPORT.md](SUPPORT.md). This project is licensed under the [MIT License](LICENSE).

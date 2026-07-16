@@ -8,10 +8,10 @@ The specs describe expected resources, Knowledge Source assets, app checks, retr
 
 | Spec | Use when | Command family |
 | --- | --- | --- |
-| [MCP-only](e2e-mcp-only.md) | You need the fastest live validation path without Fabric. | `scripts/e2e-test.sh --mode mcp-only` |
-| [BYO Fabric](e2e-byo-fabric.md) | You already have Fabric workspace and ontology IDs and want to connect Azure AI Search. | `scripts/e2e-test.sh --mode byo-fabric` |
+| [MCP-only](e2e-mcp-only.md) | You need the fastest live validation path without Fabric. | `./liveks e2e --env <mcp-env> --cleanup --yes` |
+| [BYO Fabric](e2e-byo-fabric.md) | You already have Fabric workspace and ontology IDs and want to connect Azure AI Search. | `./liveks e2e --env <byo-env> --cleanup --yes` |
 | [Fabric greenfield](e2e-fabric-greenfield.md) | You want to validate only Fabric capacity, workspace, Lakehouse, ontology, GraphModel readiness, and cleanup before connecting Search. | `scripts/fabric-e2e-test.sh` |
-| [Full greenfield](e2e-full-greenfield.md) | You want the complete platform story: Fabric sample assets plus Azure AI Search, Knowledge Sources, Knowledge Bases, app, retrieve, and cleanup. | `scripts/e2e-test.sh --mode full` |
+| [Full greenfield](e2e-full-greenfield.md) | You want the complete platform story: Fabric sample assets plus Azure AI Search, Knowledge Sources, Knowledge Bases, app, retrieve, and cleanup. | `./liveks e2e --env <full-env> --cleanup --yes --accept-fabric-capacity` |
 
 ## Shared Reporting Rules
 
@@ -19,6 +19,7 @@ Every live full-run should write ignored evidence:
 
 ```text
 deployments/<env>/test-report.md
+deployments/<env>/e2e-report.json
 deployments/<env>/deployment-summary.md
 ```
 

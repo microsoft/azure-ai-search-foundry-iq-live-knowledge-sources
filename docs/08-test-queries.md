@@ -110,9 +110,9 @@ When routing does not match your expectation, improve:
 Use the checked-in responses to validate trace inspection without live keys:
 
 ```bash
-python samples/python/inspect_retrieve_response.py samples/responses/mcp-retrieve.sample.json
-python samples/python/inspect_retrieve_response.py samples/responses/fabric-airline-ops-retrieve.sample.json
-python samples/python/inspect_retrieve_response.py samples/responses/combined-airline-ops-retrieve.sample.json
+./liveks try --sample mcp --details
+./liveks try --sample fabric --details
+./liveks try --sample combined --details
 ```
 
 ## Pass/Fail Checklist

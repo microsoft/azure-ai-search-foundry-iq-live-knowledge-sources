@@ -135,10 +135,10 @@ def m1() -> Module:
                     "Clone & structure — what to read and which values to set")),
         ("step", tr("로컬 mock 실행 — Azure 없이 30초 만에 trace 체험",
                     "Local mock run — see a trace in 30s, no Azure")),
-        ("step", tr("테스트 — validate-local.sh 로 13개 항목 검증",
-                    "Tests — validate 13 checks with validate-local.sh")),
-        ("step", tr("배포 — deploy.sh (dry-run → 실제 → cleanup)",
-                    "Deploy — deploy.sh (dry-run → real → cleanup)")),
+        ("step", tr("테스트 — validate-local.sh 로 15개 항목 검증",
+                    "Tests — validate 15 checks with validate-local.sh")),
+        ("step", tr("배포 — LiveKS (doctor → plan → up → down)",
+                    "Deploy — LiveKS (doctor → plan → up → down)")),
         ("step", tr("동작 확인 — deployment-summary.md · 데모 앱 라우트",
                     "Verify — deployment-summary.md · demo app routes")),
         ("ok",   tr("10분이면 따라할 수 있게 핵심만 순서대로 보여줍니다",
@@ -152,8 +152,8 @@ def m1() -> Module:
                     "See the trace, not just docs — which sources/tools ran, right in the response")),
         ("info", tr("Run in 30s with zero setup — 키·테넌트·Fabric 없이 오프라인 체험",
                     "Run in 30s with zero setup — offline, no keys/tenant/Fabric")),
-        ("info", tr("Go live with one command — 준비되면 deploy.sh 로 라이브 전환",
-                    "Go live with one command — flip to live with deploy.sh when ready")),
+        ("info", tr("Go live with one command — plan 확인 후 liveks up 으로 전환",
+                    "Go live with one command — review the plan, then run liveks up")),
     ], settle=3.4)
     return m
 
@@ -204,12 +204,14 @@ def m2() -> Module:
         {"indent": 0, "name": REPO_DIR, "kind": "root"},
         {"indent": 1, "name": "README.md", "kind": "emph",
          "comment": tr("시작 지점 · 무엇을/왜/30초 체험", "Start here · what/why/30s demo")},
-        {"indent": 1, "name": ".env.sample", "kind": "emph",
-         "comment": tr("배포 입력값 템플릿", "Deploy input template")},
+        {"indent": 1, "name": "liveks · liveks.ps1", "kind": "emph",
+         "comment": tr("배포 수명주기 진입점", "Lifecycle entry points")},
+        {"indent": 1, "name": "config · profiles", "kind": "dir",
+         "comment": tr("YAML 원장 스키마 · 모드 기본값", "YAML schema · profile defaults")},
         {"indent": 1, "name": "docs", "kind": "dir",
          "comment": tr("개념 · 배포 · 문제해결 · FAQ", "Concepts · deploy · troubleshooting · FAQ")},
         {"indent": 1, "name": "scripts", "kind": "dir",
-         "comment": tr("deploy · destroy · validate 스크립트", "deploy · destroy · validate scripts")},
+         "comment": tr("배포 hook · Fabric · validate", "hooks · Fabric · validation")},
         {"indent": 1, "name": "infra", "kind": "dir",
          "comment": tr("Azure 리소스 Bicep", "Azure resources (Bicep)")},
         {"indent": 1, "name": "static-app", "kind": "dir",
@@ -227,7 +229,7 @@ def m2() -> Module:
                  caption=tr("README.md — 이 레포가 하는 일을 한 줄로 요약해 둡니다.",
                             "README.md — it sums up what this repo does in one line."))
     res_rm = S.file_view(m, ctx_rm, "README.md", [
-        ("# Live Knowledge Sources for Azure AI Search", WHITE),
+        ("# Foundry IQ Live Knowledge Sources Accelerator", WHITE),
         ("", INK),
         ("One Knowledge Base can route a query to live MCP tools and", INK),
         ("governed Fabric semantics, then return the trace contract:", INK),
@@ -236,9 +238,9 @@ def m2() -> Module:
         ("## Try It In 30 Seconds", BLUE),
         ("No Azure subscription, keys, tenant, or Fabric workspace required:", DIM),
         ("", INK),
-        ("$ python3 samples/python/inspect_retrieve_response.py \\", INK),
-        ("    samples/responses/mcp-retrieve.sample.json", INK),
-    ], highlights={3, 4, 5, 10, 11}, start_no=14, settle=1.8, font_size=25, lh=33)
+        ("$ ./liveks try", INK),
+        ("Answer → Sources → Trace", GREEN),
+    ], highlights={3, 4, 5, 10, 11}, start_no=1, settle=1.8, font_size=25, lh=33)
     S.zoom_callout(
         m, S.compose(Ctx(1, 1, ""), "README.md",
                      [[("trace contract:", INK)],
@@ -252,39 +254,35 @@ def m2() -> Module:
         settle=2.8,
     )
 
-    # .env.sample
+    # Canonical YAML ledger
     ctx_env = Ctx(2, TOTAL, lbl_clone(),
-                  caption=tr(".env.sample — 배포에 넣을 값들의 템플릿. 복사해서 채웁니다.",
-                             ".env.sample — a template of deploy values. Copy it and fill in."))
-    res_env = S.file_view(m, ctx_env, ".env.sample", [
-        ("# Choose: byo-fabric | mcp-only | full", DIM),
-        ("DEPLOYMENT_MODE=byo-fabric", INK),
-        ("", INK),
-        ("# Azure AI Search", DIM),
-        ("SEARCH_ENDPOINT=https://<search-service>.search.windows.net", INK),
-        ("SEARCH_API_VERSION=2026-05-01-preview", INK),
-        ("", INK),
-        ("# MCP Server Knowledge Source", DIM),
-        ("MCP_SERVER_URL=https://learn.microsoft.com/api/mcp", INK),
-        ("MCP_TOOL_NAME=microsoft_docs_search", INK),
-        ("", INK),
-        (tr("# Fabric Ontology (byo-fabric / full 에서 필요)",
-            "# Fabric Ontology (needed for byo-fabric / full)"), DIM),
-        ("FABRIC_WORKSPACE_ID=00000000-0000-0000-0000-000000000000", INK),
-        ("FABRIC_ONTOLOGY_ID=00000000-0000-0000-0000-000000000001", INK),
-    ], highlights={2, 5, 13, 14}, start_no=1, settle=1.6, font_size=24, lh=31)
+                  caption=tr(".liveks YAML — 사람이 관리하는 배포 원장. azd env 는 자동 생성됩니다.",
+                             ".liveks YAML — the human-managed ledger; azd env is generated."))
+    res_env = S.file_view(m, ctx_env, ".liveks/liveks-byo.yaml", [
+        ("version: 2", INK),
+        ("profile: byo-fabric", GREEN),
+        ("environment: liveks-byo", INK),
+        ("azure:", BLUE),
+        ("  location: eastus", INK),
+        ("fabric:", BLUE),
+        ("  workspace_id: 11111111-1111-1111-1111-111111111111", INK),
+        ("  ontology_id: 22222222-2222-2222-2222-222222222222", INK),
+        ("  user_search_token:", INK),
+        ("    env: FABRIC_USER_SEARCH_TOKEN", YELLOW),
+    ], highlights={2, 7, 8, 10}, start_no=1, settle=1.6, font_size=24, lh=34)
     S.zoom_callout(
-        m, S.compose(Ctx(1, 1, ""), ".env.sample",
-                     lines("DEPLOYMENT_MODE=byo-fabric",
-                           "SEARCH_ENDPOINT=https://<search-service>.search.windows.net",
-                           "FABRIC_WORKSPACE_ID=00000000-0000-0000-0000-000000000000",
-                           "FABRIC_ONTOLOGY_ID=00000000-0000-0000-0000-000000000001"),
+        m, S.compose(Ctx(1, 1, ""), ".liveks/liveks-byo.yaml",
+                     lines("profile: byo-fabric",
+                           "fabric:",
+                           "  workspace_id: <guid>",
+                           "  ontology_id: <guid>",
+                           "  user_search_token: {env: FABRIC_USER_SEARCH_TOKEN}"),
                      chrome=False, font_size=30, lh=58),
         (E.MARGIN, 250, 1700, 520),
-        tr("DEPLOYMENT_MODE 와 Fabric ID 가 핵심 입력값입니다.",
-           "DEPLOYMENT_MODE and the Fabric IDs are the key inputs."),
-        sub=tr("mcp-only 는 Fabric 값이 필요 없습니다 — 가장 빠른 시작 경로.",
-               "mcp-only needs no Fabric values — the fastest path to start."),
+        tr("프로필과 Fabric ID 는 YAML, 토큰은 환경변수 참조로 분리합니다.",
+           "Keep profile and Fabric IDs in YAML; reference tokens by environment name."),
+        sub=tr("mcp-only 는 Fabric 값 없이 바로 계획할 수 있습니다.",
+               "mcp-only can be planned immediately with no Fabric values."),
         settle=2.8,
     )
 
@@ -297,10 +295,10 @@ def m2() -> Module:
                     "README.md — what · why · 30s demo · deploy mode table")),
         ("info", tr("docs/10-one-command-deployment.md — 배포 전 과정",
                     "docs/10-one-command-deployment.md — the full deploy walkthrough")),
-        ("info", tr(".env.sample — 배포에 넣을 값(모드·엔드포인트·Fabric ID)",
-                    ".env.sample — deploy values (mode · endpoint · Fabric IDs)")),
-        ("info", tr("scripts/deploy.sh · destroy.sh — 배포 · 정리 진입점",
-                    "scripts/deploy.sh · destroy.sh — deploy · cleanup entry points")),
+        ("info", tr("config/schema.yaml · profiles/ — YAML 계약과 기본값",
+                    "config/schema.yaml · profiles/ — YAML contract and defaults")),
+        ("info", tr("liveks · liveks.ps1 — plan · 배포 · 검증 · 정리 진입점",
+                    "liveks · liveks.ps1 — plan · deploy · verify · cleanup")),
         ("info", tr("scripts/validate-local.sh — 클라우드 없이 로컬 검증",
                     "scripts/validate-local.sh — local validation, no cloud")),
     ], settle=2.6)
@@ -314,46 +312,43 @@ def m2() -> Module:
 def m3() -> Module:
     m = Module("03-local")
     ctx0 = Ctx(3, TOTAL, lbl_local(),
-               caption=tr("설치가 필요할까? — python3 하나면 됩니다. 추가 의존성 없음.",
-                          "Need to install anything? — just python3. No extra dependencies."))
+               caption=tr("첫 replay 는 Python 하나면 됩니다. 배포 CLI 는 bootstrap 으로 격리 설치합니다.",
+                          "The first replay needs only Python; bootstrap isolates deploy dependencies."))
     res0 = S.terminal_scene(
         m, ctx0, "$ ", "python3 --version",
         lines([("Python 3.11.9", GREEN)]),
         term_title="bash — live-knowledge-sources", settle=1.6,
         explains=[
-            (tr("로컬 mock 은 pip install 도, 가상환경도 필요 없습니다 — python3 만 있으면 OK.",
-                "The local mock needs no pip install and no virtualenv — just python3."),
-             tr("Python 3.9 이상이면 그대로 진행합니다.",
-                "Python 3.9+ and you're good to go.")),
+            (tr("liveks try 는 pip install 없이 바로 실행됩니다.",
+                "liveks try runs immediately without pip install."),
+             tr("배포 명령은 Python 3.11 이상에서 ./liveks bootstrap 을 먼저 실행합니다.",
+                "For deployment commands, run ./liveks bootstrap on Python 3.11+.")),
         ],
     )
 
     # MCP mock
     ctx1 = Ctx(3, TOTAL, lbl_local(),
-               caption=tr("mock 모드: 저장된 오프라인 응답을 그대로 검사합니다.",
-                          "Mock mode: inspect a saved offline response as-is."),
-               caption_sub="inspect_retrieve_response.py  ·  mcp-retrieve.sample.json")
+               caption=tr("offline replay: 저장된 응답을 답변부터 읽고 trace 를 검사합니다.",
+                          "Offline replay: read the answer first, then inspect its trace."),
+               caption_sub="./liveks try --sample mcp --details")
     res1 = S.terminal_scene(
         m, ctx1, "$ ",
-        "python3 samples/python/inspect_retrieve_response.py samples/responses/mcp-retrieve.sample.json",
+        "./liveks try --sample mcp --details",
         lines(
-            [("Activity", BLUE, True)],
-            "[",
+            [("Answer", BLUE, True)],
+            "Azure AI Search MCP Server Knowledge Sources connect remote",
+            "HTTPS MCP tools to Knowledge Base retrieval…",
+            [("Sources", BLUE, True)],
+            "microsoft-learn-mcp-ks",
+            [("Trace: 1 activity items, 1 references (offline replay)", GREEN, True)],
+            [("Full response", BLUE, True)],
             '  { "type": "mcpServer",',
-            '    "knowledgeSourceName": "microsoft-learn-mcp-ks",',
             '    "toolName": "microsoft_docs_search" }',
-            "]",
-            [("References", BLUE, True)],
-            '  { "title": "Create an MCP Server knowledge source",',
-            '    "hasSourceData": true,',
-            '    "sourceDataKeys": ["content", "title"] }',
-            [("Source Data Preview", BLUE, True)],
-            '  "content": "Synthetic sample content. Replace with a real…"',
         ),
         font_size=24, lh=34, settle=2.0,
         explains=[
-            (tr("Activity[] = 이 질의에서 '실제로 실행된' 소스/도구 목록입니다.",
-                "Activity[] = the sources/tools that actually ran for this query."),
+            (tr("답변을 먼저 읽고, Sources 와 Trace 로 근거 유무를 바로 확인합니다.",
+                "Read the answer first, then confirm evidence in Sources and Trace."),
              tr("여기선 mcpServer 가 microsoft_docs_search 도구를 호출했습니다.",
                 "Here the mcpServer called the microsoft_docs_search tool.")),
             (tr("References[] = 답의 근거가 된 항목 — 제목과 sourceData 키를 가집니다.",
@@ -372,27 +367,29 @@ def m3() -> Module:
 
     # Combined mock
     ctx2 = Ctx(3, TOTAL, lbl_local(),
-               caption=tr("combined 샘플: Fabric(업무 데이터) + MCP(문서)를 한 번에.",
-                          "Combined sample: Fabric (business data) + MCP (docs) in one call."))
+               caption=tr("combined replay: Fabric(업무 데이터) + MCP(문서)를 한 번에.",
+                          "Combined replay: Fabric (business data) + MCP (docs) in one call."))
     res2 = S.terminal_scene(
         m, ctx2, "$ ",
-        "python3 samples/python/inspect_retrieve_response.py samples/responses/combined-airline-ops-retrieve.sample.json",
+        "./liveks try --sample combined --details",
         lines(
-            [("Activity", BLUE, True)],
+            [("Answer", BLUE, True)],
+            "The sample ontology identifies Alpine Air as the highest",
+            "customer-care exposure carrier…",
+            [("Sources", BLUE, True)],
+            "fabric-ontology-ks",
+            "microsoft-learn-mcp-ks",
+            [("Trace: 2 activity items, 2 references (offline replay)", GREEN, True)],
+            [("Full response", BLUE, True)],
             '  { "type": "fabricOntology",',
             '    "knowledgeSourceName": "fabric-ontology-ks", "count": 5 }',
             '  { "type": "mcpServer",',
             '    "toolName": "microsoft_docs_search", "count": 2 }',
-            [("Source Data Preview", BLUE, True)],
-            '  "fabricAnswer": "The ontology ranks Alpine Air first by',
-            '   customer-care exposure in the sample period…"',
-            '  "fabricRawData": "airline_code,airline_name,exposure_usd',
-            '   ALP,Alpine Air,6800 …"',
         ),
         font_size=24, lh=34, settle=2.0,
         explains=[
-            (tr("한 번의 질의가 Fabric(업무 데이터)과 MCP(문서) 둘 다로 라우팅됩니다.",
-                "One query routes to both Fabric (business data) and MCP (docs)."),
+            (tr("이 체크인 replay에서는 한 번의 질의가 Fabric과 MCP 둘 다로 라우팅됐습니다.",
+                "In this checked-in replay, one query routed to both Fabric and MCP."),
              tr("activity 에 fabricOntology · mcpServer 가 함께 보입니다.",
                 "activity shows fabricOntology · mcpServer together.")),
             (tr("fabricAnswer/fabricRawData = 업무 데이터 근거, MCP = 문서 근거.",
@@ -403,8 +400,8 @@ def m3() -> Module:
     )
     S.zoom_term(
         m, res2, (E.MARGIN, 250, 1560, 470),
-        tr("activity[] 에 두 소스가 모두 — 하나의 KB가 라이브로 라우팅한 증거.",
-           "Both sources in activity[] — proof one KB routed live."),
+        tr("오프라인 replay의 activity[] 에 두 소스가 모두 — 이상적인 통합 trace 예시.",
+           "Both sources in the offline replay activity[] — an ideal combined trace example."),
         sub="type: fabricOntology  +  type: mcpServer",
         settle=2.8, font_size=24, lh=34,
     )
@@ -454,10 +451,10 @@ def m3() -> Module:
     S.note_card(m, ctx_modes, tr("세 모드는 retrieve 때 무엇이 다른가", "What differs at retrieve across the 3 modes"), [
         ("info", tr("mcp-only — MCP(Microsoft Learn 문서) 한 소스만 응답",
                     "mcp-only — only MCP (Microsoft Learn docs) answers")),
-        ("info", tr("byo-fabric — 내 Fabric 업무 데이터 + MCP 문서가 함께 응답",
-                    "byo-fabric — your Fabric business data + MCP docs answer together")),
-        ("info", tr("full — 자동 생성된 Fabric 샘플 + MCP 가 함께 응답",
-                    "full — auto-created Fabric sample + MCP answer together")),
+        ("info", tr("byo-fabric — 플래너가 내 Fabric 또는 MCP 소스를 선택",
+                    "byo-fabric — the planner selects your Fabric or MCP source")),
+        ("info", tr("full — 플래너가 생성된 Fabric 또는 MCP 소스를 선택",
+                    "full — the planner selects generated Fabric or MCP sources")),
         ("ok",   tr("어느 모드든 응답 형태는 동일: activity · references · sourceData",
                     "Same response shape in every mode: activity · references · sourceData")),
     ], settle=3.0)
@@ -485,44 +482,45 @@ def m3() -> Module:
 def m4() -> Module:
     m = Module("04-test")
     ctx = Ctx(4, TOTAL, lbl_test(),
-              caption=tr("한 번의 명령으로 전부 검증 — 13개 항목을 차례로 통과시킵니다.",
-                         "Validate everything with one command — 13 checks pass in sequence."),
+              caption=tr("한 번의 명령으로 전부 검증 — 15개 항목을 차례로 통과시킵니다.",
+                         "Validate everything with one command — 15 checks pass in sequence."),
               caption_sub="bash scripts/validate-local.sh")
     res = S.terminal_scene(
         m, ctx, "$ ", "bash scripts/validate-local.sh",
         [
-            [("[####--------------------] 1/13 Shell syntax", DIM)],
+            [("[##----------------------] 1/15 Shell syntax", DIM)],
             [("PASS", GREEN, True), (" Shell syntax", INK)],
-            [("[#####-------------------] 3/13 Python compile  ", DIM), ("PASS", GREEN, True)],
-            [("[#######-----------------] 3/13 Python contract tests", DIM)],
-            [("Ran 11 tests in 3.80s  ", INK), ("OK   ", GREEN), ("PASS", GREEN, True)],
-            [("[#########---------------] 5/13 Notebook JSON parse   ", DIM), ("PASS", GREEN, True)],
-            [("[###########-------------] 6/13 Markdown links (127)  ", DIM), ("PASS", GREEN, True)],
-            [("[##############----------] 8/13 Sample payload gen    ", DIM), ("PASS", GREEN, True)],
-            [("[################--------] 9/13 Offline responses     ", DIM), ("PASS", GREEN, True)],
-            [("[##################------] 10/13 No-secret scan       ", DIM), ("PASS", GREEN, True)],
-            [("[######################--] 12/13 Static app build     ", DIM), ("PASS", GREEN, True)],
-            [("[########################] 13/13 Bicep build          ", DIM), ("PASS", GREEN, True)],
+            [("[###---------------------] 2/15 LiveKS CLI profiles", DIM), ("PASS", GREEN, True)],
+            [("[#####-------------------] 3/15 Python compile  ", DIM), ("PASS", GREEN, True)],
+            [("[######------------------] 4/15 Python contract tests", DIM)],
+            [("Contract tests  ", INK), ("OK   ", GREEN), ("PASS", GREEN, True)],
+            [("[########----------------] 5/15 Notebook JSON parse   ", DIM), ("PASS", GREEN, True)],
+            [("[###########-------------] 7/15 Markdown links        ", DIM), ("PASS", GREEN, True)],
+            [("[################--------] 10/15 Sample payload gen   ", DIM), ("PASS", GREEN, True)],
+            [("[##################------] 11/15 Offline responses    ", DIM), ("PASS", GREEN, True)],
+            [("[###################-----] 12/15 No-secret scan       ", DIM), ("PASS", GREEN, True)],
+            [("[######################--] 14/15 Static app build     ", DIM), ("PASS", GREEN, True)],
+            [("[########################] 15/15 Bicep build          ", DIM), ("PASS", GREEN, True)],
             [("Local validation: PASS", GREEN, True)],
         ],
         term_title="bash — validate-local.sh", font_size=24, lh=37,
         line_reveal=0.16, settle=2.0,
         explains=[
-            (tr("스크립트가 13개 검증을 순서대로 실행 — 셸 문법부터 Bicep 빌드까지.",
-                "The script runs 13 checks in order — from shell syntax to Bicep build."),
+            (tr("스크립트가 15개 검증을 순서대로 실행 — CLI 프로필부터 Bicep 빌드까지.",
+                "The script runs 15 checks in order — from CLI profiles to Bicep build."),
              tr("각 줄 끝의 초록 PASS 가 그 단계 통과를 뜻합니다.",
                 "The green PASS at each line end means that step passed.")),
-            (tr("중간에 contract 테스트 11개(unittest)도 함께 돌아갑니다.",
-                "Along the way, 11 contract tests (unittest) run too."),
-             tr("Ran 11 tests … OK 가 보이면 계약 테스트도 통과.",
-                "'Ran 11 tests … OK' means the contract tests passed.")),
+            (tr("중간에 v2 contract 테스트(unittest)도 함께 돌아갑니다.",
+                "Along the way, the v2 contract test suite (unittest) runs too."),
+             tr("Contract tests … OK 가 보이면 계약 테스트도 통과.",
+                "'Contract tests … OK' means the contract tests passed.")),
         ],
     )
     S.zoom_term(
         m, res, (E.MARGIN, 690, 1100, 760),
         tr("마지막 줄이 초록 'Local validation: PASS' 이면 끝 — 공유/PR 준비 완료.",
            "Green 'Local validation: PASS' on the last line = done — ready to share/PR."),
-        sub="Local validation: PASS  (13/13)",
+        sub="Local validation: PASS  (15/15)",
         settle=2.8, font_size=24, lh=37,
     )
 
@@ -532,15 +530,15 @@ def m4() -> Module:
     S.terminal_scene(
         m, ctx2, "$ ", "python3 -m unittest discover -s tests",
         lines(
-            [("...........", DIM)],
-            [("Ran 11 tests in 3.79s", INK)],
+            [("........................", DIM)],
+            [("Contract tests: PASS", INK)],
             [("", INK)],
             [("OK", GREEN, True)],
         ),
         term_title="bash — unit tests", settle=2.2,
         explains=[
-            (tr("점 하나가 통과한 테스트 1개 — 11개가 모두 통과하면 마지막에 OK.",
-                "Each dot is one passing test — all 11 pass and you get OK at the end."),
+            (tr("점 하나가 통과한 테스트 1개 — 전체가 통과하면 마지막에 OK.",
+                "Each dot is one passing test — the suite ends with OK when all pass."),
              tr("FAIL/ERROR 가 보이면 그 테스트 이름으로 원인을 좁힙니다.",
                 "On FAIL/ERROR, narrow it down by the test name.")),
         ],
@@ -553,11 +551,11 @@ def m4() -> Module:
                    caption_sub="py_compile  ·  bash -n")
     S.terminal_scene(
         m, ctx_atom, "$ ",
-        "python3 -m py_compile samples/python/inspect_retrieve_response.py",
+        "python3 -m py_compile tools/try_offline.py",
         lines(
             [("$ echo $?", DIM)],
             [("0", GREEN, True)],
-            [("$ bash -n scripts/deploy.sh", INK)],
+            [("$ bash -n liveks", INK)],
             [("$ echo $?", DIM)],
             [("0", GREEN, True)],
         ),
@@ -569,8 +567,8 @@ def m4() -> Module:
                 "No message and exit code 0 = healthy — silence is the success signal.")),
             (tr("bash -n 은 셸 스크립트를 '실행하지 않고' 문법만 확인합니다.",
                 "bash -n checks shell syntax 'without running' the script."),
-             tr("배포 전에 deploy.sh / destroy.sh 를 안전하게 점검하는 방법.",
-                "A safe way to vet deploy.sh / destroy.sh before deploying.")),
+             tr("배포 전에 LiveKS launcher 와 호환 wrapper 를 안전하게 점검합니다.",
+                "This safely checks the LiveKS launcher and compatibility wrappers.")),
         ],
     )
 
@@ -580,12 +578,12 @@ def m4() -> Module:
     S.note_card(m, ctx3, tr("의미 있는 검증 명령들", "Validation commands that matter"), [
         ("step", tr("bash -n scripts/*.sh — 셸 문법    ·    py_compile — 파이썬 컴파일",
                     "bash -n scripts/*.sh — shell syntax    ·    py_compile — Python compile")),
-        ("step", tr("python3 -m unittest discover -s tests — 계약 테스트 11개",
-                    "python3 -m unittest discover -s tests — 11 contract tests")),
+        ("step", tr("python3 -m unittest discover -s tests — 계약 테스트",
+                    "python3 -m unittest discover -s tests — contract tests")),
         ("step", tr("no-secret scan · Static app build · Bicep build",
                     "no-secret scan · Static app build · Bicep build")),
-        ("ok",   tr("초록 PASS 13/13 이면 통과 — 그대로 진행",
-                    "Green PASS 13/13 = pass — carry on")),
+        ("ok",   tr("초록 PASS 15/15 이면 통과 — 그대로 진행",
+                    "Green PASS 15/15 = pass — carry on")),
         ("warn", tr("빨강 FAIL 이면 그 단계 줄을 보고 해당 명령만 따로 재실행",
                     "Red FAIL? read that step's line and rerun just that command")),
     ], settle=2.8)
@@ -599,41 +597,39 @@ def m4() -> Module:
 def m5() -> Module:
     m = Module("05-deploy")
     ctx = Ctx(5, TOTAL, lbl_deploy(),
-              caption=tr("배포 진입점은 scripts/deploy.sh — 모드를 골라 실행합니다.",
-                         "The deploy entry point is scripts/deploy.sh — pick a mode and run."),
-              caption_sub="bash scripts/deploy.sh --help")
+              caption=tr("배포 진입점은 LiveKS — profile 을 고르고 YAML 원장을 만듭니다.",
+                         "The deploy entry point is LiveKS — choose a profile and create its YAML ledger."),
+              caption_sub="./liveks profiles")
     res = S.terminal_scene(
-        m, ctx, "$ ", "bash scripts/deploy.sh --help",
+        m, ctx, "$ ", "./liveks profiles",
         lines(
-            "Usage: bash scripts/deploy.sh [options]",
-            [("  --mode <mode>     ", INK), ("byo-fabric | mcp-only | full", GREEN)],
-            [("  --env-name <name> ", INK),
-             (tr("azd 환경 선택/생성 (→ rg-<name>)", "select/create azd env (→ rg-<name>)"), DIM)],
-            [("  --location <reg>  ", INK), ("eastus · koreacentral · swedencentral", DIM)],
-            [("  --fabric-location ", INK),
-             (tr("full 모드 Fabric 용량 리전", "Fabric capacity region (full mode)"), DIM)],
+            [("offline:", GREEN, True), (" inspect checked-in retrieve responses", DIM)],
+            [("mcp-only:", GREEN, True), (" fastest live Search + MCP path", DIM)],
+            [("byo-fabric:", GREEN, True), (" connect an existing ontology", DIM)],
+            [("full:", YELLOW, True), (" create Fabric F2 + sample assets", DIM)],
             "",
-            [("Examples:", BLUE, True)],
-            "  bash scripts/deploy.sh --mode mcp-only --env-name liveks-mcp --location eastus",
-            "  bash scripts/deploy.sh --mode full --env-name liveks-full --fabric-location westus3",
+            [("Next:", BLUE, True)],
+            "  ./liveks init --profile mcp-only --env liveks-mcp",
+            "  ./liveks doctor --env liveks-mcp",
+            "  ./liveks plan --env liveks-mcp",
         ),
-        term_title="bash — deploy.sh --help", font_size=23, lh=36, settle=2.0,
+        term_title="bash — liveks profiles", font_size=23, lh=36, settle=2.0,
         explains=[
-            (tr("배포는 이 한 스크립트로 끝 — 모드·환경이름·리전만 정하면 됩니다.",
-                "One script does the deploy — just choose mode, env name, region."),
-             tr("--env-name 값이 그대로 리소스 그룹 rg-<name> 이 됩니다.",
-                "The --env-name value becomes the resource group rg-<name>.")),
-            (tr("처음이라면 Examples 의 mcp-only 한 줄을 그대로 복사해 쓰면 됩니다.",
-                "New here? Copy the mcp-only line from Examples verbatim."),
-             tr("full 모드는 Fabric 용량까지 만들기에 권한·쿼터가 필요합니다.",
-                "full mode also creates Fabric capacity — needs permissions & quota.")),
+            (tr("처음이라면 mcp-only 로 YAML 원장을 만들고 doctor 를 실행합니다.",
+                "Start with mcp-only: create the YAML ledger, then run doctor."),
+             tr("환경 이름은 리소스 그룹과 redacted lock 의 기준이 됩니다.",
+                "The environment name anchors resource naming and the redacted lock.")),
+            (tr("full 모드는 Fabric F2 용량까지 만들기에 별도 승인 flag 가 필요합니다.",
+                "full creates Fabric F2 capacity and requires a separate acknowledgement flag."),
+             tr("byo-fabric 은 기존 Fabric 자산을 재사용하고 삭제하지 않습니다.",
+                "byo-fabric reuses existing Fabric assets and never deletes them.")),
         ],
     )
     S.zoom_term(
         m, res, (E.MARGIN, 250, 1500, 320),
-        tr("세 가지 모드 — 가장 빠른 시작은 mcp-only(Fabric 없이) 입니다.",
-           "Three modes — the fastest start is mcp-only (no Fabric)."),
-        sub="--mode  byo-fabric | mcp-only | full",
+        tr("네 profile — offline 다음 가장 빠른 live 시작은 mcp-only 입니다.",
+           "Four profiles — after offline, mcp-only is the fastest live start."),
+        sub="offline | mcp-only | byo-fabric | full",
         settle=2.6, font_size=23, lh=36,
     )
 
@@ -660,95 +656,90 @@ def m5() -> Module:
         ("azd auth login", tr("Azure Developer CLI 로그인", "Azure Developer CLI login"),
          tr("최초 1회", "one time")),
         ("az login --tenant", "<tenant-id>", tr("Azure 테넌트", "Azure tenant")),
-        ("--location", "eastus / koreacentral", tr("리소스 리전", "resource region")),
-        ("--env-name", "liveks-mcp",
-         tr("azd 환경 = 리소스 그룹 rg-liveks-mcp", "azd env = resource group rg-liveks-mcp")),
-        ("--mode", "mcp-only",
-         tr("배포 모드 (byo-fabric / full 도 가능)", "deploy mode (byo-fabric / full too)")),
+        ("azure.location", "eastus", tr("YAML 의 Azure 리전", "Azure region in YAML")),
+        ("environment", "liveks-mcp",
+         tr("YAML · azd · 리소스 그룹 기준", "YAML · azd · resource-group identity")),
+        ("profile", "mcp-only",
+         tr("offline / byo-fabric / full 도 가능", "offline / byo-fabric / full also available")),
     ], note=tr("구독·테넌트는 az login 계정에서 자동 사용 · 키/토큰은 절대 커밋 금지",
                "Subscription & tenant come from your az login · never commit keys/tokens"), settle=2.8)
 
-    # dry-run
+    # plan
     ctx_dry = Ctx(5, TOTAL, lbl_deploy(),
-                  caption=tr("실제 생성 전: dry-run 으로 템플릿·페이로드·설정을 점검합니다.",
-                             "Before creating anything: dry-run checks the template, payloads, settings."),
-                  caption_sub="az bicep build  →  postprovision.py --dry-run")
+                  caption=tr("실제 생성 전: plan 이 도구·로그인·Bicep·페이로드·앱을 점검합니다.",
+                             "Before creating anything, plan checks tools, auth, Bicep, payloads, and app."),
+                  caption_sub="./liveks plan --env liveks-mcp")
     res_dry = S.terminal_scene(
-        m, ctx_dry, "$ ", "python3 scripts/postprovision.py --dry-run",
+        m, ctx_dry, "$ ", "./liveks plan --env liveks-mcp",
         lines(
-            [("Postprovision settings loaded", INK)],
-            '{ "DEPLOYMENT_MODE": "mcp-only",',
-            '  "AZURE_SEARCH_API_VERSION": "2026-05-01-preview",',
-            '  "AZURE_OPENAI_MODEL_NAME": "gpt-4o-mini",',
-            '  "MCP_KNOWLEDGE_SOURCE_NAME": "microsoft-learn-mcp-ks",',
-            '  "KNOWLEDGE_BASE_NAME": "live-knowledge-sources-kb",',
-            '  "AIRLINE_OPS_INDEX_NAME": "airline-ops-regulatory-docs" }',
-            [("Dry run complete. Summary written to", GREEN), (" deployments/<env>/", INK)],
-            [("deployment-summary.md", INK)],
+            [("LiveKS plan: WARN", YELLOW, True)],
+            [("[PASS] python: 3.11.9", INK)],
+            [("[PASS] azd-version: 1.27.0", INK)],
+            [("[PASS] bicep-build: completed", INK)],
+            [("[PASS] payload-dry-run: completed", INK)],
+            [("[PASS] app-build: completed", INK)],
+            [("- Azure AI Search Basic", DIM)],
+            [("- Azure OpenAI model deployment", DIM)],
+            [("Artifact: .liveks/liveks-mcp.lock.json", GREEN)],
         ),
         term_title="bash — dry-run", font_size=23, lh=35, settle=2.0,
         explains=[
-            (tr("dry-run 은 실제 리소스를 만들지 않고 설정값만 출력합니다 — 비용 0.",
-                "dry-run creates no resources — it just prints settings — $0 cost."),
-             tr("여기서 모드·API 버전·KS/KB 이름을 미리 확인합니다.",
-                "Check mode, API version, KS/KB names here first.")),
-            (tr("같은 단계가 deployment-summary.md 도 미리 생성해 둡니다.",
-                "The same step pre-generates deployment-summary.md too."),
-             tr("값이 이상하면 .env / 모드를 고치고 다시 dry-run.",
-                "If values look off, fix .env / mode and dry-run again.")),
+            (tr("plan 은 cloud resource 를 만들지 않고 local build 와 read-only 진단만 수행합니다.",
+                "plan creates no cloud resources; it runs local builds and read-only diagnostics."),
+             tr("리소스·비용·경고·소유권을 확인한 뒤에만 up 으로 이동합니다.",
+                "Review resources, cost, warnings, and ownership before moving to up.")),
+            (tr("redacted lock 은 어떤 값을 썼고 무엇을 소유하는지 기록합니다.",
+                "The redacted lock records resolved values and ownership."),
+             tr("값이 이상하면 YAML 을 고치고 plan 을 다시 실행합니다.",
+                "If anything looks wrong, edit YAML and rerun plan.")),
         ],
     )
     S.zoom_term(
         m, res_dry, (E.MARGIN, 560, 1560, 700),
-        tr("에러 없이 'Dry run complete' 가 나오면 실제 배포 준비 OK.",
-           "'Dry run complete' with no errors = ready for the real deploy."),
-        sub=tr("요약 파일이 미리 생성됩니다 → deployment-summary.md",
-               "A summary file is pre-generated → deployment-summary.md"),
+        tr("FAIL 없이 plan 이 끝나고 예상 리소스가 맞으면 배포 준비 완료.",
+           "No FAIL and the expected resources match means the deployment is ready."),
+        sub=tr("redacted 원장 → .liveks/liveks-mcp.lock.json",
+               "Redacted record → .liveks/liveks-mcp.lock.json"),
         settle=2.6, font_size=23, lh=35,
     )
 
-    # deploy progress (guide — shows what deploy.sh prints; azd up not run here)
+    # deploy progress (guide — shows the plan-first sequence; cloud creation is not run here)
     ctx_prog = Ctx(5, TOTAL, lbl_deploy(),
-                   caption=tr("실제 실행 시 deploy.sh 가 8단계를 차례로 출력합니다 (guide).",
-                              "On a real run, deploy.sh prints 8 steps in sequence (guide)."),
-                   caption_sub="bash scripts/deploy.sh --mode mcp-only --env-name liveks-mcp --location eastus")
+                   caption=tr("up 은 plan 을 반복하고 Azure preview 뒤에 정확한 확인 문구를 요구합니다.",
+                              "up repeats plan and requires an exact confirmation after Azure preview."),
+                   caption_sub="./liveks up --env liveks-mcp")
     res_prog = S.terminal_scene(
         m, ctx_prog, "$ ",
-        "bash scripts/deploy.sh --mode mcp-only --env-name liveks-mcp --location eastus",
+        "./liveks up --env liveks-mcp",
         [
             [("+-------------------------------------------------------+", DIM)],
-            [("| Live Knowledge Sources — One-command demo deployment  |", INK)],
+            [("| Foundry IQ Live Knowledge Sources — plan-first up      |", INK)],
             [("+-------------------------------------------------------+", DIM)],
-            [("[###---------------------] 1/8 ", BLUE), ("Preflight: local tools", INK, True)],
-            [("[OK] ", GREEN, True),
-             (tr("az · azd · python3 · node 확인됨", "az · azd · python3 · node found"), DIM)],
-            [("[######------------------] 2/8 ", BLUE), ("Preflight: Azure session", INK, True)],
-            [("[OK] ", GREEN, True),
-             (tr("subscription · tenant 로그인 확인", "subscription · tenant login verified"), DIM)],
-            [("[#########---------------] 3/8 ", BLUE), ("Validate infrastructure template", INK, True)],
-            [("[OK] ", GREEN, True),
-             (tr("az bicep build 성공", "az bicep build succeeded"), DIM)],
-            [("[##################------] 6/8 ", BLUE), ("Provision Azure resources", INK, True)],
-            [("$ azd up  ", DIM),
-             (tr("← 여기서부터 실제 리소스/비용 발생", "← real resources/cost start here"), YELLOW, True)],
+            [("[PASS] ", GREEN, True), ("doctor · Bicep · payload · app plan", DIM)],
+            [("[PASS] ", GREEN, True), ("azd provision --preview", DIM)],
+            [("Cost: Search Basic + OpenAI + Storage + app hosting", YELLOW)],
+            [("Type 'create liveks-mcp' to continue:", BLUE, True)],
+            [("> create liveks-mcp", INK)],
+            [("$ azd up --environment liveks-mcp", DIM)],
+            [("[PASS] ", GREEN, True), ("MCP retrieve evidence returned", DIM)],
         ],
-        term_title="bash — deploy.sh", font_size=22, lh=33, line_reveal=0.14, settle=2.2,
+        term_title="bash — liveks up", font_size=22, lh=33, line_reveal=0.14, settle=2.2,
         explains=[
-            (tr("1~5단계는 점검·검증·빌드라 비용이 들지 않습니다 — 안심하고 실행.",
-                "Steps 1–5 are checks/validation/builds — no cost, run with confidence."),
-             tr("[OK] 표시를 따라가며 어디까지 통과했는지 확인합니다.",
-                "Follow the [OK] marks to see how far it passed.")),
-            (tr("6단계 azd up 부터 실제 Azure 리소스가 생성됩니다 (권한·쿼터 필요).",
-                "From step 6 (azd up), real Azure resources are created (perms & quota)."),
+            (tr("plan 과 Azure preview 까지는 resource 를 만들지 않습니다.",
+                "The plan and Azure preview do not create resources."),
+             tr("리소스와 비용을 읽고 정확한 환경 이름으로 확인합니다.",
+                "Read the resources and cost, then confirm the exact environment.")),
+            (tr("확인 문구 뒤 azd up 부터 실제 Azure 리소스가 생성됩니다.",
+                "Real Azure resources are created only after confirmation when azd up begins."),
              tr("이 영상은 여기까지 명령만 안내(guide)하고 실제 생성은 생략합니다.",
                 "This video only guides the command here — it skips the real creation.")),
         ],
     )
     S.zoom_term(
         m, res_prog, (E.MARGIN, 470, 1560, 545),
-        tr("6/8 Provision 단계의 azd up 부터 과금 시작 — 그 전 단계는 무료 점검.",
-           "Billing starts at azd up in step 6/8 — earlier steps are free checks."),
-        sub=tr("$ azd up  ← 실제 리소스/비용 발생 지점", "$ azd up  ← where real resources/cost begin"),
+        tr("정확한 create 확인 뒤 azd up 부터 과금 가능 — 그 전에는 plan/preview.",
+           "Costs can begin at azd up after exact confirmation; everything before is plan/preview."),
+        sub=tr("> create liveks-mcp  →  $ azd up", "> create liveks-mcp  →  $ azd up"),
         settle=2.8, font_size=22, lh=33,
     )
 
@@ -757,16 +748,16 @@ def m5() -> Module:
                  caption=tr("실제 배포와 정리 — 비용/권한 때문에 여기서는 명령만 안내(guide)합니다.",
                             "Real deploy and cleanup — for cost/permission reasons we only guide the commands here."))
     S.note_card(m, ctx_go, tr("실제 배포 → 확인 → 정리", "Real deploy → verify → cleanup"), [
-        ("step", tr("실제 배포:  bash scripts/deploy.sh --mode mcp-only --env-name liveks-mcp --location eastus",
-                    "Real deploy:  bash scripts/deploy.sh --mode mcp-only --env-name liveks-mcp --location eastus")),
-        ("info", tr("8단계: 사전점검 → Bicep 검증 → dry-run → 앱 빌드 → azd up → 사후설정",
-                    "8 steps: preflight → Bicep validate → dry-run → app build → azd up → postprovision")),
-        ("warn", tr("azd up 부터 실제 Azure 리소스/비용 발생 — 권한·쿼터 있을 때만 진행",
-                    "azd up onward creates real Azure resources/cost — only with perms & quota")),
-        ("step", tr("정리:  bash scripts/destroy.sh --env-name liveks-mcp",
-                    "Cleanup:  bash scripts/destroy.sh --env-name liveks-mcp")),
-        ("bad",  tr("destroy 는 'delete' 입력 확인 후 azd down --purge --force 실행",
-                    "destroy asks you to type 'delete', then runs azd down --purge --force")),
+        ("step", tr("설정:  ./liveks init --profile mcp-only --env liveks-mcp",
+                    "Configure:  ./liveks init --profile mcp-only --env liveks-mcp")),
+        ("info", tr("계획:  ./liveks doctor --env liveks-mcp → ./liveks plan --env liveks-mcp",
+                    "Plan:  ./liveks doctor --env liveks-mcp → ./liveks plan --env liveks-mcp")),
+        ("warn", tr("배포:  ./liveks up --env liveks-mcp — 확인 뒤 실제 비용 발생 가능",
+                    "Deploy:  ./liveks up --env liveks-mcp — costs can start after confirmation")),
+        ("step", tr("검증:  ./liveks verify --env liveks-mcp",
+                    "Verify:  ./liveks verify --env liveks-mcp")),
+        ("bad",  tr("정리:  ./liveks down --env liveks-mcp — 소유권 확인 후 삭제",
+                    "Cleanup:  ./liveks down --env liveks-mcp — ownership checked before delete")),
     ], settle=3.0)
     return m
 
@@ -840,10 +831,10 @@ def m6() -> Module:
                 sub='type:"mcpServer" · toolName:"microsoft_docs_search" · sourceData',
                 tag=apptag, settle=3.0)
     S.real_zoom(m, Ctx(6, TOTAL, lbl_verify()), "assets/real/app-combined.png",
-                explain=tr("Combined: 한 번의 retrieve 에 fabricOntology 와 mcpServer 가 함께 보입니다.",
-                           "Combined: one retrieve shows both fabricOntology and mcpServer together."),
-                sub=tr("이것이 '라이브 통합 라우팅'의 결정적 증거입니다.",
-                       "This is the decisive proof of live unified routing."),
+                explain=tr("Combined replay: 이 체크인 예시는 두 소스가 함께 보입니다.",
+                           "Combined replay: this checked-in example shows both sources."),
+                sub=tr("라이브에서는 플래너가 질의에 따라 하나 또는 둘을 선택합니다.",
+                       "Live, the planner selects one or both for each query."),
                 tag=apptag, settle=3.4)
     S.real_zoom(m, Ctx(6, TOTAL, lbl_verify()), "assets/real/app-deploy.png",
                 explain=tr("Deploy 탭: 런타임 상태·요약 JSON — 설정만 보이고 시크릿은 없습니다.",
@@ -859,7 +850,7 @@ def m6() -> Module:
         ("GET  /api/deployment-summary", tr("배포 리소스 메타데이터", "deployed resource metadata"), ""),
         ("POST /api/retrieve/mcp", tr("MCP 실시간 / 오프라인 대체", "MCP live / offline fallback"), ""),
         ("POST /api/retrieve/fabric", tr("Fabric 검색(권한 있을 때)", "Fabric search (when permitted)"), ""),
-        ("POST /api/retrieve/combined", tr("두 소스 통합 라우팅", "unified routing across both"), ""),
+        ("POST /api/retrieve/combined", tr("플래너 기반 통합 라우팅", "planner-selected unified routing"), ""),
     ], settle=2.6)
 
     ctx_curl = Ctx(6, TOTAL, lbl_verify(),
@@ -932,7 +923,7 @@ def m7() -> Module:
         steps=[
             ("CLONE", tr("내려받기", "Get the code"), BLUE),
             ("LOCAL MOCK", tr("오프라인 체험", "Offline trial"), GREEN),
-            ("TEST", tr("검증 13개", "13 checks"), YELLOW),
+            ("TEST", tr("검증 15개", "15 checks"), YELLOW),
             ("DEPLOY", tr("배포", "Ship it"), ORANGE),
             ("VERIFY", tr("동작 확인", "Confirm it"), BLUE),
             ("CLEANUP", tr("정리", "Tear down"), RED),
@@ -955,15 +946,15 @@ def m7() -> Module:
         ("step", tr("재생: open video-guide/repo-quickstart-guide.mp4",
                     "Play: open video-guide/repo-quickstart-guide-en.mp4")),
         ("step", rebuild_cmd),
-        ("info", tr("실제 따라하기: README.md → validate-local.sh → deploy.sh 순서",
-                    "To follow for real: README.md → validate-local.sh → deploy.sh")),
+        ("info", tr("실제 따라하기: README.md → liveks try → doctor → plan → up 순서",
+                    "To follow for real: README.md → liveks try → doctor → plan → up")),
     ], settle=3.6)
     S.title_card(
         m, Ctx(7, TOTAL, lbl_summary()),
         tr("따라하기 10분이면 충분합니다", "10 minutes is all it takes"),
         subtitle="clone → mock → test → deploy → verify → cleanup",
-        bullets=[tr("mock 으로 먼저 이해하고, 준비되면 deploy.sh 한 줄로 라이브 전환",
-                    "Understand it with the mock first, then go live with one deploy.sh line")],
+        bullets=[tr("replay 로 먼저 이해하고, plan 확인 후 liveks up 으로 전환",
+                    "Start with replay, review the plan, then go live with liveks up")],
         hold=3.6,
     )
     return m
