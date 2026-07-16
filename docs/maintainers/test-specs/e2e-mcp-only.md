@@ -10,25 +10,22 @@ This path is the fallback and first-run validation path for tenants that are not
 
 ## Inputs
 
-Use an ignored local env file, such as `.env.external.local`:
+Create the ignored YAML ledger:
 
 ```bash
-DEPLOYMENT_MODE=mcp-only
-EXTERNAL_TENANT_ID=<tenant-guid>
-EXTERNAL_AZURE_CONFIG_DIR=~/.azure-foundry-iq-ext
+./liveks init --profile mcp-only --env ext-liveks-mcp-e2e
 ```
 
-Fabric values are ignored in this mode.
+Add `azure.tenant_id`, `azure.subscription_id`, and `azure.cli_config_dir` to `.liveks/ext-liveks-mcp-e2e.yaml` for an external tenant. Fabric fields are neither required nor imported in this mode.
 
 ## Command
 
 ```bash
-bash scripts/e2e-test.sh \
-  --mode mcp-only \
-  --env-file .env.external.local \
-  --env-name ext-liveks-mcp-e2e \
-  --location eastus \
-  --cleanup
+./liveks e2e \
+  --env ext-liveks-mcp-e2e \
+  --cleanup \
+  --yes \
+  --format json
 ```
 
 ## Expected Azure Resources
@@ -52,30 +49,19 @@ No Fabric Knowledge Source is required.
 
 | Check | Expected |
 | --- | --- |
-| External tenant login | PASS |
-| Subscription and tenant match | PASS |
-| Tool preflight | PASS |
+| Python, Azure CLI, azd, Node.js, and npm preflight | PASS |
+| Azure and azd login | PASS |
+| Configured tenant match | PASS |
 | Bicep build | PASS |
-| postprovision dry-run | PASS |
+| Payload dry-run | PASS |
 | Static app build | PASS |
+| ARM preview | PASS without provisioning |
 | `azd up` | PASS |
 | Resource group exists | PASS |
-| Azure resources exist | PASS |
-| Deployment summary exists | PASS |
-| MCP KS exists | PASS |
-| Fabric KS check | SKIP with reason `Deployment mode is mcp-only` |
-| MCP-only KB exists | PASS |
-| Combined KB exists | PASS |
-| Airline Ops index has docs | PASS |
 | MCP retrieve | PASS with MCP activity or references |
-| Fabric live retrieve | SKIP |
-| App root HTTP 200 | PASS |
-| `/api/status` | PASS and shows `deploymentMode=mcp-only` |
-| `/api/retrieve/mcp` | PASS |
-| `/api/retrieve/fabric` | PASS offline replay with mcp-only reason |
-| `/api/retrieve/combined` | PASS offline replay with mcp-only reason |
-| Cleanup | PASS |
-| Resource group deleted | PASS |
+| App status | HTTP 200 |
+| Azure cleanup | PASS |
+| Resource group absence | PASS |
 
 ## Pass Criteria
 
@@ -97,22 +83,20 @@ Fail the run if:
 
 ## Reporting Requirements
 
-The run must write:
+The run writes:
 
 ```text
+deployments/ext-liveks-mcp-e2e/e2e-report.json
 deployments/ext-liveks-mcp-e2e/test-report.md
 ```
 
-The report must include deployment mode, location, cleanup status, resource group, hosting mode, app URL, Search endpoint, progress bar, and pass/fail/skip checklist.
+The JSON report preserves the nested lifecycle result. The Markdown report preserves the legacy maintainer summary format and pass/fail/skip checklist.
 
 The report must not include API keys, raw access tokens, customer data, internal tenant secrets, passwords, or connection strings.
 
 ## Static Validation Before Live Run
 
 ```bash
-bash -n scripts/deploy.sh scripts/e2e-test.sh scripts/destroy.sh scripts/ensure-azd-defaults.sh scripts/postprovision.sh scripts/deploy-static-webapp-api.sh
-python3 -m py_compile scripts/postprovision.py
-az bicep build --file infra/main.bicep --outfile .deployment/main.bicep.validate.json
-npm --prefix static-app run build
+bash scripts/validate-local.sh --strict
 git diff --check
 ```

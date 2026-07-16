@@ -1,57 +1,62 @@
 # External Tenant Login
 
-Use this when you need to test Fabric Ontology Knowledge Source with a tenant that is different from your normal Microsoft/internal Azure CLI profile.
+Use an isolated Azure CLI cache when the target Fabric and Azure resources are in a tenant different from your normal CLI profile.
 
-The helper script isolates Azure CLI cache with `AZURE_CONFIG_DIR`, so your internal tenant session remains separate.
-
-## 1. Create A Local Env File
-
-Create `.env.external.local` at the repo root:
+## Configure The Ledger
 
 ```bash
-EXTERNAL_TENANT_ID=<external-tenant-guid>
-EXTERNAL_AZURE_CONFIG_DIR=~/.azure-foundry-iq-ext
+./liveks init --profile byo-fabric --env external-liveks-byo
 ```
 
-`.env.external.local` is ignored by git.
+Add the target identity and isolated cache path:
 
-## 2. Login
+```yaml
+version: 2
+profile: byo-fabric
+environment: external-liveks-byo
+azure:
+  tenant_id: 33333333-3333-3333-3333-333333333333
+  subscription_id: 44444444-4444-4444-4444-444444444444
+  cli_config_dir: ~/.azure-liveks-external
+  location: eastus
+fabric:
+  workspace_id: 11111111-1111-1111-1111-111111111111
+  ontology_id: 22222222-2222-2222-2222-222222222222
+```
+
+The file is under ignored `.liveks/`. LiveKS passes `AZURE_CONFIG_DIR` only to its child Azure CLI processes.
+
+## Sign In
+
+For the interactive shell that performs login, use the same isolated cache:
 
 ```bash
-scripts/external-tenant-login.sh --env-file .env.external.local
+export AZURE_CONFIG_DIR="$HOME/.azure-liveks-external"
+az login --tenant 33333333-3333-3333-3333-333333333333
+az account set --subscription 44444444-4444-4444-4444-444444444444
+azd auth login
 ```
 
-If browser login is awkward, use device code:
+MFA and Conditional Access still require user interaction. Azure CLI and Azure Developer CLI maintain separate authentication contexts.
+
+## Check Alignment
 
 ```bash
-scripts/external-tenant-login.sh --env-file .env.external.local --device-code
+./liveks doctor --env external-liveks-byo
 ```
 
-## 3. Check Existing Session
+The doctor checks that the active Azure CLI tenant and subscription match the YAML before any plan or deployment proceeds.
+
+## Delegated Search Token
+
+For live Fabric retrieve:
 
 ```bash
-scripts/external-tenant-login.sh --env-file .env.external.local --check-only
+export FABRIC_USER_SEARCH_TOKEN="$(az account get-access-token --resource https://search.azure.com --query accessToken -o tsv)"
 ```
 
-## 4. Get A Raw Search Token
+The token is passed raw as source authorization. Do not add `Bearer`, put it in YAML, save it in `azd env`, or paste it into reports.
 
-For local Fabric KS retrieve testing:
+## Legacy Helper
 
-```bash
-scripts/external-tenant-login.sh --env-file .env.external.local --print-token
-```
-
-Pass the printed token as the raw value of:
-
-```http
-x-ms-query-source-authorization: <raw-token>
-```
-
-Do not prefix it with `Bearer`.
-
-## Notes
-
-- The script cannot bypass MFA or Conditional Access.
-- If Chrome shows an account picker and the external admin account is already signed in, selecting that account can complete the login.
-- If extra verification is required, the user must complete it.
-- Do not commit tenant IDs, tokens, or generated local env files.
+`scripts/external-tenant-login.sh --env-file <ignored-dotenv>` remains available for existing v1 workflows. New deployments should keep tenant, subscription, and cache-path settings in the LiveKS YAML ledger.

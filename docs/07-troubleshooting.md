@@ -5,16 +5,34 @@ Start by confirming which deployment mode you are running:
 | Mode | Fabric expectation |
 | --- | --- |
 | `mcp-only` | Fabric is skipped. Fabric and combined Fabric live checks should return offline replay. |
-| `byo-fabric` | `FABRIC_WORKSPACE_ID` and `FABRIC_ONTOLOGY_ID` must be provided in an ignored env file. |
-| `full` | The wrapper creates Fabric sample assets before `azd up`, then connects the generated IDs to Azure AI Search. |
+| `byo-fabric` | `fabric.workspace_id` and `fabric.ontology_id` must be provided in the ignored YAML ledger. |
+| `full` | LiveKS creates Fabric sample assets before `azd up`, then connects the generated IDs to Azure AI Search. |
 
 Generated diagnostics are written under ignored paths:
 
 ```text
 .deployment/
+.liveks/<env>.lock.json
 deployments/<env>/deployment-summary.md
 deployments/<env>/test-report.md
+deployments/<env>/e2e-report.json
 ```
+
+Start with machine-readable diagnostics:
+
+```bash
+./liveks doctor --env <environment> --format json
+./liveks plan --env <environment> --format json
+```
+
+## Configuration Or Plan Fails
+
+- Confirm the YAML has `version: 2` and matching `profile` and `deployment.mode` values.
+- Remove unknown fields or use the canonical names in `config/schema.yaml`.
+- Keep raw secrets out of YAML; use `user_search_token: {env: FABRIC_USER_SEARCH_TOKEN}`.
+- `byo-fabric` requires both GUIDs. `full` rejects both GUIDs.
+- Azure Developer CLI must be 1.27.0 or newer and Node.js must be 22 or newer.
+- `plan` can create ignored local build artifacts, but a cloud-state change indicates a bug and should be reported.
 
 ## Knowledge Source Creation Fails
 
@@ -42,9 +60,11 @@ deployments/<env>/test-report.md
 ## Fabric Greenfield Fails
 
 - Confirm the subscription has Fabric capacity quota in `FABRIC_LOCATION`.
-- If F2 capacity creation fails, retry with a different `--fabric-location` or use `byo-fabric`.
+- If F2 capacity creation fails, choose another `fabric.location` in the YAML after confirming quota, or use `byo-fabric`.
 - Confirm the capacity admin value is a valid user principal for the target tenant.
 - Confirm the Lakehouse CSV load completed before ontology and GraphModel validation.
+- A newly created Lakehouse can briefly report that OneLake details are unavailable. LiveKS retries this propagation window automatically; if it still fails, retain the report, run `down`, and start a fresh `up` rather than copying generated IDs into YAML.
+- A fresh full run clears generated Fabric IDs from the selected `azd` environment and resolves assets by their derived names. YAML remains the ownership ledger; generated IDs are transient deployment state.
 - If retrieve fails with `GraphIsNotLoaded`, `GraphNotRefreshable`, or natural-language processing errors, wait for GraphModel readiness or rerun the full path after cleanup.
 - Full mode provisions Fabric before `azd up` so long GraphModel readiness does not break the Azure Developer CLI postprovision hook.
 
@@ -67,6 +87,15 @@ deployments/<env>/test-report.md
 
 - `FAIL` means the required behavior for the selected mode did not complete.
 - `SKIP` is acceptable only when the selected mode explicitly does not require that path, such as Fabric checks in `mcp-only`.
-- For `byo-fabric`, missing Fabric IDs should fail before deployment starts.
+- For `byo-fabric`, missing Fabric IDs should fail during configuration resolution, before deployment starts.
 - For `full`, missing Fabric IDs are acceptable only if the greenfield Fabric provisioning step produced generated IDs.
+- Separate MCP and Fabric checks prove both live paths. A combined KB check passes with recognized live evidence from one or both because the Knowledge Base planner chooses which attached source to call for each query.
 - Cleanup must pass for release rehearsal runs. Use `--keep-resources` only while debugging.
+
+## Cleanup Reports Partial
+
+- Read the ownership check in the `down` output and the redacted `.liveks/<env>.lock.json`.
+- BYO Fabric assets must remain untouched even when Azure cleanup fails.
+- For full mode, Azure cleanup continues after a Fabric cleanup warning.
+- Before manually deleting a Fabric capacity resource group, list its contents and verify in Fabric that no shared workspace is assigned.
+- Return code `4` means cleanup needs explicit follow-up; do not report the rehearsal as complete.

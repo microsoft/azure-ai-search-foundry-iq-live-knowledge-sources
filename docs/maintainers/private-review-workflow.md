@@ -56,39 +56,29 @@ This proves the source shape: shell scripts parse, Python files compile, noteboo
 
 ## 3. Add E2E Evidence When Needed
 
-Run E2E only when the review claims deployment behavior.
+Run E2E only when the review claims deployment behavior. Create and review each ignored YAML ledger with `liveks init` first.
 
 ```bash
-bash scripts/e2e-test.sh \
-  --mode mcp-only \
-  --env-name ext-liveks-mcp-e2e \
-  --location eastus \
-  --cleanup
+./liveks e2e --env ext-liveks-mcp-e2e --cleanup --yes
 ```
 
 ```bash
-bash scripts/e2e-test.sh \
-  --mode byo-fabric \
-  --env-file .env.external.local \
-  --env-name ext-liveks-byo-e2e \
-  --location eastus \
-  --cleanup
+./liveks e2e --env ext-liveks-byo-e2e --cleanup --yes
 ```
 
 ```bash
-bash scripts/e2e-test.sh \
-  --mode full \
-  --env-file .env.external.local \
-  --env-name ext-liveks-full-e2e \
-  --location eastus \
-  --fabric-location westus3 \
-  --cleanup
+./liveks e2e \
+  --env ext-liveks-full-e2e \
+  --cleanup \
+  --yes \
+  --accept-fabric-capacity
 ```
 
 The E2E report stays local and ignored:
 
 ```text
 deployments/<env>/test-report.md
+deployments/<env>/e2e-report.json
 ```
 
 Summarize the result. Do not paste the raw report unless it has been reviewed and redacted.

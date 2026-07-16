@@ -61,7 +61,7 @@ If the app has Fabric IDs but no delegated token, it should show offline replay 
 | `byo-fabric` | Requires existing Fabric workspace and ontology IDs. | This is the safest customer-facing live Fabric path when semantic assets already exist. |
 | `full` | Requires Fabric capacity quota, Fabric API readiness, GraphModel readiness, and delegated auth for live retrieve. | This is the platform story and greenfield demo path, not the fastest first run. |
 
-For release rehearsals, all modes should prove create-call-load-delete behavior through `scripts/e2e-test.sh --cleanup`.
+For release rehearsals, all live profiles should prove create-call-load-delete behavior through `./liveks e2e --env <environment> --cleanup --yes`.
 
 ## Full Greenfield Fabric Caveats
 

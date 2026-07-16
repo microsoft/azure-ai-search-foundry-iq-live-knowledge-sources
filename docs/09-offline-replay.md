@@ -1,38 +1,41 @@
 # Offline Replay
 
-Offline replay lets you inspect expected retrieve shapes without live Azure resources, Fabric tenant access, or Microsoft Learn MCP calls.
+Offline replay exposes the Foundry IQ retrieve response contract without Azure resources, tenant access, Fabric, network calls, or package installation.
 
-## Why It Exists
-
-Live Knowledge Sources are tenant and network dependent:
-
-- MCP Server KS needs an HTTPS MCP endpoint that Azure AI Search can reach.
-- Fabric Ontology KS needs a Fabric workspace, ontology item, and end-user source authorization for live retrieval.
-- Combined Knowledge Bases can route differently depending on source descriptions, query wording, and model behavior.
-
-The checked-in responses are small synthetic examples for learning the trace structure. They are not captured customer data.
-
-## Run The Inspector
+## CLI
 
 ```bash
-python samples/python/inspect_retrieve_response.py samples/responses/mcp-retrieve.sample.json
-python samples/python/inspect_retrieve_response.py samples/responses/fabric-airline-ops-retrieve.sample.json
-python samples/python/inspect_retrieve_response.py samples/responses/combined-airline-ops-retrieve.sample.json
+./liveks try
+./liveks try --sample mcp
+./liveks try --sample fabric
+./liveks try --sample combined --details
 ```
 
-## What To Look For
+The default combined replay prints the answer before trace details. `--details` expands `activity`, `references`, and source-specific `sourceData`.
+
+## Browser
+
+[Open the combined replay](https://microsoft.github.io/azure-ai-search-foundry-iq-live-knowledge-sources/demo/?demo=combined){ .md-button .md-button--primary }
+
+GitHub Pages has no server-side API, so the app labels the result `offline-replay` and loads canonical JSON fixtures from the site. An Azure deployment uses the same interface and calls the managed API first.
+
+## Evidence To Inspect
 
 For MCP Server KS:
 
 - `activity[*].type == "mcpServer"`
-- `activity[*].toolName` or `activity[*].mcpServerArguments.toolName`
+- `toolName` or `mcpServerArguments.toolName`
 - MCP references with `sourceData`
 
 For Fabric Ontology KS:
 
 - `activity[*].type == "fabricOntology"`
-- `activity[*].fabricOntologyArguments.search`
-- Fabric references with `sourceData.fabricAnswer`
-- Fabric references with `sourceData.fabricRawData`
+- `fabricOntologyArguments.search`
+- `sourceData.fabricAnswer`
+- `sourceData.fabricRawData`
 
-For a combined Knowledge Base, treat `knowledgeSourceParams` as runtime options, not as a strict source allow-list. If you need deterministic validation, run a single-source Knowledge Base first.
+The three canonical fixtures live under `samples/responses/`. The CLI, Pages build, and managed API all reuse these files to prevent demo drift.
+
+## Boundary
+
+The responses use synthetic Airline Ops data and demonstrate trace shape and teaching flow. They do not prove that Azure AI Search called Microsoft Learn MCP, that a Fabric GraphModel was ready, or that delegated Fabric authorization worked. Use `liveks verify` and live E2E reports for those claims.

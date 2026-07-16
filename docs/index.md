@@ -1,87 +1,80 @@
-# Live Knowledge Sources Manual
+# Foundry IQ Live Knowledge Sources
 
-This manual shows what this repo can run, which path to choose, and what to check after each command. It is designed to sit next to a terminal during a workshop, review, or demo rehearsal.
+Deploy and inspect MCP Server and Fabric Ontology Knowledge Sources through one Foundry IQ Knowledge Base, with evidence showing which source answered.
 
-![Live Knowledge Sources Architecture](assets/live-knowledge-sources-architecture.svg)
-
-!!! note "Source of truth"
-    Azure AI Search Knowledge Source APIs are in public preview. Use the official Microsoft Learn articles as the source of truth when preview behavior changes. This repo adds runnable payloads, deployment scripts, notebooks, and offline traces around those docs.
-
-## What This Repo Can Do
-
-| Capability | What you run | What you learn |
-| --- | --- | --- |
-| Offline trace replay | `samples/python/inspect_retrieve_response.py` | The retrieve response shape: `activity`, `references`, and `sourceData`. |
-| Local validation | `tools/validate.py` and `scripts/validate-local.sh` | Whether the repo, payloads, samples, docs, and app still line up. |
-| MCP-only live path | `scripts/deploy.sh --mode mcp-only` | Azure AI Search can call a remote HTTPS MCP server at retrieve time. |
-| BYO Fabric path | `scripts/deploy.sh --mode byo-fabric` | Azure AI Search can connect an existing Fabric ontology as a live Knowledge Source. |
-| Full greenfield path | `scripts/deploy.sh --mode full` | The sample can create Azure resources and a small Fabric Airline Ops stack for end-to-end validation. |
-| Combined trace inspection | Offline responses or a combined KB | One Knowledge Base can route across MCP Server KS and Fabric Ontology KS. |
-
-## Choose The First Path
-
-![Deployment modes](assets/deployment-modes.svg)
-
-| Start here | Use when | Next page |
-| --- | --- | --- |
-| `offline` | You want to learn the trace contract with no cloud resources. | [Offline Replay](09-offline-replay.md) |
-| `mcp-only` | You want the fastest live Azure AI Search validation without Fabric. | [MCP Server KS](03-mcp-server-ks.md) |
-| `byo-fabric` | You already have a Fabric workspace ID and ontology ID. | [BYO Fabric Validation](11-fabric-live-byo-validation.md) |
-| `full` | You are doing a greenfield demo and can create Fabric capacity and sample assets. | [One-Command Deployment](10-one-command-deployment.md) |
-
-The safest default order is:
-
-```text
-offline -> mcp-only -> byo-fabric
-```
-
-Use `full` only when quota, tenant settings, cleanup expectations, and delegated auth behavior are clear.
+[Open the combined trace demo](https://microsoft.github.io/azure-ai-search-foundry-iq-live-knowledge-sources/demo/?demo=combined){ .md-button .md-button--primary }
+[Start the runbook](runbook.md){ .md-button }
 
 ## First Run
 
-Start without Azure, Fabric, tenant access, or secrets:
+No Azure subscription, tenant, Fabric workspace, or key is required:
 
 ```bash
-python3 samples/python/inspect_retrieve_response.py samples/responses/mcp-retrieve.sample.json
-python3 samples/python/inspect_retrieve_response.py samples/responses/fabric-airline-ops-retrieve.sample.json
-python3 samples/python/inspect_retrieve_response.py samples/responses/combined-airline-ops-retrieve.sample.json
+git clone --depth 1 https://github.com/microsoft/azure-ai-search-foundry-iq-live-knowledge-sources.git
+cd azure-ai-search-foundry-iq-live-knowledge-sources
+./liveks try
 ```
 
-Then run the local gate:
+The command prints the combined answer first and then identifies the MCP and Fabric evidence. Use `./liveks try --details` for the full `activity`, `references`, and `sourceData` trace.
+
+## From Replay To Live
 
 ```bash
-python3 tools/doctor.py --format json
-python3 tools/validate.py --profile offline --format json
-bash scripts/validate-local.sh
+./liveks bootstrap
+./liveks init --profile mcp-only --env liveks-mcp
+./liveks doctor --env liveks-mcp
+./liveks plan --env liveks-mcp
+./liveks up --env liveks-mcp
 ```
 
-For the full sequence, follow the [Execution Runbook](runbook.md).
+The YAML ledger is written to ignored `.liveks/liveks-mcp.yaml`. `plan` performs local and read-only cloud checks; `up` previews changes and asks for explicit confirmation before provisioning.
 
-For a lightweight first checkout, use `git clone --depth 1`. Walkthrough videos belong on GitHub Releases, and generated app builds, dependency folders, deployment reports, screenshots, and scratch output should stay out of git.
+| Profile | Reader state | First success signal |
+| --- | --- | --- |
+| `offline` | I want to understand the evidence contract now. | Answer plus MCP and Fabric source badges. |
+| `mcp-only` | I want the fastest live Knowledge Source validation. | Retrieve evidence names `microsoft_docs_search`. |
+| `byo-fabric` | I have a Fabric workspace and ontology. | Separate checks prove Fabric and MCP; the combined KB returns planner-selected evidence. |
+| `full` | I need a greenfield platform demo. | Generated Fabric GraphModel, both KS paths, app, and cleanup pass. |
 
-## Success Signals
+The safe default progression is `offline -> mcp-only -> byo-fabric`. Use `full` only after checking Fabric quota, cost, tenant settings, and cleanup expectations.
 
-| Path | Good first signal |
+## Composition Model
+
+![Live Knowledge Sources Architecture](assets/live-knowledge-sources-architecture.svg)
+
+One question is routed through a Foundry IQ Knowledge Base to several live Knowledge Sources. The final answer is accompanied by:
+
+- `activity`: which source and tool ran,
+- `references`: what evidence was returned,
+- `sourceData`: source-specific evidence for audit and citation handling.
+
+The app and CLI replay use the same canonical response fixtures as the serverless API. Pages runs in clearly labeled offline replay mode; an Azure deployment switches the same interface to live retrieval.
+
+## Manual Map
+
+| Task | Page |
 | --- | --- |
-| Offline replay | Inspector prints `Activity`, `References`, and `Source Data Preview`. |
-| Local validation | `tools/validate.py --profile offline` returns passing JSON. |
-| MCP-only | Retrieve activity or references show `microsoft_docs_search`. |
-| BYO Fabric | Fabric KS is created, and live retrieve works with delegated source authorization or falls back to a clear offline explanation. |
-| Full | Fabric IDs are generated, KS/KB assets are created, app loads, retrieve evidence is recorded, and cleanup completes or reports manual follow-up. |
+| Run the complete lifecycle | [Execution Runbook](runbook.md) |
+| Choose a profile | [Choose a Pattern](02-choose-a-pattern.md) |
+| Understand commands and exit codes | [LiveKS CLI](20-liveks-cli.md) |
+| Manage YAML and secrets | [Configuration](21-configuration.md) |
+| Deploy and clean up | [One-Command Deployment](10-one-command-deployment.md) |
+| Connect existing Fabric | [BYO Fabric Validation](11-fabric-live-byo-validation.md) |
+| Diagnose failures | [Troubleshooting](07-troubleshooting.md) |
+| Review safety boundaries | [Security and Governance](06-security-governance.md) |
+
+!!! note "Public preview"
+    Azure AI Search Knowledge Source APIs are pinned to `2026-05-01-preview`. Use Microsoft Learn as the source of truth when preview behavior changes. This accelerator packages runnable configuration, deployment, samples, notebooks, and evidence around those APIs.
 
 ## Official Microsoft Manuals
 
-| Need | Official manual |
+| Need | Manual |
 | --- | --- |
-| Understand agentic retrieval | [Agentic Retrieval Overview](https://learn.microsoft.com/en-us/azure/search/agentic-retrieval-overview) |
-| Understand Knowledge Sources | [What is a Knowledge Source?](https://learn.microsoft.com/en-us/azure/search/agentic-knowledge-source-overview) |
-| Create MCP Server KS | [Create an MCP Server knowledge source](https://learn.microsoft.com/en-us/azure/search/agentic-knowledge-source-how-to-mcp-server) |
-| Create Fabric Ontology KS | [Create a Fabric Ontology knowledge source](https://learn.microsoft.com/en-us/azure/search/agentic-knowledge-source-how-to-fabric-ontology) |
-| Create a Knowledge Base | [Create a Knowledge Base](https://learn.microsoft.com/en-us/azure/search/agentic-retrieval-how-to-create-knowledge-base) |
-| Query a Knowledge Base | [Query a Knowledge Base](https://learn.microsoft.com/en-us/azure/search/agentic-retrieval-how-to-retrieve) |
-| Understand Fabric Ontology | [Microsoft Fabric Ontology overview](https://learn.microsoft.com/en-us/fabric/iq/ontology/overview) |
-| Maintain this site | [GitHub Pages custom workflows](https://docs.github.com/en/pages/getting-started-with-github-pages/using-custom-workflows-with-github-pages) and [Material for MkDocs](https://squidfunk.github.io/mkdocs-material/getting-started/) |
+| Agentic retrieval | [Agentic Retrieval Overview](https://learn.microsoft.com/en-us/azure/search/agentic-retrieval-overview) |
+| Knowledge Sources | [Knowledge Source Overview](https://learn.microsoft.com/en-us/azure/search/agentic-knowledge-source-overview) |
+| MCP Server KS | [Create an MCP Server knowledge source](https://learn.microsoft.com/en-us/azure/search/agentic-knowledge-source-how-to-mcp-server) |
+| Fabric Ontology KS | [Create a Fabric Ontology knowledge source](https://learn.microsoft.com/en-us/azure/search/agentic-knowledge-source-how-to-fabric-ontology) |
+| Knowledge Base | [Create a Knowledge Base](https://learn.microsoft.com/en-us/azure/search/agentic-retrieval-how-to-create-knowledge-base) |
+| Retrieve | [Query a Knowledge Base](https://learn.microsoft.com/en-us/azure/search/agentic-retrieval-how-to-retrieve) |
 
-## Safety Boundary
-
-Do not publish tenant IDs, service URLs, API keys, bearer tokens, raw live responses, generated deployment reports, or screenshots with sensitive values. Use sanitized counts, source names, and success signals when summarizing live runs.
+Do not publish tenant IDs, keys, tokens, raw live responses, generated reports, or private screenshots. Share sanitized source names, counts, statuses, and cleanup evidence.

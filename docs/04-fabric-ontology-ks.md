@@ -43,5 +43,5 @@ After mapping the sample data into your own Fabric ontology, start with these qu
 For offline trace inspection, run:
 
 ```bash
-python samples/python/inspect_retrieve_response.py samples/responses/fabric-airline-ops-retrieve.sample.json
+./liveks try --sample fabric --details
 ```

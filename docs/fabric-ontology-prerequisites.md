@@ -14,7 +14,7 @@ This repo has two Fabric deployment postures. The validated `byo-fabric` path tr
 - A Microsoft Fabric workspace you can access.
 - An ontology item that exposes equivalent Airline Ops entities and relationships.
 - Permission to query the ontology as the signed-in user.
-- An Azure AI Search service using the preview API version from `.env.sample`.
+- An Azure AI Search service using the preview API version from `profiles/byo-fabric.yaml` or the authored LiveKS YAML ledger.
 - An Azure OpenAI or Foundry model deployment for Knowledge Base answer synthesis.
 
 ## Capacity Posture
@@ -29,33 +29,33 @@ Use one of these paths:
 | BYO existing capacity | Customer or field tenant validation | Use when the tenant already has governed Fabric workspace/capacity ownership. |
 | Automated F2 capacity | Full greenfield mode | `F2` is the smallest default sample capacity. Use a region where the subscription has Fabric quota. |
 
-Keep `DEPLOYMENT_MODE=byo-fabric` and `FABRIC_CAPACITY_MODE=byo` for existing Fabric assets. Use `DEPLOYMENT_MODE=full` and `FABRIC_CAPACITY_MODE=create` for the greenfield path. If the selected Fabric region has quota `0`, switch `FABRIC_LOCATION` or use BYO Fabric.
+Use a `byo-fabric` YAML ledger with `fabric.workspace_id` and `fabric.ontology_id` for existing assets. Use a `full` ledger with `fabric.mode: create` for the greenfield path. If the selected Fabric region has quota `0`, change `fabric.location` or use `byo-fabric`.
 
-## Full Mode Environment Variables
+## Full Mode Deployment Projection
 
-`full` mode reads these Fabric settings from the shell, `.env` file, or selected `azd` environment.
+The YAML ledger is the authoring source. LiveKS derives and projects the following values into the selected `azd` environment during a `full` run. Generated IDs are runtime state, not fields to copy back into YAML.
 
 | Variable | Default | Description | Billing impact |
 | --- | --- | --- | --- |
-| `DEPLOYMENT_MODE` | `full` in the Fabric provisioner | Must be `full` for greenfield Fabric creation. | None by itself |
-| `FABRIC_CAPACITY_MODE` | `create` | `create`, `byo`, or `skip`. `create` provisions capacity when one is not found. | `create` can create billable capacity |
+| `DEPLOYMENT_MODE` | `full` | Selects greenfield Fabric creation. | None by itself |
+| `FABRIC_CAPACITY_MODE` | `create` | LiveKS owns creation and cleanup. After preprovisioning, it temporarily projects `byo` only so Bicep consumes the generated capacity without creating it twice. | `create` can create billable capacity |
 | `FABRIC_CAPACITY_SKU` | `F2` | Capacity SKU for greenfield sample deployments. Change this before running if the tenant requires a different SKU. | `F2` is billable |
 | `FABRIC_CAPACITY_NAME` | generated from env name | Optional capacity display/resource name. | None by itself |
-| `FABRIC_CAPACITY_ID` | empty | Existing Fabric capacity ID to reuse. | Reuses existing billing |
-| `FABRIC_CAPACITY_ARM_ID` | empty | Existing ARM resource ID for a capacity created outside this run. | Reuses existing billing |
+| `FABRIC_CAPACITY_ID` | empty before provisioning | Generated capacity ID. | Identifies generated billing |
+| `FABRIC_CAPACITY_ARM_ID` | empty before provisioning | Generated ARM capacity ID. | Identifies generated billing |
 | `FABRIC_CAPACITY_RESOURCE_GROUP` | `AZURE_RESOURCE_GROUP` or `rg-<env>-fabric` | Resource group for generated capacity. | Deleted by `fabric-destroy.py` only when this run created the capacity |
 | `FABRIC_CAPACITY_ADMIN` | signed-in Azure user | UPN assigned as capacity administrator when creating capacity. | None by itself |
 | `FABRIC_LOCATION` | `AZURE_LOCATION` or `westus3` | Fabric capacity location. Use a region with Fabric quota. | Region quota controls whether capacity can be created |
-| `FABRIC_WORKSPACE_ID` | empty | Existing workspace ID. Leave empty for generated workspace. | Reuses existing workspace |
+| `FABRIC_WORKSPACE_ID` | empty before provisioning | Generated workspace ID. | Uses generated capacity |
 | `FABRIC_WORKSPACE_NAME` | `liveks_airline_ops_<env>` | Generated workspace name. | Uses selected capacity |
-| `FABRIC_LAKEHOUSE_ID` | empty | Existing Lakehouse ID. Leave empty for generated Lakehouse. | Reuses existing Lakehouse |
+| `FABRIC_LAKEHOUSE_ID` | empty before provisioning | Generated Lakehouse ID. | Uses generated workspace |
 | `FABRIC_LAKEHOUSE_NAME` | `airline_ops_lakehouse` | Generated Lakehouse name. | Uses selected capacity |
-| `FABRIC_ONTOLOGY_ID` | empty | Existing ontology item ID. Leave empty for generated ontology. | Reuses existing ontology |
+| `FABRIC_ONTOLOGY_ID` | empty before provisioning | Generated ontology item ID. | Uses generated workspace |
 | `FABRIC_ONTOLOGY_NAME` | `AirlineOpsOntology` | Generated ontology name. | Uses selected capacity |
 
-Generated Fabric IDs are written to ignored files under `deployments/<env>/` so cleanup can find partially created assets after a failed run.
+`full` rejects authored workspace and ontology IDs. Fresh runs clear stale generated IDs before resolving assets by their derived names. Generated IDs are written only to ignored deployment state so cleanup can find partially created assets, then cleared from `azd env` after `down`.
 
-If the Azure portal shows a leftover generated Fabric capacity resource group after a test run, use [Orphaned Fabric Capacity Cleanup](10-one-command-deployment.md#orphaned-fabric-capacity-cleanup) before assuming the resource is still needed.
+If the Azure portal shows a leftover generated Fabric capacity resource group after a test run, use [Residual Fabric Capacity](10-one-command-deployment.md#residual-fabric-capacity) before assuming the resource is still needed.
 
 ## Greenfield Graph Readiness
 
@@ -114,9 +114,9 @@ This gives the demo a realistic semantic join path while keeping the public samp
 3. Create relationships between Airline, Airport, Route, Flight, and DelayEvent.
 4. Add business-friendly synonyms such as carrier, route, delayed flight, controllable delay, and customer-care exposure.
 5. Validate natural-language questions inside Fabric before connecting Azure AI Search.
-6. Copy the Fabric workspace ID and ontology item ID into `samples/rest/04-create-fabric-ontology-ks.http`.
-7. Create the Fabric Ontology Knowledge Source.
-8. Retrieve with a raw end-user Search access token in `x-ms-query-source-authorization`.
+6. Put the Fabric workspace ID and ontology item ID in the ignored `byo-fabric` YAML ledger.
+7. Run `liveks doctor`, `plan`, and `up`; doctor confirms both Fabric assets are readable before deployment.
+8. Run `liveks verify`. It acquires delegated Search authorization transiently and proves the Fabric path without serializing the token.
 
 ## Validation Questions
 
