@@ -503,6 +503,19 @@ def _load_lock(environment: str) -> dict[str, Any] | None:
     return lock
 
 
+def _load_fabric_summary(environment: str) -> dict[str, Any] | None:
+    summary_path = ROOT / "deployments" / environment / "fabric-summary.json"
+    if not summary_path.exists():
+        return None
+    try:
+        summary = json.loads(summary_path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as error:
+        raise ConfigError(f"Invalid Fabric summary: {summary_path}: {error}") from error
+    if not isinstance(summary, dict):
+        raise ConfigError(f"Invalid Fabric summary object: {summary_path}")
+    return summary
+
+
 def _locked_identity(environment: str) -> tuple[str | None, dict[str, str] | None]:
     lock = _load_lock(environment)
     if lock is None:
@@ -537,6 +550,7 @@ def down_report(config: ResolvedConfig, *, yes: bool, quiet: bool = False) -> di
     if selected.returncode != 0:
         return envelope("down", "fail", profile=config.profile, environment=config.environment, checks=[_check("azd-environment", "fail", f"Environment not found: {config.environment}")])
     ownership, ownership_source = _cleanup_ownership(config)
+    fabric_summary = _load_fabric_summary(config.environment) if ownership["fabricWorkspace"] == "create" else None
     checks.append(_check("ownership", "pass", ownership_source, ownership=ownership))
     if ownership["fabricWorkspace"] == "create":
         fabric = runner.run([sys.executable, "scripts/fabric-destroy.py", "--env-name", config.environment, "--yes"])
@@ -549,7 +563,8 @@ def down_report(config: ResolvedConfig, *, yes: bool, quiet: bool = False) -> di
         for key in GENERATED_FABRIC_AZD_KEYS:
             runner.run(["azd", "env", "set", key, ""])
     env_values = runner.run(["azd", "env", "get-values"])
-    resource_group = parse_azd_values(env_values.stdout).get("AZURE_RESOURCE_GROUP", str(config.get("azure.resource_group")))
+    projected = parse_azd_values(env_values.stdout)
+    resource_group = projected.get("AZURE_RESOURCE_GROUP", str(config.get("azure.resource_group")))
     absent = False
     for attempt in range(12):
         exists = runner.run(["az", "group", "exists", "--name", resource_group])
@@ -577,7 +592,61 @@ def down_report(config: ResolvedConfig, *, yes: bool, quiet: bool = False) -> di
                     break
                 if attempt < 11:
                     time.sleep(5)
-    checks.append(_check("resource-group-absent", "pass" if absent else "fail", f"{resource_group} is absent" if absent else f"{resource_group} still exists"))
+    checks.append(_check("resource-group-absent", "pass" if absent else "fail", f"Deployment resource group {resource_group} is absent" if absent else f"Deployment resource group {resource_group} still exists"))
+
+    capacity_created = bool(fabric_summary and fabric_summary.get("capacityCreated"))
+    if ownership.get("fabricCapacity") == "create" and capacity_created:
+        capacity_group = str(
+            fabric_summary.get("capacityResourceGroup")
+            or projected.get("FABRIC_CAPACITY_RESOURCE_GROUP")
+            or config.get("fabric.capacity_resource_group")
+        )
+        capacity_name = str(
+            fabric_summary.get("capacityName")
+            or projected.get("FABRIC_CAPACITY_NAME")
+            or config.get("fabric.capacity_name")
+        )
+        capacity_group_absent = False
+        capacity_absent = False
+        for attempt in range(12):
+            group_probe = runner.run(["az", "group", "exists", "--name", capacity_group])
+            capacity_group_absent = group_probe.returncode == 0 and group_probe.stdout.strip().lower() == "false"
+            capacity_probe = runner.run(
+                [
+                    "az",
+                    "resource",
+                    "list",
+                    "--resource-type",
+                    "Microsoft.Fabric/capacities",
+                    "--query",
+                    f"length([?name=='{capacity_name}'])",
+                    "--output",
+                    "tsv",
+                ]
+            )
+            capacity_absent = capacity_probe.returncode == 0 and capacity_probe.stdout.strip() in {"", "0"}
+            if capacity_group_absent and capacity_absent:
+                break
+            if attempt < 11:
+                time.sleep(5)
+        checks.append(
+            _check(
+                "fabric-capacity-resource-group-absent",
+                "pass" if capacity_group_absent else "fail",
+                f"Generated Fabric capacity resource group {capacity_group} is absent"
+                if capacity_group_absent
+                else f"Generated Fabric capacity resource group {capacity_group} still exists",
+            )
+        )
+        checks.append(
+            _check(
+                "fabric-capacity-absent",
+                "pass" if capacity_absent else "fail",
+                f"Generated Fabric capacity {capacity_name} is absent"
+                if capacity_absent
+                else f"Generated Fabric capacity {capacity_name} still exists or could not be verified",
+            )
+        )
     failed = any(check["status"] == "fail" for check in checks)
     warned = any(check["status"] == "warn" for check in checks)
     status = "fail" if failed else "partial" if warned else "pass"

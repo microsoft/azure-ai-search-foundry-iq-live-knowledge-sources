@@ -48,6 +48,14 @@ PowerShell equivalents replace `./liveks` with `./liveks.ps1`.
 
 Live commands require an environment name or a YAML path. When `--config` is omitted, LiveKS looks for `.liveks/<environment>.yaml`.
 
+Use JSON output when cleanup evidence will be reviewed:
+
+```bash
+./liveks down --env liveks-full --yes --format json
+```
+
+Every live profile must report `resource-group-absent=pass`. A `full` run that created capacity must additionally report `fabric-capacity-resource-group-absent=pass` and `fabric-capacity-absent=pass`. These checks are omitted for reused capacity so preservation is not misreported as failed deletion.
+
 ## Confirmation Rules
 
 Interactive `up` requires this exact phrase:

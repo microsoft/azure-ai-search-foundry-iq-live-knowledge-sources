@@ -81,7 +81,7 @@ Use the evidence that matches the claim:
 | MCP path is live | MCP activity or references from `liveks verify` |
 | Fabric path is live | `fabricOntology` evidence in live mode with delegated authorization |
 | Combined routing worked | Recognized live evidence from the source or sources selected by the combined KB planner |
-| Full rehearsal is complete | Create, verify, cleanup, and absence checks pass |
+| Full rehearsal is complete | Create and retrieve checks pass; deployment RG, generated capacity RG, and generated capacity absence checks pass |
 
 Final answer text alone is not routing evidence. Inspect `activity`, `references`, and `sourceData`, and use the single-source KB checks to prove MCP and Fabric independently.
 

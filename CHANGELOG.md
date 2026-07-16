@@ -25,6 +25,7 @@ All notable changes to this accelerator are documented here.
 - Live verification proves the MCP and Fabric paths independently; combined KB verification records whichever source or sources the planner selects.
 - Full runs reconcile generated Fabric state, tolerate initial OneLake metadata propagation, and hand preprovisioned capacity IDs to Bicep without duplicate creation.
 - Cleanup polls for Azure resource-group deletion and removes an accelerator-created residual group only when the pre-preview ownership record proves it was not pre-existing.
+- Full cleanup now proves both generated resource groups are absent and the matching Fabric capacity resource count is zero, while omitting deletion claims for reused capacity.
 
 ### Compatibility
 

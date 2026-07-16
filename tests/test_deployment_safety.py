@@ -153,7 +153,12 @@ class FakeCleanupRunner:
     def run(self, command, **kwargs):
         args = [str(item) for item in command]
         self.__class__.history.append(args)
-        output = "false\n" if args[:3] == ["az", "group", "exists"] else "ok\n"
+        if args[:3] == ["az", "group", "exists"]:
+            output = "false\n"
+        elif args[:3] == ["az", "resource", "list"]:
+            output = "0\n"
+        else:
+            output = "ok\n"
         return CommandResult(args, 0, output)
 
 
@@ -242,13 +247,38 @@ class CleanupOwnershipTests(unittest.TestCase):
 
     def test_full_cleanup_calls_fabric_destroy_before_azd_down(self):
         config = resolve_config(profile="full", environment="unit-full")
-        with mock.patch.object(cli, "CommandRunner", FakeCleanupRunner), mock.patch.object(cli, "write_lock"):
+        fabric_summary = {
+            "capacityCreated": True,
+            "capacityName": "fabunitfull",
+            "capacityResourceGroup": "rg-unit-full-fabric",
+        }
+        with (
+            mock.patch.object(cli, "CommandRunner", FakeCleanupRunner),
+            mock.patch.object(cli, "_load_fabric_summary", return_value=fabric_summary),
+            mock.patch.object(cli, "write_lock"),
+        ):
             report = cli.down_report(config, yes=True, quiet=True)
         commands = [" ".join(command) for command in FakeCleanupRunner.history]
         fabric_index = next(index for index, command in enumerate(commands) if "fabric-destroy.py" in command)
         azure_index = next(index for index, command in enumerate(commands) if "azd down" in command)
         self.assertLess(fabric_index, azure_index)
         self.assertEqual(report["status"], "pass")
+        checks = {check["name"]: check["status"] for check in report["checks"]}
+        self.assertEqual(checks["fabric-capacity-resource-group-absent"], "pass")
+        self.assertEqual(checks["fabric-capacity-absent"], "pass")
+
+    def test_full_cleanup_preserves_reused_capacity_without_absence_claim(self):
+        config = resolve_config(profile="full", environment="unit-full-reused-capacity")
+        with (
+            mock.patch.object(cli, "CommandRunner", FakeCleanupRunner),
+            mock.patch.object(cli, "_load_fabric_summary", return_value={"capacityCreated": False}),
+            mock.patch.object(cli, "write_lock"),
+        ):
+            report = cli.down_report(config, yes=True, quiet=True)
+        check_names = {check["name"] for check in report["checks"]}
+        self.assertEqual(report["status"], "pass")
+        self.assertNotIn("fabric-capacity-resource-group-absent", check_names)
+        self.assertNotIn("fabric-capacity-absent", check_names)
 
     def test_lock_disagreement_preserves_fabric(self):
         config = resolve_config(profile="full", environment="unit-lock-safety")

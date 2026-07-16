@@ -52,7 +52,7 @@ class MaintainerEvidenceTests(unittest.TestCase):
         self.assertIn("Microsoft Learn MCP KS PASS in byo-fabric", extracted)
         self.assertIn("Fabric Ontology KS PASS in byo-fabric", extracted)
         self.assertIn("Combined KB PASS in byo-fabric", extracted)
-        self.assertIn("resource-group absence checks PASS in byo-fabric", extracted)
+        self.assertIn("all required absence checks PASS in byo-fabric", extracted)
 
 
 if __name__ == "__main__":

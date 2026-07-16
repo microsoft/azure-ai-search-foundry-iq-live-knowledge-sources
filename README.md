@@ -115,7 +115,7 @@ For a complete create, call, verify, and delete rehearsal:
 ./liveks e2e --env liveks-mcp --cleanup --yes
 ```
 
-`byo-fabric` cleanup deletes only generated Azure resources. `full` cleanup deletes the generated Fabric stack first and then Azure resources; disagreement between the YAML and deployment lock fails closed for Fabric deletion.
+`byo-fabric` cleanup deletes only generated Azure resources. `full` cleanup deletes the generated Fabric stack first and then Azure resources; disagreement between the YAML and deployment lock fails closed for Fabric deletion. Successful output includes `resource-group-absent`; when `full` created the capacity, it also includes `fabric-capacity-resource-group-absent` and `fabric-capacity-absent`.
 
 ## Architecture
 

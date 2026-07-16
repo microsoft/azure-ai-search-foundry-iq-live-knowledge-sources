@@ -132,9 +132,31 @@ Cleanup order:
 2. compare resolved ownership with the redacted lock,
 3. delete Fabric only when both identify it as generated,
 4. run `azd down --purge --force`,
-5. verify the generated resource group is absent.
+5. verify the generated deployment resource group is absent,
+6. when this run created a Fabric capacity, verify its dedicated resource group is absent and the matching ARM capacity count is zero.
 
 For `byo-fabric`, Fabric cleanup is always skipped. For `full`, a Fabric cleanup failure is reported as partial but Azure cleanup continues.
+
+Successful `down --format json` output contains these checks:
+
+| Check | Applies to | Required result |
+| --- | --- | --- |
+| `resource-group-absent` | Every live profile | `pass` |
+| `fabric-capacity-resource-group-absent` | `full` when the run created capacity | `pass` |
+| `fabric-capacity-absent` | `full` when the run created capacity | `pass` |
+
+For an independent Azure CLI confirmation, take the generated names from the ignored Fabric summary and expect `false`, `false`, and `0`:
+
+```bash
+az group exists --name <deployment-resource-group>
+az group exists --name <fabric-capacity-resource-group>
+az resource list \
+  --resource-type Microsoft.Fabric/capacities \
+  --query "length([?name=='<fabric-capacity-name>'])" \
+  --output tsv
+```
+
+Do not apply the Fabric absence checks to `byo-fabric`: preserving its existing capacity, workspace, and ontology is the required result.
 
 ## Full Lifecycle Evidence
 

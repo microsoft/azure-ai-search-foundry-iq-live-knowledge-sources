@@ -219,7 +219,7 @@ Use these proof points to decide whether a run supports a claim.
 | Fabric Ontology KS works | Fabric KS exists, combined KB includes it, live retrieve with delegated source authorization returns Fabric activity or Fabric source data. |
 | Combined routing works | Combined KB includes both source names and retrieve output contains recognized live evidence from the source or sources selected for the query. Separate checks prove MCP and Fabric independently. |
 | Demo app works | App root returns HTTP 200, `/api/status` exposes no secrets, and retrieve routes return live evidence or clearly marked offline replay. |
-| Full greenfield path works | Fabric sample assets are created, generated Fabric IDs are consumed by Azure AI Search KS creation, app loads, and cleanup completes. |
+| Full greenfield path works | Fabric sample assets are created, generated Fabric IDs are consumed by Azure AI Search KS creation, app loads, and deployment RG, generated capacity RG, and generated capacity absence checks pass. |
 | Blog or public claim is safe | Evidence above exists and wording follows [Public Preview Limitations and Caveats](../13-public-preview-limitations.md). |
 
 ## What Is Not Enough
