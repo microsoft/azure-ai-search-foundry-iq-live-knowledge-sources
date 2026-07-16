@@ -1,0 +1,9 @@
+{
+  "navigationFallback": {
+    "rewrite": "/index.html",
+    "exclude": ["/styles.css", "/main.js", "/samples/*"]
+  },
+  "platform": {
+    "apiRuntime": "node:22"
+  }
+}

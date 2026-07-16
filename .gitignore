@@ -9,6 +9,7 @@
 # Generated deployment outputs
 deployments/
 .deployment/
+.liveks/
 deployment-summary.md
 deployment-summary.*.md
 
@@ -23,6 +24,7 @@ __pycache__/
 node_modules/
 dist/
 build/
+static-app/.build/
 _site/
 coverage/
 .next/

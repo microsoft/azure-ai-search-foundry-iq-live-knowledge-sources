@@ -8,6 +8,9 @@
     "location": {
       "value": "${AZURE_LOCATION}"
     },
+    "baseName": {
+      "value": "${AZURE_BASE_NAME}"
+    },
     "nameSalt": {
       "value": "${AZURE_NAME_SALT}"
     },
@@ -19,6 +22,9 @@
     },
     "appServiceSku": {
       "value": "${AZURE_APP_SERVICE_SKU}"
+    },
+    "searchSku": {
+      "value": "${AZURE_SEARCH_SKU}"
     },
     "deploymentMode": {
       "value": "${DEPLOYMENT_MODE}"
@@ -37,6 +43,36 @@
     },
     "fabricCapacityAdmin": {
       "value": "${FABRIC_CAPACITY_ADMIN}"
+    },
+    "chatDeploymentName": {
+      "value": "${AZURE_OPENAI_DEPLOYMENT_ID}"
+    },
+    "chatModelName": {
+      "value": "${AZURE_OPENAI_MODEL_NAME}"
+    },
+    "chatModelVersion": {
+      "value": "${AZURE_OPENAI_MODEL_VERSION}"
+    },
+    "chatDeploymentCapacity": {
+      "value": "${AZURE_OPENAI_DEPLOYMENT_CAPACITY}"
+    },
+    "searchApiVersion": {
+      "value": "${AZURE_SEARCH_API_VERSION}"
+    },
+    "airlineOpsIndexName": {
+      "value": "${AIRLINE_OPS_INDEX_NAME}"
+    },
+    "mcpKnowledgeSourceName": {
+      "value": "${MCP_KNOWLEDGE_SOURCE_NAME}"
+    },
+    "fabricKnowledgeSourceName": {
+      "value": "${FABRIC_ONTOLOGY_KNOWLEDGE_SOURCE_NAME}"
+    },
+    "mcpOnlyKnowledgeBaseName": {
+      "value": "${MCP_ONLY_KNOWLEDGE_BASE_NAME}"
+    },
+    "knowledgeBaseName": {
+      "value": "${KNOWLEDGE_BASE_NAME}"
     }
   }
 }

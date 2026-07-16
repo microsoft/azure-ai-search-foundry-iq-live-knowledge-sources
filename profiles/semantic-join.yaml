@@ -1,4 +1,6 @@
+schema_version: 2
 profile: semantic-join
+kind: scenario
 purpose: Validate the walkthrough story where Fabric Ontology KS supplies governed operational data and MCP Server KS supplies implementation guidance.
 default: false
 required_tools:

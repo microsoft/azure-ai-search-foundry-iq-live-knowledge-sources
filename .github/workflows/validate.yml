@@ -27,12 +27,38 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@v6
         with:
-          node-version: "24"
+          node-version: "22"
           cache: npm
           cache-dependency-path: static-app/package-lock.json
+
+      - name: Install LiveKS CLI dependencies
+        run: python -m pip install --disable-pip-version-check -r requirements-liveks.txt
 
       - name: Run local validation gate
         run: bash scripts/validate-local.sh --no-color
 
       - name: Check whitespace
         run: git diff --check
+
+  cli-windows:
+    name: LiveKS CLI on Windows
+    runs-on: windows-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v7
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.11"
+
+      - name: Bootstrap and run the Windows launcher
+        shell: pwsh
+        run: |
+          .\liveks.ps1 try --format json
+          .\liveks.ps1 bootstrap
+          .\liveks.ps1 profiles --format json
+          .\liveks.ps1 doctor --profile offline --format json
+          python -m unittest tests.test_liveks_config

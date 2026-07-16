@@ -86,6 +86,24 @@ param chatModelVersion string = '2025-08-07'
 @description('Azure OpenAI deployment capacity.')
 param chatDeploymentCapacity int = 10
 
+@description('Azure AI Search Knowledge Source API version.')
+param searchApiVersion string = '2026-05-01-preview'
+
+@description('Airline Ops sample index name.')
+param airlineOpsIndexName string = 'airline-ops-regulatory-docs'
+
+@description('MCP Server Knowledge Source name.')
+param mcpKnowledgeSourceName string = 'microsoft-learn-mcp-ks'
+
+@description('Fabric Ontology Knowledge Source name.')
+param fabricKnowledgeSourceName string = 'fabric-ontology-ks'
+
+@description('MCP-only Knowledge Base name.')
+param mcpOnlyKnowledgeBaseName string = 'live-knowledge-sources-mcp-kb'
+
+@description('Combined Knowledge Base name.')
+param knowledgeBaseName string = 'live-knowledge-sources-kb'
+
 var suffix = uniqueString(subscription().id, resourceGroup().id, environmentName, nameSalt)
 var normalizedBase = toLower(replace(baseName, '-', ''))
 
@@ -137,7 +155,7 @@ var demoRuntimeSettings = [
   }
   {
     name: 'AZURE_SEARCH_API_VERSION'
-    value: '2026-05-01-preview'
+    value: searchApiVersion
   }
   // Sample simplification: the server-side demo API uses the Search admin key for retrieve and liveness checks.
   // For production, validate preview support for keyless or query-key retrieval before reducing this privilege.
@@ -147,23 +165,23 @@ var demoRuntimeSettings = [
   }
   {
     name: 'AIRLINE_OPS_INDEX_NAME'
-    value: 'airline-ops-regulatory-docs'
+    value: airlineOpsIndexName
   }
   {
     name: 'MCP_KNOWLEDGE_SOURCE_NAME'
-    value: 'microsoft-learn-mcp-ks'
+    value: mcpKnowledgeSourceName
   }
   {
     name: 'MCP_ONLY_KNOWLEDGE_BASE_NAME'
-    value: 'live-knowledge-sources-mcp-kb'
+    value: mcpOnlyKnowledgeBaseName
   }
   {
     name: 'KNOWLEDGE_BASE_NAME'
-    value: 'live-knowledge-sources-kb'
+    value: knowledgeBaseName
   }
   {
     name: 'FABRIC_ONTOLOGY_KNOWLEDGE_SOURCE_NAME'
-    value: 'fabric-ontology-ks'
+    value: fabricKnowledgeSourceName
   }
   {
     name: 'AZURE_OPENAI_ENDPOINT'
@@ -183,14 +201,14 @@ var demoRuntimeSettingsObject = {
   DEPLOYMENT_MODE: deploymentMode
   NEXT_TELEMETRY_DISABLED: '1'
   AZURE_SEARCH_ENDPOINT: 'https://${search.name}.search.windows.net'
-  AZURE_SEARCH_API_VERSION: '2026-05-01-preview'
+  AZURE_SEARCH_API_VERSION: searchApiVersion
   // Keep this aligned with demoRuntimeSettings above; browser code never receives this value.
   AZURE_SEARCH_API_KEY: search.listAdminKeys().primaryKey
-  AIRLINE_OPS_INDEX_NAME: 'airline-ops-regulatory-docs'
-  MCP_KNOWLEDGE_SOURCE_NAME: 'microsoft-learn-mcp-ks'
-  MCP_ONLY_KNOWLEDGE_BASE_NAME: 'live-knowledge-sources-mcp-kb'
-  KNOWLEDGE_BASE_NAME: 'live-knowledge-sources-kb'
-  FABRIC_ONTOLOGY_KNOWLEDGE_SOURCE_NAME: 'fabric-ontology-ks'
+  AIRLINE_OPS_INDEX_NAME: airlineOpsIndexName
+  MCP_KNOWLEDGE_SOURCE_NAME: mcpKnowledgeSourceName
+  MCP_ONLY_KNOWLEDGE_BASE_NAME: mcpOnlyKnowledgeBaseName
+  KNOWLEDGE_BASE_NAME: knowledgeBaseName
+  FABRIC_ONTOLOGY_KNOWLEDGE_SOURCE_NAME: fabricKnowledgeSourceName
   AZURE_OPENAI_ENDPOINT: openai.properties.endpoint
   AZURE_OPENAI_DEPLOYMENT_ID: chatDeployment.name
   AZURE_OPENAI_MODEL_NAME: chatModelName
@@ -343,8 +361,8 @@ output AZURE_STATIC_WEB_APP_LOCATION string = staticWebAppLocation
 output AZURE_RESOURCE_GROUP string = resourceGroup().name
 output AZURE_SEARCH_SERVICE_NAME string = search.name
 output AZURE_SEARCH_ENDPOINT string = 'https://${search.name}.search.windows.net'
-output AZURE_SEARCH_API_VERSION string = '2026-05-01-preview'
-output AIRLINE_OPS_INDEX_NAME string = 'airline-ops-regulatory-docs'
+output AZURE_SEARCH_API_VERSION string = searchApiVersion
+output AIRLINE_OPS_INDEX_NAME string = airlineOpsIndexName
 output AZURE_OPENAI_ENDPOINT string = openai.properties.endpoint
 output AZURE_OPENAI_ACCOUNT_NAME string = openai.name
 output AZURE_OPENAI_DEPLOYMENT_ID string = chatDeployment.name
@@ -354,10 +372,10 @@ output AZURE_HOSTING_MODE string = hostingMode
 output AZURE_STATIC_WEB_APP_NAME string = hostingMode == 'staticwebapp' ? staticWebApp!.name : ''
 output AZURE_WEBAPP_NAME string = hostingMode == 'appservice' ? webApp!.name : ''
 output AZURE_WEBAPP_URL string = hostingMode == 'staticwebapp' ? 'https://${staticWebApp!.properties.defaultHostname}' : 'https://${webApp!.properties.defaultHostName}'
-output MCP_KNOWLEDGE_SOURCE_NAME string = 'microsoft-learn-mcp-ks'
-output MCP_ONLY_KNOWLEDGE_BASE_NAME string = 'live-knowledge-sources-mcp-kb'
-output KNOWLEDGE_BASE_NAME string = 'live-knowledge-sources-kb'
-output FABRIC_ONTOLOGY_KNOWLEDGE_SOURCE_NAME string = 'fabric-ontology-ks'
+output MCP_KNOWLEDGE_SOURCE_NAME string = mcpKnowledgeSourceName
+output MCP_ONLY_KNOWLEDGE_BASE_NAME string = mcpOnlyKnowledgeBaseName
+output KNOWLEDGE_BASE_NAME string = knowledgeBaseName
+output FABRIC_ONTOLOGY_KNOWLEDGE_SOURCE_NAME string = fabricKnowledgeSourceName
 output DEPLOYMENT_MODE string = deploymentMode
 output FABRIC_CAPACITY_MODE string = fabricCapacityMode
 output FABRIC_LOCATION string = fabricLocation

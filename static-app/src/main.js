@@ -8,6 +8,13 @@ const queries = {
 const state = {
   status: {},
   summary: null,
+  apiAvailable: null,
+};
+
+const sampleFiles = {
+  mcp: 'mcp-retrieve.sample.json',
+  fabric: 'fabric-airline-ops-retrieve.sample.json',
+  combined: 'combined-airline-ops-retrieve.sample.json',
 };
 
 function $(selector) {
@@ -44,23 +51,27 @@ function sourceClass(type) {
   return 'source-generic';
 }
 
-function traceSummary(data) {
+function sourceBadges(data) {
   const activity = Array.isArray(data?.activity) ? data.activity : [];
-  const references = Array.isArray(data?.references) ? data.references : [];
   const uniqueTypes = [...new Set(activity.map((item) => item?.type).filter(Boolean))];
-  const badges = uniqueTypes.length
+  return uniqueTypes.length
     ? uniqueTypes
         .map((type) => `<span class="source-badge ${sourceClass(type)}">${escapeHtml(sourceName(type))}</span>`)
         .join('')
     : '<span class="source-badge source-generic">No source activity</span>';
+}
+
+function traceSummary(data) {
+  const activity = Array.isArray(data?.activity) ? data.activity : [];
+  const references = Array.isArray(data?.references) ? data.references : [];
 
   return `
     <article class="panel trace-summary">
       <div>
         <h3>Source Trace</h3>
-        <p>Use this section during demos to explain which live source answered and what evidence came back.</p>
+        <p>The retrieve response identifies every grounding path and its returned evidence.</p>
       </div>
-      <div class="source-badges">${badges}</div>
+      <div class="source-badges">${sourceBadges(data)}</div>
       <div class="trace-metrics">
         <div><strong>${activity.length}</strong><span>activity items</span></div>
         <div><strong>${references.length}</strong><span>references</span></div>
@@ -108,6 +119,7 @@ function statusClass(status) {
 
 function statusText(status) {
   const deploymentMode = status.deploymentMode || 'mcp-only';
+  if (status.replayMode) return 'offline replay ready';
   if (status.reachabilityStatus === 'live' || status.reachable) return `${deploymentMode} live`;
   if (status.reachabilityStatus === 'unreachable') return `${deploymentMode} unreachable`;
   return `${deploymentMode} offline-ready`;
@@ -115,6 +127,7 @@ function statusText(status) {
 
 function renderReadiness() {
   const fabricTokenInput = $('#fabric-token');
+  const replayMode = Boolean(state.status.replayMode);
   const readiness = [
     {
       label: 'Deployment mode',
@@ -123,13 +136,13 @@ function renderReadiness() {
     },
     {
       label: 'Search endpoint',
-      ready: Boolean(state.status.searchEndpoint),
-      value: state.status.searchEndpoint || 'not configured',
+      ready: Boolean(state.status.searchEndpoint || replayMode),
+      value: state.status.searchEndpoint || (replayMode ? 'canonical response fixtures' : 'not configured'),
     },
     {
       label: 'Search key',
-      ready: Boolean(state.status.hasSearchKey),
-      value: state.status.hasSearchKey ? 'serverless API configured' : 'not configured',
+      ready: Boolean(state.status.hasSearchKey || replayMode),
+      value: state.status.hasSearchKey ? 'serverless API configured' : replayMode ? 'not required for replay' : 'not configured',
     },
     {
       label: 'MCP KS',
@@ -144,7 +157,7 @@ function renderReadiness() {
     {
       label: 'App mode',
       ready: true,
-      value: 'Static Web Apps + managed serverless API',
+      value: replayMode ? 'GitHub Pages offline replay' : 'Static Web Apps + managed serverless API',
     },
   ];
 
@@ -198,6 +211,10 @@ function activateTab(tabName) {
   document.querySelectorAll('.view').forEach((item) => item.classList.remove('active'));
   button.classList.add('active');
   view.classList.add('active');
+  const tabs = button.closest('.tabs');
+  if (tabs && tabs.scrollWidth > tabs.clientWidth) {
+    tabs.scrollLeft = button.offsetLeft - (tabs.clientWidth - button.offsetWidth) / 2;
+  }
 }
 
 function renderTrace(target, data, query) {
@@ -207,18 +224,19 @@ function renderTrace(target, data, query) {
   resultTarget.innerHTML = `
     <article class="panel reveal">
       <div class="trace-header">
-        <h3>Query</h3>
+        <h3>Answer</h3>
         <span class="${data?.mode === 'live' ? 'badge live' : 'badge offline'}">${escapeHtml(data?.mode || 'not run')}</span>
       </div>
-      <p class="query">${escapeHtml(query)}</p>
+      <p class="answer">${escapeHtml(answerText(data))}</p>
+      <div class="source-badges answer-sources">${sourceBadges(data)}</div>
       ${data?.reason ? `<p class="notice">${escapeHtml(data.reason)}</p>` : ''}
       ${data?.error ? `<p class="warning">${escapeHtml(data.error)}</p>` : ''}
     </article>
-    <article class="panel reveal">
-      <h3>Answer</h3>
-      <p>${escapeHtml(answerText(data))}</p>
-    </article>
     <div class="reveal">${traceSummary(data)}</div>
+    <article class="panel reveal query-panel">
+      <h3>Query</h3>
+      <p class="query">${escapeHtml(query)}</p>
+    </article>
     <article class="grid two reveal">
       <div class="panel trace-detail">
         <h3>Activity</h3>
@@ -242,12 +260,27 @@ async function fetchJson(path, options = {}) {
   if (!response.ok) {
     throw new Error(`${path} failed: ${response.status}`);
   }
+  const contentType = response.headers.get('content-type') || '';
+  if (!contentType.includes('application/json')) {
+    throw new Error(`${path} did not return JSON`);
+  }
   return response.json();
+}
+
+async function loadSample(kind) {
+  const sampleUrl = new URL(`./samples/${sampleFiles[kind]}`, import.meta.url);
+  const sample = await fetchJson(sampleUrl);
+  return {
+    ...sample,
+    mode: 'offline-replay',
+    reason: 'Canonical sample response. Deploy to Azure to switch this view to live retrieval.',
+  };
 }
 
 async function run(kind) {
   const button = document.querySelector(`[data-run="${kind}"]`);
   const target = `#${kind}-result`;
+  const idleLabel = button?.textContent || 'Run retrieve';
   if (button) {
     button.disabled = true;
     button.textContent = 'Running...';
@@ -260,28 +293,49 @@ async function run(kind) {
       body.fabricUserSearchToken = token;
     }
 
-    const data = await fetchJson(`/api/retrieve/${kind}`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(body),
-    });
+    let data;
+    if (state.apiAvailable === false) {
+      data = await loadSample(kind);
+    } else {
+      try {
+        data = await fetchJson(`/api/retrieve/${kind}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(body),
+        });
+        state.apiAvailable = true;
+      } catch {
+        state.apiAvailable = false;
+        data = await loadSample(kind);
+      }
+    }
     renderTrace(target, data, queries[kind]);
   } catch (error) {
     renderTrace(target, { mode: 'offline', error: error.message, response: [], activity: [], references: [] }, queries[kind]);
   } finally {
     if (button) {
       button.disabled = false;
-      button.textContent = 'Run';
+      button.textContent = idleLabel;
     }
   }
 }
 
 async function refreshStatus(force = false) {
-  state.status = await fetchJson(force ? '/api/status?refresh=1' : '/api/status').catch(() => ({
-    deploymentMode: 'mcp-only',
-    reachabilityStatus: 'offline',
-    reachable: false,
-  }));
+  try {
+    state.status = await fetchJson(force ? '/api/status?refresh=1' : '/api/status');
+    state.apiAvailable = true;
+  } catch {
+    state.apiAvailable = false;
+    state.status = {
+      deploymentMode: 'mcp-only',
+      reachabilityStatus: 'offline-replay',
+      reachable: false,
+      replayMode: true,
+      mcpKnowledgeSourceName: 'microsoft-learn-mcp-ks',
+      fabricKnowledgeSourceName: 'fabric-ontology-ks',
+      checkedAt: new Date().toISOString(),
+    };
+  }
   renderReadiness();
   renderJson();
 }
@@ -322,7 +376,14 @@ async function boot() {
   });
 
   await refreshStatus();
-  state.summary = await fetchJson('/api/deployment-summary').catch(() => null);
+  state.summary = state.apiAvailable
+    ? await fetchJson('/api/deployment-summary').catch(() => null)
+    : {
+        generatedBy: 'canonical-offline-replay',
+        hostingMode: 'github-pages',
+        mcpKnowledgeSourceName: 'microsoft-learn-mcp-ks',
+        fabricKnowledgeSourceName: 'fabric-ontology-ks',
+      };
   renderJson();
 
   const params = new URLSearchParams(window.location.search);

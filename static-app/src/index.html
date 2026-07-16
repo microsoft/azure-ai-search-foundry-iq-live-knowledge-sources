@@ -4,14 +4,14 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Foundry IQ Live Knowledge Sources</title>
-    <link rel="stylesheet" href="/styles.css?v=20260618" />
+    <link rel="stylesheet" href="./styles.css?v=2" />
   </head>
   <body>
     <main class="shell">
       <section class="topbar">
         <div>
           <p class="eyebrow">Azure AI Search + Foundry IQ</p>
-          <h1>Live Knowledge Sources Demo</h1>
+          <h1>Foundry IQ Live Knowledge Sources</h1>
           <p class="lede">One retrieve call, multiple live grounding paths, inspectable evidence.</p>
         </div>
         <div class="topbar-actions">
@@ -19,7 +19,7 @@
             <span class="status-dot" aria-hidden="true"></span>
             <span id="status-pill-text">Loading</span>
           </div>
-          <button class="ghost-button" data-open-tab="combined" type="button">Run combined</button>
+          <button class="ghost-button" data-open-tab="combined" type="button">Run combined retrieve</button>
         </div>
       </section>
 
@@ -35,8 +35,8 @@
         <article class="panel command-panel">
           <div class="section-heading">
             <div>
-              <h2>Current Demo Flow</h2>
-              <p>Choose a deployment mode, run a retrieve call, then inspect the evidence contract.</p>
+              <h2>One question, several Knowledge Sources, one answer</h2>
+              <p>Run the canonical replay immediately or connect the same interface to a live deployment.</p>
             </div>
           </div>
           <div class="trace-pipeline" aria-label="Knowledge Base retrieve pipeline">
@@ -84,7 +84,7 @@
             <div id="readiness" class="readiness-list"></div>
           </article>
           <article class="panel evidence-panel">
-            <h2>What This Shows</h2>
+            <h2>Semantic JOIN</h2>
             <div class="flow">
               <div>MCP Server KS</div>
               <span>+</span>
@@ -107,7 +107,7 @@
             <h2>MCP Live</h2>
             <p>Calls the Microsoft Learn MCP Server Knowledge Source through Azure AI Search Knowledge Base retrieve.</p>
           </div>
-          <button class="primary" data-run="mcp">Run</button>
+          <button class="primary" data-run="mcp">Run retrieve</button>
         </article>
         <div id="mcp-result" class="stack"></div>
       </section>
@@ -126,7 +126,7 @@
             <h2>Fabric Ontology</h2>
             <p>Shows Airline Ops ontology grounding. Without source authorization, this panel returns offline replay.</p>
           </div>
-          <button class="primary" data-run="fabric">Run</button>
+          <button class="primary" data-run="fabric">Run retrieve</button>
         </article>
         <div id="fabric-result" class="stack"></div>
       </section>
@@ -137,7 +137,7 @@
             <h2>Combined Trace</h2>
             <p>Shows Fabric business grounding and MCP implementation guidance in one Knowledge Base trace.</p>
           </div>
-          <button class="primary" data-run="combined">Run</button>
+          <button class="primary" data-run="combined">Run retrieve</button>
         </article>
         <div id="combined-result" class="stack"></div>
       </section>
@@ -161,6 +161,6 @@
         </div>
       </section>
     </main>
-    <script type="module" src="/main.js?v=20260618"></script>
+    <script type="module" src="./main.js?v=2"></script>
   </body>
 </html>

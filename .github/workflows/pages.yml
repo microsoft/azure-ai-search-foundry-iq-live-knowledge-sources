@@ -8,12 +8,16 @@ on:
       - "docs/**"
       - "mkdocs.yml"
       - "requirements-docs.txt"
+      - "static-app/**"
+      - "samples/responses/**"
       - ".github/workflows/pages.yml"
   pull_request:
     paths:
       - "docs/**"
       - "mkdocs.yml"
       - "requirements-docs.txt"
+      - "static-app/**"
+      - "samples/responses/**"
       - ".github/workflows/pages.yml"
   workflow_dispatch:
 
@@ -42,6 +46,13 @@ jobs:
           cache: pip
           cache-dependency-path: requirements-docs.txt
 
+      - name: Set up Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: static-app/package-lock.json
+
       - name: Configure GitHub Pages
         if: github.event_name != 'pull_request'
         uses: actions/configure-pages@v6
@@ -53,6 +64,13 @@ jobs:
 
       - name: Build manual
         run: mkdocs build --strict --site-dir _site
+
+      - name: Build interactive demo
+        run: |
+          npm --prefix static-app ci
+          npm --prefix static-app run build
+          mkdir -p _site/demo
+          cp -R static-app/dist/. _site/demo/
 
       - name: Upload Pages artifact
         if: github.event_name != 'pull_request'

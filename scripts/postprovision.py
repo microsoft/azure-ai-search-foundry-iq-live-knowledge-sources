@@ -112,7 +112,10 @@ def search_request(
             payload = response.read().decode("utf-8")
             return json.loads(payload) if payload else {}
     except urllib.error.HTTPError as error:
-        detail = error.read().decode("utf-8", errors="replace")
+        try:
+            detail = error.read().decode("utf-8", errors="replace")
+        finally:
+            error.close()
         raise RuntimeError(f"{method} {path} failed: {error.code}\n{detail}") from error
 
 
@@ -360,6 +363,8 @@ def main() -> None:
         "AZURE_WEBAPP_URL": get_setting("AZURE_WEBAPP_URL", azd_values),
         "AIRLINE_OPS_INDEX_NAME": get_setting("AIRLINE_OPS_INDEX_NAME", azd_values, "airline-ops-regulatory-docs"),
         "MCP_KNOWLEDGE_SOURCE_NAME": get_setting("MCP_KNOWLEDGE_SOURCE_NAME", azd_values, "microsoft-learn-mcp-ks"),
+        "MCP_SERVER_URL": get_setting("MCP_SERVER_URL", azd_values, "https://learn.microsoft.com/api/mcp"),
+        "MCP_TOOL_NAME": get_setting("MCP_TOOL_NAME", azd_values, "microsoft_docs_search"),
         "MCP_ONLY_KNOWLEDGE_BASE_NAME": get_setting("MCP_ONLY_KNOWLEDGE_BASE_NAME", azd_values, "live-knowledge-sources-mcp-kb"),
         "KNOWLEDGE_BASE_NAME": get_setting("KNOWLEDGE_BASE_NAME", azd_values, "live-knowledge-sources-kb"),
         "FABRIC_ONTOLOGY_KNOWLEDGE_SOURCE_NAME": get_setting("FABRIC_ONTOLOGY_KNOWLEDGE_SOURCE_NAME", azd_values, "fabric-ontology-ks"),
@@ -401,8 +406,8 @@ def main() -> None:
 
     mcp_source = create_mcp_server_knowledge_source(
         name=settings["MCP_KNOWLEDGE_SOURCE_NAME"],
-        server_url="https://learn.microsoft.com/api/mcp",
-        tool_name="microsoft_docs_search",
+        server_url=settings["MCP_SERVER_URL"],
+        tool_name=settings["MCP_TOOL_NAME"],
         description="Microsoft Learn MCP grounding source for official documentation.",
     )
     mcp_only_kb = create_knowledge_base(

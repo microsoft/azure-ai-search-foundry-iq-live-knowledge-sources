@@ -1,0 +1,51 @@
+#!/usr/bin/env bash
+set -Eeuo pipefail
+
+ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+VENV="$ROOT/.liveks/venv"
+
+find_python() {
+  local candidate
+  for candidate in python3.14 python3.13 python3.12 python3.11 python3; do
+    if command -v "$candidate" >/dev/null 2>&1 && "$candidate" -c 'import sys; raise SystemExit(0 if sys.version_info >= (3, 11) else 1)' >/dev/null 2>&1; then
+      command -v "$candidate"
+      return 0
+    fi
+  done
+  return 1
+}
+
+command_name="${1:-help}"
+
+if [[ "$command_name" == "try" && ! -x "$VENV/bin/python" ]]; then
+  shift || true
+  python_bin="$(find_python || command -v python3 || true)"
+  if [[ -z "$python_bin" ]]; then
+    echo "Python is required for offline replay." >&2
+    exit 1
+  fi
+  exec "$python_bin" "$ROOT/tools/try_offline.py" "$@"
+fi
+
+if [[ "$command_name" == "bootstrap" ]]; then
+  shift || true
+  python_bin="$(find_python || true)"
+  if [[ -z "$python_bin" ]]; then
+    echo "Python 3.11 or newer is required." >&2
+    exit 1
+  fi
+  mkdir -p "$ROOT/.liveks"
+  "$python_bin" -m venv "$VENV"
+  "$VENV/bin/python" -m pip install --disable-pip-version-check -r "$ROOT/requirements-liveks.txt" "$@"
+  echo "LiveKS CLI environment ready: $VENV"
+  exit 0
+fi
+
+if [[ ! -x "$VENV/bin/python" ]]; then
+  echo "LiveKS CLI dependencies are not installed." >&2
+  echo "Run: ./liveks bootstrap" >&2
+  exit 3
+fi
+
+export PYTHONPATH="$ROOT/src${PYTHONPATH:+:$PYTHONPATH}"
+exec "$VENV/bin/python" -m liveks.cli "$@"

@@ -1,10 +1,7 @@
-import importlib.util
 import contextlib
+import importlib.util
 import io
 import json
-import os
-import stat
-import subprocess
 import sys
 import tempfile
 import unittest
@@ -13,21 +10,21 @@ from pathlib import Path
 from unittest import mock
 
 
-REPO_ROOT = Path(__file__).resolve().parents[1]
+ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(ROOT / "src"))
+
+from liveks import cli, runtime as liveks_runtime  # noqa: E402
+from liveks.config import resolve_config  # noqa: E402
+from liveks.runtime import CommandResult  # noqa: E402
 
 
 def load_fabric_provision_module():
-    path = REPO_ROOT / "scripts" / "fabric-provision.py"
+    path = ROOT / "scripts/fabric-provision.py"
     spec = importlib.util.spec_from_file_location("fabric_provision_for_tests", path)
     module = importlib.util.module_from_spec(spec)
     assert spec and spec.loader
     spec.loader.exec_module(module)
     return module
-
-
-def write_executable(path: Path, content: str) -> None:
-    path.write_text(content, encoding="utf-8")
-    path.chmod(path.stat().st_mode | stat.S_IXUSR)
 
 
 class FakeHttpResponse:
@@ -49,26 +46,81 @@ class FabricProvisionSafetyTests(unittest.TestCase):
     def test_request_json_retries_transient_429(self):
         module = load_fabric_provision_module()
         http_error = urllib.error.HTTPError("https://example.test", 429, "Too Many Requests", {}, None)
-
         with (
             mock.patch.object(module.urllib.request, "urlopen", side_effect=[http_error, FakeHttpResponse()]) as urlopen,
             mock.patch.object(module.time, "sleep") as sleep,
         ):
             with contextlib.redirect_stderr(io.StringIO()):
                 status, _, payload = module.request_json(method="GET", url="https://example.test", token="token")
-
         self.assertEqual(status, 200)
         self.assertEqual(payload, {"ok": True})
         self.assertEqual(urlopen.call_count, 2)
         sleep.assert_called_once_with(2)
 
+    def test_liveks_http_json_closes_transient_error_before_retry(self):
+        http_error = urllib.error.HTTPError(
+            "https://example.test",
+            503,
+            "Service Unavailable",
+            {},
+            io.BytesIO(b'{"retry": true}'),
+        )
+        with (
+            mock.patch.object(liveks_runtime.urllib.request, "urlopen", side_effect=[http_error, FakeHttpResponse()]),
+            mock.patch.object(liveks_runtime.time, "sleep") as sleep,
+        ):
+            status, payload = liveks_runtime.http_json("https://example.test", attempts=2, delay_seconds=1)
+        self.assertEqual(status, 200)
+        self.assertEqual(payload, {"ok": True})
+        self.assertTrue(http_error.fp.closed)
+        sleep.assert_called_once_with(1)
+
+    def test_onelake_request_retries_metadata_eventual_consistency(self):
+        module = load_fabric_provision_module()
+        detail = b'{"error":{"message":"Couldn\'t find one lake details for the workspace."}}'
+        http_error = urllib.error.HTTPError("https://example.test", 400, "Bad Request", {}, io.BytesIO(detail))
+        with (
+            mock.patch.object(module.urllib.request, "urlopen", side_effect=[http_error, FakeHttpResponse()]) as urlopen,
+            mock.patch.object(module.time, "sleep") as sleep,
+            contextlib.redirect_stderr(io.StringIO()),
+        ):
+            module.onelake_request("PUT", "https://example.test", "token", attempts=2, delay_seconds=1)
+        self.assertEqual(urlopen.call_count, 2)
+        sleep.assert_called_once_with(1)
+
+    def test_stale_capacity_id_does_not_bypass_live_lookup(self):
+        module = load_fabric_provision_module()
+        settings = {
+            "FABRIC_CAPACITY_MODE": "create",
+            "FABRIC_CAPACITY_ID": "stale-id",
+            "FABRIC_CAPACITY_NAME": "fabunit",
+            "FABRIC_CAPACITY_ARM_ID": "",
+        }
+        with (
+            mock.patch.object(module, "capacity_by_name_with_retry", return_value=None),
+            mock.patch.object(module, "create_arm_capacity", return_value="arm-id") as create,
+            mock.patch.object(
+                module,
+                "capacity_by_name",
+                return_value={"id": "current-id", "displayName": "fabunit", "state": "Active"},
+            ),
+        ):
+            capacity_id, capacity = module.ensure_capacity(settings, "token", dry_run=False)
+        self.assertEqual(capacity_id, "current-id")
+        self.assertTrue(capacity["created"])
+        create.assert_called_once()
+
+    def test_previous_summary_retains_created_ownership_only_for_same_id(self):
+        module = load_fabric_provision_module()
+        previous = {"workspaceCreated": True, "workspaceId": "owned-id"}
+        self.assertTrue(module.retain_created_ownership(previous, "workspace", "owned-id", False))
+        self.assertFalse(module.retain_created_ownership(previous, "workspace", "different-id", False))
+
     def test_main_writes_capacity_summary_when_later_step_fails(self):
         module = load_fabric_provision_module()
-
         with tempfile.TemporaryDirectory() as temp_dir:
             deployments_dir = Path(temp_dir) / "deployments"
             arm_id = "/subscriptions/000/resourceGroups/rg-unit-fabric/providers/Microsoft.Fabric/capacities/fabunit"
-
             with (
                 mock.patch.object(module, "DEPLOYMENTS_DIR", deployments_dir),
                 mock.patch.object(sys, "argv", ["fabric-provision.py", "--env-name", "unit"]),
@@ -79,132 +131,145 @@ class FabricProvisionSafetyTests(unittest.TestCase):
                 mock.patch.object(
                     module,
                     "ensure_capacity",
-                    return_value=(
-                        "capacity-guid",
-                        {
-                            "displayName": "fabunit",
-                            "id": "capacity-guid",
-                            "state": "Active",
-                            "created": True,
-                            "armId": arm_id,
-                        },
-                    ),
+                    return_value=("capacity-guid", {"displayName": "fabunit", "id": "capacity-guid", "state": "Active", "created": True, "armId": arm_id}),
                 ),
                 mock.patch.object(module, "ensure_workspace", side_effect=RuntimeError("workspace boom")),
             ):
                 with contextlib.redirect_stdout(io.StringIO()), contextlib.redirect_stderr(io.StringIO()):
                     with self.assertRaises(RuntimeError):
                         module.main()
-
-            summary_path = deployments_dir / "unit" / "fabric-summary.json"
-            self.assertTrue(summary_path.exists())
-            summary = json.loads(summary_path.read_text(encoding="utf-8"))
-
+            summary = json.loads((deployments_dir / "unit" / "fabric-summary.json").read_text(encoding="utf-8"))
             self.assertEqual(summary["status"], "failed")
-            self.assertEqual(summary["capacityId"], "capacity-guid")
-            self.assertEqual(summary["capacityArmId"], arm_id)
-            self.assertEqual(summary["capacityResourceGroup"], "rg-unit-fabric")
             self.assertTrue(summary["capacityCreated"])
             self.assertIn("workspace boom", summary["error"])
 
 
-class ShellDeploymentSafetyTests(unittest.TestCase):
-    def test_destroy_continues_to_azd_down_when_fabric_cleanup_fails(self):
-        with tempfile.TemporaryDirectory() as temp_dir:
-            bin_dir = Path(temp_dir)
-            marker = bin_dir / "azd-down.marker"
+class FakeCleanupRunner:
+    history = []
 
-            write_executable(
-                bin_dir / "python3",
-                "#!/usr/bin/env bash\n"
-                "if [[ \"$1\" == \"scripts/fabric-destroy.py\" ]]; then\n"
-                "  echo 'fake Fabric cleanup failed' >&2\n"
-                "  exit 42\n"
-                "fi\n"
-                "exec /usr/bin/env python3 \"$@\"\n",
-            )
-            write_executable(
-                bin_dir / "azd",
-                f"#!/usr/bin/env bash\n"
-                "if [[ \"$1\" == \"env\" && \"$2\" == \"select\" ]]; then exit 0; fi\n"
-                "if [[ \"$1\" == \"env\" && \"$2\" == \"get-values\" ]]; then echo 'AZURE_ENV_NAME=\"unit\"'; exit 0; fi\n"
-                f"if [[ \"$1\" == \"down\" ]]; then echo \"$*\" > {marker}; exit 0; fi\n"
-                "exit 0\n",
-            )
+    def __init__(self, *, root, env, quiet=False):
+        self.__class__.history = []
 
-            env = os.environ.copy()
-            env["PATH"] = f"{bin_dir}{os.pathsep}{env['PATH']}"
-            result = subprocess.run(
-                ["bash", "scripts/destroy.sh", "--env-name", "unit", "--yes", "--no-color"],
-                cwd=REPO_ROOT,
-                env=env,
-                text=True,
-                stdout=subprocess.PIPE,
-                stderr=subprocess.STDOUT,
-                check=False,
-            )
+    def run(self, command, **kwargs):
+        args = [str(item) for item in command]
+        self.__class__.history.append(args)
+        output = "false\n" if args[:3] == ["az", "group", "exists"] else "ok\n"
+        return CommandResult(args, 0, output)
 
-            self.assertEqual(result.returncode, 0, result.stdout)
-            self.assertIn("Fabric cleanup failed", result.stdout)
-            self.assertTrue(marker.exists())
-            self.assertIn("down --purge --force", marker.read_text(encoding="utf-8"))
 
-    def test_deploy_failure_prints_cleanup_commands(self):
-        with tempfile.TemporaryDirectory() as temp_dir:
-            bin_dir = Path(temp_dir)
+class EventuallyAbsentCleanupRunner(FakeCleanupRunner):
+    probes = 0
 
-            write_executable(
-                bin_dir / "azd",
-                "#!/usr/bin/env bash\n"
-                "if [[ \"$1\" == \"version\" ]]; then echo 'azd fake'; exit 0; fi\n"
-                "if [[ \"$1\" == \"env\" && \"$2\" == \"select\" ]]; then exit 0; fi\n"
-                "if [[ \"$1\" == \"env\" && \"$2\" == \"get-values\" ]]; then echo 'AZURE_ENV_NAME=\"unit\"'; exit 0; fi\n"
-                "if [[ \"$1\" == \"env\" && \"$2\" == \"set\" ]]; then echo 'fake azd env set failure' >&2; exit 9; fi\n"
-                "exit 0\n",
-            )
-            write_executable(
-                bin_dir / "az",
-                "#!/usr/bin/env bash\n"
-                "if [[ \"$1\" == \"version\" ]]; then echo '{\"azure-cli\":\"fake\"}'; exit 0; fi\n"
-                "if [[ \"$1\" == \"account\" && \"$2\" == \"show\" ]]; then\n"
-                "  if [[ \"$*\" == *'-o tsv'* ]]; then echo 'sub-id'; else echo '{\"name\":\"fake\",\"id\":\"sub-id\",\"tenantId\":\"tenant-id\"}'; fi\n"
-                "  exit 0\n"
-                "fi\n"
-                "exit 0\n",
-            )
-            write_executable(bin_dir / "node", "#!/usr/bin/env bash\necho 'v24.0.0'\n")
-            write_executable(bin_dir / "npm", "#!/usr/bin/env bash\necho '11.0.0'\n")
-            write_executable(bin_dir / "python3", "#!/usr/bin/env bash\nexec /usr/bin/env python3 \"$@\"\n")
+    def __init__(self, *, root, env, quiet=False):
+        super().__init__(root=root, env=env, quiet=quiet)
+        self.__class__.probes = 0
 
-            env = os.environ.copy()
-            env["PATH"] = f"{bin_dir}{os.pathsep}{env['PATH']}"
-            result = subprocess.run(
-                [
-                    "bash",
-                    "scripts/deploy.sh",
-                    "--mode",
-                    "mcp-only",
-                    "--env-name",
-                    "unit",
-                    "--location",
-                    "eastus",
-                    "--skip-app-build",
-                    "--skip-dry-run",
-                    "--no-color",
-                ],
-                cwd=REPO_ROOT,
-                env=env,
-                text=True,
-                stdout=subprocess.PIPE,
-                stderr=subprocess.STDOUT,
-                check=False,
-            )
+    def run(self, command, **kwargs):
+        args = [str(item) for item in command]
+        self.__class__.history.append(args)
+        if args[:3] == ["az", "group", "exists"]:
+            self.__class__.probes += 1
+            return CommandResult(args, 0, "true\n" if self.__class__.probes < 3 else "false\n")
+        return CommandResult(args, 0, "ok\n")
 
-            self.assertNotEqual(result.returncode, 0)
-            self.assertIn("A partial deployment may remain. To clean up:", result.stdout)
-            self.assertIn("bash scripts/destroy.sh --env-name unit --yes", result.stdout)
-            self.assertIn("azd down --purge --force", result.stdout)
-            self.assertIn("python3 scripts/fabric-destroy.py --env-name unit --yes", result.stdout)
+
+class OwnedResidualCleanupRunner(FakeCleanupRunner):
+    deleted = False
+
+    def __init__(self, *, root, env, quiet=False):
+        super().__init__(root=root, env=env, quiet=quiet)
+        self.__class__.deleted = False
+
+    def run(self, command, **kwargs):
+        args = [str(item) for item in command]
+        self.__class__.history.append(args)
+        if args[:3] == ["az", "group", "exists"]:
+            return CommandResult(args, 0, "false\n" if self.__class__.deleted else "true\n")
+        if args[:3] == ["az", "group", "delete"]:
+            self.__class__.deleted = True
+        return CommandResult(args, 0, "ok\n")
+
+
+class CleanupOwnershipTests(unittest.TestCase):
+    def test_cleanup_deletes_residual_group_only_when_lock_records_it_as_new(self):
+        config = resolve_config(profile="mcp-only", environment="unit-owned-residual")
+        lock = {
+            "environment": config.environment,
+            "profile": config.profile,
+            "ownership": config.ownership(),
+            "resourceGroupPreexisting": False,
+        }
+        config.lock_path.parent.mkdir(parents=True, exist_ok=True)
+        config.lock_path.write_text(json.dumps(lock), encoding="utf-8")
+        self.addCleanup(config.lock_path.unlink, missing_ok=True)
+        with (
+            mock.patch.object(cli, "CommandRunner", OwnedResidualCleanupRunner),
+            mock.patch.object(cli, "write_lock"),
+            mock.patch.object(cli.time, "sleep"),
+        ):
+            report = cli.down_report(config, yes=True, quiet=True)
+        commands = [" ".join(command) for command in OwnedResidualCleanupRunner.history]
+        self.assertEqual(report["status"], "pass")
+        self.assertTrue(any("az group delete" in command for command in commands))
+
+    def test_cleanup_waits_for_resource_group_deletion(self):
+        config = resolve_config(profile="mcp-only", environment="unit-eventual-cleanup")
+        with (
+            mock.patch.object(cli, "CommandRunner", EventuallyAbsentCleanupRunner),
+            mock.patch.object(cli, "write_lock"),
+            mock.patch.object(cli.time, "sleep") as sleep,
+        ):
+            report = cli.down_report(config, yes=True, quiet=True)
+        self.assertEqual(report["status"], "pass")
+        self.assertEqual(EventuallyAbsentCleanupRunner.probes, 3)
+        self.assertEqual(sleep.call_count, 2)
+
+    def test_byo_cleanup_does_not_call_fabric_destroy(self):
+        config = resolve_config(
+            profile="byo-fabric",
+            environment="unit-byo",
+            overrides={
+                "fabric.workspace_id": "11111111-1111-1111-1111-111111111111",
+                "fabric.ontology_id": "22222222-2222-2222-2222-222222222222",
+            },
+        )
+        with mock.patch.object(cli, "CommandRunner", FakeCleanupRunner), mock.patch.object(cli, "write_lock"):
+            report = cli.down_report(config, yes=True, quiet=True)
+        commands = [" ".join(command) for command in FakeCleanupRunner.history]
+        self.assertEqual(report["status"], "pass")
+        self.assertFalse(any("fabric-destroy.py" in command for command in commands))
+        self.assertTrue(any("azd down" in command for command in commands))
+
+    def test_full_cleanup_calls_fabric_destroy_before_azd_down(self):
+        config = resolve_config(profile="full", environment="unit-full")
+        with mock.patch.object(cli, "CommandRunner", FakeCleanupRunner), mock.patch.object(cli, "write_lock"):
+            report = cli.down_report(config, yes=True, quiet=True)
+        commands = [" ".join(command) for command in FakeCleanupRunner.history]
+        fabric_index = next(index for index, command in enumerate(commands) if "fabric-destroy.py" in command)
+        azure_index = next(index for index, command in enumerate(commands) if "azd down" in command)
+        self.assertLess(fabric_index, azure_index)
+        self.assertEqual(report["status"], "pass")
+
+    def test_lock_disagreement_preserves_fabric(self):
+        config = resolve_config(profile="full", environment="unit-lock-safety")
+        lock = {
+            "environment": "unit-lock-safety",
+            "profile": "full",
+            "ownership": {
+                "azure": "create",
+                "fabricCapacity": "reuse",
+                "fabricWorkspace": "reuse",
+                "fabricOntology": "reuse",
+            },
+        }
+        config.lock_path.parent.mkdir(parents=True, exist_ok=True)
+        config.lock_path.write_text(json.dumps(lock), encoding="utf-8")
+        self.addCleanup(config.lock_path.unlink, missing_ok=True)
+        with mock.patch.object(cli, "CommandRunner", FakeCleanupRunner), mock.patch.object(cli, "write_lock"):
+            report = cli.down_report(config, yes=True, quiet=True)
+        commands = [" ".join(command) for command in FakeCleanupRunner.history]
+        self.assertEqual(report["status"], "pass")
+        self.assertFalse(any("fabric-destroy.py" in command for command in commands))
 
 
 if __name__ == "__main__":

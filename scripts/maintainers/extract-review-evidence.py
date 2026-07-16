@@ -69,8 +69,9 @@ def parse_summary(path: Path) -> tuple[list[tuple[str, str, str]], dict[str, dic
 
 
 def render_evidence(mode_verdicts: list[tuple[str, str, str]], checks_by_mode: dict[str, dict[str, str]]) -> str:
-    def modes_with(check_name: str, status: str = "PASS") -> list[str]:
-        return [mode for mode, checks in checks_by_mode.items() if checks.get(check_name) == status]
+    def modes_with(check_names: str | tuple[str, ...], status: str = "PASS") -> list[str]:
+        names = (check_names,) if isinstance(check_names, str) else check_names
+        return [mode for mode, checks in checks_by_mode.items() if any(checks.get(name) == status for name in names)]
 
     mode_order = [mode for mode, _counts, _verdict in mode_verdicts]
 
@@ -80,9 +81,9 @@ def render_evidence(mode_verdicts: list[tuple[str, str, str]], checks_by_mode: d
         extras = sorted(mode_set - set(ordered))
         return ordered + extras
 
-    def sentence_for(check_name: str, label: str, skip_phrase: str = "") -> str:
-        passed = ordered_modes(modes_with(check_name, "PASS"))
-        skipped = ordered_modes(modes_with(check_name, "SKIP"))
+    def sentence_for(check_names: str | tuple[str, ...], label: str, skip_phrase: str = "") -> str:
+        passed = ordered_modes(modes_with(check_names, "PASS"))
+        skipped = ordered_modes(modes_with(check_names, "SKIP"))
         if passed:
             text = f"{label} PASS in {', '.join(passed)}"
             if skipped and skip_phrase:
@@ -96,36 +97,44 @@ def render_evidence(mode_verdicts: list[tuple[str, str, str]], checks_by_mode: d
     if mode_verdicts:
         mode_line = "; ".join(f"{mode}={verdict} ({counts})" for mode, counts, verdict in mode_verdicts) + "."
 
-    app_checks = [
+    legacy_app_checks = [
         "Demo app root returns HTTP 200",
         "GET /api/status returns non-secret config",
         "POST /api/retrieve/mcp works",
         "POST /api/retrieve/fabric returns expected offline/live response",
         "POST /api/retrieve/combined returns expected offline/live response",
     ]
-    if all(modes_with(check_name, "PASS") for check_name in app_checks):
-        app_pass_modes = ordered_modes(set.intersection(*[set(modes_with(check_name, "PASS")) for check_name in app_checks]))
-    else:
-        app_pass_modes = []
+    app_pass_modes: list[str] = []
+    for mode, checks in checks_by_mode.items():
+        legacy_pass = all(checks.get(name) == "PASS" for name in legacy_app_checks)
+        v2_pass = checks.get("app-status") == "PASS" and checks.get("mcp-retrieve") == "PASS"
+        if legacy_pass or v2_pass:
+            app_pass_modes.append(mode)
+    app_pass_modes = ordered_modes(app_pass_modes)
 
-    cleanup_checks = ["destroy.sh cleanup completes", "Resource group is deleted or not found"]
-    if all(modes_with(check_name, "PASS") for check_name in cleanup_checks):
-        cleanup_pass_modes = ordered_modes(
-            set.intersection(*[set(modes_with(check_name, "PASS")) for check_name in cleanup_checks])
+    cleanup_pass_modes: list[str] = []
+    for mode, checks in checks_by_mode.items():
+        legacy_pass = all(
+            checks.get(name) == "PASS" for name in ("destroy.sh cleanup completes", "Resource group is deleted or not found")
         )
-    else:
-        cleanup_pass_modes = []
+        v2_pass = all(checks.get(name) == "PASS" for name in ("fabric-cleanup", "azure-cleanup", "resource-group-absent"))
+        if legacy_pass or v2_pass:
+            cleanup_pass_modes.append(mode)
+    cleanup_pass_modes = ordered_modes(cleanup_pass_modes)
 
     retrieval_parts = [
-        sentence_for("MCP retrieve returns activity/reference evidence", "MCP retrieve"),
+        sentence_for(("MCP retrieve returns activity/reference evidence", "mcp-retrieve"), "MCP retrieve"),
         sentence_for(
-            "Fabric live retrieve returns ontology activity when token is provided",
+            ("Fabric live retrieve returns ontology activity when token is provided", "fabric-retrieve"),
             "Fabric live retrieve",
             "mcp-only does not configure Fabric live mode",
         ),
     ]
 
-    offline_modes = ordered_modes(modes_with("Fabric live retrieve returns ontology activity when token is provided", "SKIP"))
+    offline_modes = ordered_modes(
+        set(modes_with("Fabric live retrieve returns ontology activity when token is provided", "SKIP"))
+        | {mode for mode, _counts, _verdict in mode_verdicts if mode == "mcp-only"}
+    )
     offline_text = "No offline/SKIP path recorded in the sanitized summary."
     if offline_modes:
         offline_text = (
@@ -136,17 +145,18 @@ def render_evidence(mode_verdicts: list[tuple[str, str, str]], checks_by_mode: d
 
     lines = [
         f"- E2E modes: {mode_line}",
-        "- MCP KS: " + sentence_for("Microsoft Learn MCP Knowledge Source exists", "Microsoft Learn MCP KS"),
+        "- MCP KS: "
+        + sentence_for(("Microsoft Learn MCP Knowledge Source exists", "mcp-retrieve"), "Microsoft Learn MCP KS"),
         "- Fabric KS: "
         + sentence_for(
-            "Fabric Ontology Knowledge Source exists when configured",
+            ("Fabric Ontology Knowledge Source exists when configured", "fabric-retrieve"),
             "Fabric Ontology KS",
             "mcp-only skips Fabric",
         ),
         "- Knowledge Base: "
-        + sentence_for("MCP-only Knowledge Base exists", "MCP-only KB")
+        + sentence_for(("MCP-only Knowledge Base exists", "mcp-retrieve"), "MCP-only KB")
         + " "
-        + sentence_for("Combined Knowledge Base exists", "Combined KB"),
+        + sentence_for(("Combined Knowledge Base exists", "combined-retrieve"), "Combined KB"),
         "- Retrieve evidence: " + " ".join(retrieval_parts),
         "- App load: "
         + (
@@ -156,7 +166,7 @@ def render_evidence(mode_verdicts: list[tuple[str, str, str]], checks_by_mode: d
         ),
         "- Cleanup: "
         + (
-            f"destroy.sh and resource-group deletion checks PASS in {', '.join(cleanup_pass_modes)}."
+            f"Fabric ownership, Azure cleanup, and resource-group absence checks PASS in {', '.join(cleanup_pass_modes)}."
             if cleanup_pass_modes
             else "not fully proven by the sanitized summary."
         ),
