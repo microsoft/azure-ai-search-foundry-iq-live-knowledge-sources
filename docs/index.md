@@ -5,6 +5,17 @@ Platform teams connect a governed Fabric Ontology or remote HTTPS MCP tool, subm
 [Run the managed-organization path](runbook.md){ .md-button .md-button--primary }
 [Inspect the offline trace](09-offline-replay.md){ .md-button }
 
+<figure class="manual-hero">
+  <img
+    src="assets/live-knowledge-sources-hero.webp"
+    alt="REST retrieve and native MCP clients calling a Foundry IQ Knowledge Base backed by Fabric Ontology and HTTPS MCP Server knowledge sources, with separate REST and MCP evidence contracts."
+    width="1642"
+    height="958"
+    loading="eager"
+    fetchpriority="high"
+  />
+</figure>
+
 The representative path below reuses an existing Fabric workspace and ontology. It proves one source first, then calls the same Knowledge Base through its native MCP endpoint. It does not publish Fabric identifiers, tokens, endpoints, or raw live responses.
 
 ## Components At A Glance
