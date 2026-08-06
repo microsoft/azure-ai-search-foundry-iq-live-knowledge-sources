@@ -54,7 +54,8 @@ input {
 }
 
 button:focus-visible,
-input:focus-visible {
+input:focus-visible,
+.project-link:focus-visible {
   outline: 3px solid rgba(16, 95, 206, 0.28);
   outline-offset: 2px;
 }
@@ -63,6 +64,42 @@ input:focus-visible {
   width: min(1180px, calc(100vw - 32px));
   margin: 0 auto;
   padding: 22px 0 48px;
+}
+
+.project-nav {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 46px;
+  margin-bottom: 10px;
+  border-bottom: 1px solid rgba(188, 203, 219, 0.82);
+  padding: 8px 2px;
+  background: rgba(247, 249, 252, 0.94);
+  backdrop-filter: blur(16px);
+}
+
+.project-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  color: var(--blue-deep);
+  font-size: 14px;
+  font-weight: 800;
+  text-decoration: none;
+}
+
+.project-link:hover {
+  color: var(--blue);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.project-link-icon {
+  font-size: 17px;
+  line-height: 1;
 }
 
 .topbar,
@@ -790,6 +827,16 @@ p {
   .shell {
     width: min(100% - 20px, 1180px);
     padding-top: 10px;
+  }
+
+  .project-nav {
+    min-height: 42px;
+    padding: 6px 2px;
+  }
+
+  .project-link {
+    gap: 5px;
+    font-size: 13px;
   }
 
   .topbar,

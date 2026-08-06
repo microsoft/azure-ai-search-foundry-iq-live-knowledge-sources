@@ -6,6 +6,7 @@ All notable changes to this accelerator are documented here.
 
 ### Added
 
+- Landing-page architecture hero that shows the representative REST and native MCP client paths through Foundry IQ to Fabric Ontology and HTTPS MCP Server knowledge sources, including their distinct evidence contracts.
 - Managed-organization GitHub Pages manual that leads operators from profile configuration through one Live Knowledge Source, Foundry IQ grounding evidence, native Knowledge Base MCP invocation, and known limitations, with official Microsoft Learn references.
 - Native `liveks mcp` client for JSON and SSE transports, tool discovery and calls, delegated Fabric source authorization, known-fact assertions, redacted reports, and reproducible expected-failure evidence.
 - Dedicated Fabric-only Knowledge Base configuration through `FABRIC_ONLY_KNOWLEDGE_BASE_NAME` so Fabric Ontology grounding can be verified independently of combined planner routing.
@@ -21,6 +22,7 @@ All notable changes to this accelerator are documented here.
 
 ### Changed
 
+- The interactive trace demo now keeps persistent return links to the execution manual and Microsoft GitHub repository on desktop and mobile.
 - README and manual onboarding now start with the repository's user, input, and result contract; profile-specific required settings; one representative first-success path; sanitized evidence; and only then advanced deployment and protocol paths.
 - Live verification now distinguishes MCP protocol success from grounding-content proof. BYO Fabric operators must provide a known, non-sensitive ontology fact instead of treating a fluent response as source evidence.
 - GitHub Pages CI always builds the manual, but uploads and deploys only for non-PR events in public repositories so private mirrors validate cleanly without attempting unsupported Pages publication.
