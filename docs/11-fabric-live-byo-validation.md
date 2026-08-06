@@ -41,7 +41,7 @@ Do not add a `Bearer` prefix.
 
 The BYO doctor check uses a transient Fabric API token to read the configured workspace and ontology. A missing asset or tenant permission therefore fails before `azd up`; no token is written to YAML, the lock, or `azd env`.
 
-The generated deployment summary should identify the Fabric KS and combined KB without exposing workspace or ontology IDs publicly.
+The generated deployment summary should identify the Fabric KS, Fabric-only KB, and combined KB without exposing workspace or ontology IDs publicly.
 
 ## Verify
 

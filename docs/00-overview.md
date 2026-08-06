@@ -28,6 +28,7 @@ The repo is designed for field demos, customer workshops, private product review
 | MCP Server KS | Calls explicitly allowed tools on a remote HTTPS MCP server at retrieve time. | [MCP Server Knowledge Source](03-mcp-server-ks.md) |
 | Fabric Ontology KS | Grounds retrieval in Fabric ontology entities, relationships, and governed semantic definitions. | [Fabric Ontology Knowledge Source](04-fabric-ontology-ks.md) |
 | Combined KB | Shows how one Knowledge Base can route across both live source types. | [Combined Knowledge Base Routing](05-combined-kb-routing.md) |
+| Knowledge Base MCP | Lets MCP-compatible clients invoke `knowledge_base_retrieve` on the deployed Knowledge Base. | [Call the Knowledge Base Through MCP](22-knowledge-base-mcp.md) |
 
 ## Deployment Modes
 

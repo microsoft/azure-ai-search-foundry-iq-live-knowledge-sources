@@ -8,7 +8,7 @@ The helpers are intentionally lightweight. They are not an SDK wrapper and they 
 
 | Script | Purpose |
 | --- | --- |
-| [build_payloads.py](build_payloads.py) | Generate representative MCP Server KS, Fabric Ontology KS, MCP-only KB, and combined KB payloads from reusable Python builders. |
+| [build_payloads.py](build_payloads.py) | Generate representative MCP Server KS, Fabric Ontology KS, MCP-only KB, Fabric-only KB, and combined KB payloads from reusable Python builders. |
 | [inspect_retrieve_response.py](inspect_retrieve_response.py) | Print summarized `activity` and `references` from a saved retrieve response. |
 
 ## Generate Payloads

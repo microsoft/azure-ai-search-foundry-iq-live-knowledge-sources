@@ -52,6 +52,7 @@ def main() -> int:
         "MCP_KNOWLEDGE_SOURCE_NAME": "microsoft-learn-mcp-ks",
         "FABRIC_ONTOLOGY_KNOWLEDGE_SOURCE_NAME": "fabric-ontology-ks",
         "MCP_ONLY_KNOWLEDGE_BASE_NAME": "live-knowledge-sources-mcp-kb",
+        "FABRIC_ONLY_KNOWLEDGE_BASE_NAME": "live-knowledge-sources-fabric-kb",
         "KNOWLEDGE_BASE_NAME": "live-knowledge-sources-kb",
         "MCP_SERVER_URL": "https://learn.microsoft.com/api/mcp",
         "MCP_TOOL_NAME": "microsoft_docs_search",

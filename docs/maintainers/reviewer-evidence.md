@@ -107,7 +107,7 @@ It copies only safe fields and checklist status/check names. It does not copy ch
 | Mode | Required evidence | Expected result |
 | --- | --- | --- |
 | `mcp-only` | MCP KS exists, MCP-only KB exists, MCP retrieve returns activity or references, app loads, cleanup completes | PASS without Fabric IDs. |
-| `byo-fabric` | MCP KS exists, Fabric KS exists, combined KB exists, Fabric retrieve is live when a delegated token is provided or clearly offline when absent, app loads, cleanup completes | PASS when Fabric IDs are present. |
+| `byo-fabric` | MCP KS exists, Fabric KS exists, Fabric-only and combined KBs exist, Fabric retrieve is live when a delegated token is provided or clearly offline when absent, app loads, cleanup completes | PASS when Fabric IDs are present. |
 | `full` | Fabric capacity/workspace/lakehouse/ontology setup completes, Azure resources deploy, Fabric KS connects, MCP/Fabric/combined app routes respond, cleanup completes | PASS when region quota and delegated auth expectations are met. |
 
 ## What Good Looks Like
@@ -216,7 +216,7 @@ Use these proof points to decide whether a run supports a claim.
 | Claim | Minimum evidence |
 | --- | --- |
 | MCP Server KS works | `microsoft-learn-mcp-ks` exists, MCP-only KB exists, retrieve returns MCP activity or Microsoft Learn references. |
-| Fabric Ontology KS works | Fabric KS exists, combined KB includes it, live retrieve with delegated source authorization returns Fabric activity or Fabric source data. |
+| Fabric Ontology KS works | Fabric KS and Fabric-only KB exist, live retrieve with delegated source authorization returns Fabric activity or Fabric source data. |
 | Combined routing works | Combined KB includes both source names and retrieve output contains recognized live evidence from the source or sources selected for the query. Separate checks prove MCP and Fabric independently. |
 | Demo app works | App root returns HTTP 200, `/api/status` exposes no secrets, and retrieve routes return live evidence or clearly marked offline replay. |
 | Full greenfield path works | Fabric sample assets are created, generated Fabric IDs are consumed by Azure AI Search KS creation, app loads, and deployment RG, generated capacity RG, and generated capacity absence checks pass. |

@@ -25,6 +25,7 @@ class LiveKsConfigTests(unittest.TestCase):
         self.assertEqual(values["DEPLOYMENT_MODE"], "mcp-only")
         self.assertEqual(values["MCP_SERVER_URL"], "https://learn.microsoft.com/api/mcp")
         self.assertEqual(values["MCP_TOOL_NAME"], "microsoft_docs_search")
+        self.assertEqual(values["FABRIC_ONLY_KNOWLEDGE_BASE_NAME"], "live-knowledge-sources-fabric-kb")
         self.assertEqual(values["AZURE_OPENAI_MODEL_NAME"], "gpt-5-mini")
         self.assertEqual(values["AZURE_RESOURCE_GROUP"], "rg-unit-mcp")
 
@@ -151,6 +152,7 @@ class LiveKsConfigTests(unittest.TestCase):
             "mcpKnowledgeSourceName",
             "fabricKnowledgeSourceName",
             "mcpOnlyKnowledgeBaseName",
+            "fabricOnlyKnowledgeBaseName",
             "knowledgeBaseName",
         }
         self.assertTrue(expected.issubset(parameters))

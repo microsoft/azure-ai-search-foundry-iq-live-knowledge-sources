@@ -15,6 +15,7 @@ def create_knowledge_base(
     azure_openai_api_key: str | None = None,
     description: str = "Knowledge Base with live Knowledge Sources.",
     retrieval_instructions: str | None = "Use the configured live Knowledge Sources to answer with references.",
+    answer_instructions: str | None = None,
     reasoning_effort: str = "low",
 ) -> dict[str, Any]:
     """Build a Knowledge Base request payload."""
@@ -30,6 +31,9 @@ def create_knowledge_base(
 
     if retrieval_instructions:
         payload["retrievalInstructions"] = retrieval_instructions
+
+    if answer_instructions:
+        payload["answerInstructions"] = answer_instructions
 
     if azure_openai_endpoint and azure_openai_deployment_id and azure_openai_model_name:
         payload["models"] = [

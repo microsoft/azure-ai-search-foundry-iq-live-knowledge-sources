@@ -48,4 +48,4 @@ Use `mcp-only` unless the answer to one of these is yes:
 | Fabric Ontology KS | `samples/rest/04-create-fabric-ontology-ks.http` |
 | Combined Knowledge Base | `samples/rest/05-create-combined-kb.http` |
 
-Validate single-source Knowledge Bases first when deterministic source evidence matters. In a combined Knowledge Base, query-time `knowledgeSourceParams` provide source options and arguments; the returned `activity` and `references` are the evidence of what actually ran.
+Validate the MCP-only and Fabric-only Knowledge Bases first when deterministic source evidence matters. In a combined Knowledge Base, query-time `knowledgeSourceParams` provide source options and arguments; the returned `activity` and `references` are the evidence of what actually ran.

@@ -166,7 +166,9 @@ run_required "Python compile" \
     tools/doctor.py \
     tools/try_offline.py \
     samples/python/build_payloads.py \
-    samples/python/inspect_retrieve_response.py
+    samples/python/inspect_retrieve_response.py \
+    src/liveks/runtime.py \
+    src/liveks/cli.py
 
 run_required "Python contract tests" \
   python3 -m unittest discover -s tests

@@ -54,7 +54,7 @@ jobs:
           cache-dependency-path: static-app/package-lock.json
 
       - name: Configure GitHub Pages
-        if: github.event_name != 'pull_request' && github.repository_owner == 'microsoft'
+        if: github.event_name != 'pull_request' && github.event.repository.private == false
         uses: actions/configure-pages@v6
         with:
           enablement: true
@@ -73,14 +73,14 @@ jobs:
           cp -R static-app/dist/. _site/demo/
 
       - name: Upload Pages artifact
-        if: github.event_name != 'pull_request' && github.repository_owner == 'microsoft'
+        if: github.event_name != 'pull_request' && github.event.repository.private == false
         uses: actions/upload-pages-artifact@v5
         with:
           path: _site
 
   deploy:
     name: Deploy manual
-    if: github.event_name != 'pull_request' && github.repository_owner == 'microsoft'
+    if: github.event_name != 'pull_request' && github.event.repository.private == false
     needs: build
     runs-on: ubuntu-latest
     permissions:

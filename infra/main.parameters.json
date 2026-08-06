@@ -71,6 +71,9 @@
     "mcpOnlyKnowledgeBaseName": {
       "value": "${MCP_ONLY_KNOWLEDGE_BASE_NAME}"
     },
+    "fabricOnlyKnowledgeBaseName": {
+      "value": "${FABRIC_ONLY_KNOWLEDGE_BASE_NAME}"
+    },
     "knowledgeBaseName": {
       "value": "${KNOWLEDGE_BASE_NAME}"
     }

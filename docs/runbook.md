@@ -2,6 +2,26 @@
 
 This is the shortest supported sequence from a fresh clone to verified cleanup.
 
+## 0. Know What To Configure
+
+The canonical input is an ignored `.liveks/<environment>.yaml` ledger. It is not a dotenv file and it is not `azd env`; LiveKS generates the deployment projection after validation.
+
+| Profile | Required authored values | Runtime credential | What it creates |
+| --- | --- | --- | --- |
+| `mcp-only` | None beyond the generated profile and environment. | Azure CLI and Azure Developer CLI sign-in. | Azure resources, MCP Server KS, MCP-only KB, and app. |
+| `byo-fabric` | `fabric.workspace_id` and `fabric.ontology_id`. | Azure sign-in plus a transient delegated Search token during Fabric calls. | Generated Azure resources and a Fabric-only validation KB; the existing Fabric assets are preserved. |
+| `full` | No existing Fabric IDs; optional Fabric location and SKU overrides. | Azure and Fabric access, available quota, and `--accept-fabric-capacity`. | Generated Azure resources and a billable Fabric F2 sample stack. |
+
+Optional external-tenant values belong under `azure`: `tenant_id`, `subscription_id`, and `cli_config_dir`. Secret fields contain an environment-variable reference, never the raw secret:
+
+```yaml
+fabric:
+  user_search_token:
+    env: FABRIC_USER_SEARCH_TOKEN
+```
+
+Normally, do not author that optional token field at all. `verify` and `mcp` acquire the user token transiently from Azure CLI. See [Configuration](21-configuration.md) for the complete field and precedence contract.
+
 ## 1. Replay The Contract
 
 ```bash
@@ -125,7 +145,28 @@ The manual app test proves the user-facing experience. `verify` independently re
 
 Sanitized reports are written under ignored `deployments/<environment>/`.
 
-## 8. Clean Up
+## 8. Call The Knowledge Base Through MCP
+
+The source-specific retrieve checks above prove which Knowledge Source ran. Now call the same single-source Knowledge Base through its native MCP endpoint:
+
+```bash
+./liveks mcp --env liveks-mcp
+```
+
+For an Airline Ops `byo-fabric` or `full` environment:
+
+```bash
+./liveks mcp \
+  --env liveks-byo \
+  --query "Which airlines have the highest customer-care exposure this month?" \
+  --expect-term "Alpine Air"
+```
+
+Expected: `tools/list` publishes `knowledge_base_retrieve`, `tools/call` returns at least one text block, and `grounding-content` matches every expected term. The command keeps raw MCP content in memory and records only sanitized counts. Without `--expect-term`, protocol checks can pass but grounding remains a warning.
+
+Use [Call the Knowledge Base Through MCP](22-knowledge-base-mcp.md) for bearer authentication, a controlled missing-authorization failure, and the complete acceptance contract.
+
+## 9. Clean Up
 
 ```bash
 ./liveks down --env liveks-mcp

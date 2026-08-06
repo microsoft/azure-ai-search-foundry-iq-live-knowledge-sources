@@ -126,6 +126,20 @@ The parser accepts dotenv-style assignments but does not execute command substit
 
 Generated `.env.sample` and `env/*.env.example` files remain for REST, notebook, and v1 compatibility. They are produced from the YAML schema and profiles by `scripts/generate_env_examples.py`; they are not the v2 configuration authority.
 
+## Native MCP Client Inputs
+
+`./liveks mcp --env <environment>` derives the Search endpoint, API version, Knowledge Base name, resource group, and service name from the selected deployment. Do not duplicate them in a dotenv file.
+
+Authentication is acquired at call time:
+
+- `--auth admin-key` reads the sample deployment's Search key through Azure CLI and keeps it in memory only.
+- `--auth bearer` acquires an Azure AI Search bearer token for an identity with **Search Index Data Reader**.
+- Fabric profiles acquire a separate user token and send its raw value in `x-ms-query-source-authorization`.
+
+The generated MCP report contains counts and normalized statuses only. It does not contain the endpoint, query, expected terms, response content, key, or token.
+
+`--query` and repeatable `--expect-term` values are runtime acceptance inputs, not deployment configuration. Supply a known non-sensitive fact when validating Fabric-backed MCP content. Without an expected term, the command validates protocol execution and reports grounding as unverified.
+
 ## Safe Review
 
 ```bash

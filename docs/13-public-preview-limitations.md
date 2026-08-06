@@ -38,6 +38,20 @@ MCP Server KS is the lowest-friction first path in this repo, but it still has i
 
 This repo uses Microsoft Learn MCP as the default remote MCP server because it is public, official, and does not require tenant-specific setup for a first run.
 
+## Knowledge Base MCP Endpoint Caveats
+
+The northbound Knowledge Base MCP endpoint has a different evidence shape from the retrieve API:
+
+- `tools/list` exposes `knowledge_base_retrieve`.
+- `tools/call` returns MCP `result.content[]` text blocks.
+- The current MCP result does not return separate `activity` and `references` arrays.
+- The current tool input schema accepts one `queries` array and rejects additional properties. Retrieve-only `knowledgeSourceParams`, including `alwaysQuerySource`, cannot be passed through the MCP tool call.
+- A successful text result proves protocol execution, not source execution. Source-specific REST activity and a known-fact MCP match are required for a grounded-source claim.
+- Admin-key authentication is supported for this sample but grants broad Search access. Prefer bearer authentication and **Search Index Data Reader** for managed clients.
+- Fabric-backed calls still require delegated source authorization in addition to Search service authentication.
+
+Use `./liveks mcp --expect-term <known-non-sensitive-fact>` for count-only content evidence and normalized failures; do not publish raw MCP content. A run without `--expect-term` intentionally reports grounding as unverified.
+
 ## Fabric Ontology KS Caveats
 
 Fabric Ontology KS is the strongest semantic-grounding path, but it has more setup requirements:

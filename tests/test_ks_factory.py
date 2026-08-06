@@ -94,6 +94,17 @@ class KnowledgeSourceFactoryTests(unittest.TestCase):
         model_params = payload["models"][0]["azureOpenAIParameters"]
         self.assertEqual(model_params["apiKey"], "<azure-openai-api-key>")
 
+    def test_knowledge_base_can_include_separate_answer_instructions(self):
+        payload = create_knowledge_base(
+            name="fabric-kb",
+            knowledge_source_names=["fabric-ontology-ks"],
+            retrieval_instructions="Always query the ontology.",
+            answer_instructions="Answer only from ontology grounding.",
+        )
+
+        self.assertEqual(payload["retrievalInstructions"], "Always query the ontology.")
+        self.assertEqual(payload["answerInstructions"], "Answer only from ontology grounding.")
+
 
 if __name__ == "__main__":
     unittest.main()

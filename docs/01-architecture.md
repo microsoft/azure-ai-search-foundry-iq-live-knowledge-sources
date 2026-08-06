@@ -32,4 +32,16 @@ Southbound MCP Server KS:
   A Knowledge Base calls an external MCP server as a Knowledge Source.
 ```
 
-This repository focuses on the southbound MCP Server Knowledge Source pattern.
+The deployment demonstrates the southbound MCP Server Knowledge Source pattern. The execution manual also validates the northbound endpoint with `./liveks mcp`, so operators can prove the complete client-to-Knowledge-Source path without confusing the two MCP roles.
+
+For the representative managed-organization scenario:
+
+```text
+MCP client
+  -> Knowledge Base MCP endpoint
+    -> Foundry IQ planning and grounding
+      -> Fabric Ontology Knowledge Source
+  -> MCP text content
+```
+
+Use the retrieve API evidence from `./liveks verify` to prove that `fabricOntology` ran. The current native MCP result provides `result.content[]`, but not the retrieve API's separate `activity` and `references` arrays. Pair that trace with `./liveks mcp --expect-term <known-fact>` because a text block by itself proves only protocol execution.

@@ -50,6 +50,7 @@ Doctor reads both Fabric assets with a transient Fabric API token. Verify obtain
 - `microsoft-learn-mcp-ks`
 - `fabric-ontology-ks`
 - `live-knowledge-sources-mcp-kb`
+- `live-knowledge-sources-fabric-kb`
 - `live-knowledge-sources-kb`
 - `airline-ops-regulatory-docs` Search index with sample docs
 
@@ -68,6 +69,7 @@ Doctor reads both Fabric assets with a transient Fabric API token. Verify obtain
 | Resource group exists | PASS |
 | MCP retrieve | PASS with MCP activity or references |
 | Fabric live retrieve | PASS with `fabricOntology` evidence |
+| Native Fabric KB MCP | PASS for protocol; known-fact grounding requires an explicit BYO expectation |
 | Combined retrieve | PASS with recognized planner-selected live evidence |
 | App status | HTTP 200 |
 | BYO Fabric cleanup | PASS without deleting Fabric assets |
@@ -77,7 +79,7 @@ Doctor reads both Fabric assets with a transient Fabric API token. Verify obtain
 
 The run passes when all required checks pass and Fabric-specific behavior is clear:
 
-- The dedicated MCP and Fabric checks prove each source independently.
+- The dedicated MCP and Fabric-only KB checks prove each source independently.
 - The combined check records one or both source types selected by the Knowledge Base planner.
 - The existing Fabric workspace and ontology remain readable after cleanup.
 - Cleanup confirms the resource group no longer exists.
@@ -88,8 +90,11 @@ Fail the run if:
 
 - `FABRIC_WORKSPACE_ID` or `FABRIC_ONTOLOGY_ID` is missing.
 - `fabric-ontology-ks` is not created.
+- `live-knowledge-sources-fabric-kb` does not include the Fabric Knowledge Source.
 - `live-knowledge-sources-kb` does not include the Fabric Knowledge Source.
 - Live Fabric retrieve with a token does not show `fabricOntology` activity.
+- Native MCP returns a tool or transport error when authorization and source readiness should allow the call.
+- A known-answer BYO acceptance run supplies an expected term and reports `grounding-content=fail`.
 - Cleanup fails or the resource group remains.
 
 ## Reporting Requirements

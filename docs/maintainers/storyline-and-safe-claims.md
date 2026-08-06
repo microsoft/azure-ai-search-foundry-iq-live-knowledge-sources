@@ -28,7 +28,7 @@ Classic retrieval samples usually begin by indexing documents. Live Knowledge So
 | Mode | Safe message | Evidence needed before saying it live |
 | --- | --- | --- |
 | `mcp-only` | Fastest path to validate Azure AI Search MCP Server KS with Microsoft Learn MCP. | MCP KS exists, MCP-only KB exists, retrieve returns MCP activity or Microsoft Learn references. |
-| `byo-fabric` | Primary live Fabric path for users who already have a Fabric workspace and ontology. | Fabric KS exists, combined KB includes it, live retrieve shows Fabric activity or source data when delegated auth is provided. |
+| `byo-fabric` | Primary live Fabric path for users who already have a Fabric workspace and ontology. | Fabric KS and Fabric-only KB exist, live retrieve shows Fabric activity or source data, and native MCP matches a known non-sensitive ontology fact when delegated auth is provided. |
 | `full` | Greenfield platform story that creates sample Fabric assets before connecting Azure AI Search. | Fabric capacity/workspace/lakehouse/ontology/GraphModel setup completes, Azure deploy completes, app loads, cleanup evidence exists. |
 
 ## Claims You Can Use
@@ -42,6 +42,7 @@ Use these only when the matching evidence exists:
 - "The demo app shows live or offline source evidence through activity, references, and source-specific data."
 - "Offline replay helps explain trace shape before live Fabric auth is configured."
 - "Generated deployment reports and local screenshots stay under ignored paths."
+- "A native MCP text block proves protocol execution; source grounding additionally requires source-specific retrieve evidence and a known-fact match."
 
 ## Claims To Avoid
 

@@ -4,11 +4,11 @@ Use this page when you need quick answers before choosing a deployment mode, run
 
 ## Which mode should I run first?
 
-Run `mcp-only` first.
+Run `mcp-only` first when you are learning the repository or do not already have Fabric semantic assets.
 
 It validates Azure AI Search MCP Server Knowledge Source behavior with Microsoft Learn MCP and does not require Fabric workspace or ontology setup.
 
-Move to `byo-fabric` when you already have Fabric workspace and ontology IDs. Use `full` when you want the greenfield platform story and have checked Fabric quota, region, tenant settings, and source authorization requirements.
+For a managed organization that already has a Fabric workspace and ontology, the representative live acceptance path is `byo-fabric`: prove one Fabric source, then call the Knowledge Base through MCP. Use `full` when you want the greenfield platform story and have checked Fabric quota, region, tenant settings, and source authorization requirements.
 
 ## Why does the repo have three modes?
 
@@ -66,6 +66,15 @@ Not directly.
 
 Azure AI Search MCP Server KS needs a remote MCP-compatible HTTPS endpoint that Azure AI Search can reach. Local stdio MCP servers are useful for local agent workflows, but they are not directly attachable as Azure AI Search MCP Server Knowledge Sources.
 
+## Is the Knowledge Base MCP endpoint the same as MCP Server KS?
+
+No. They point in opposite directions.
+
+- The native Knowledge Base MCP endpoint lets an MCP client call `knowledge_base_retrieve`.
+- MCP Server KS lets the Knowledge Base call an external HTTPS MCP tool during retrieval.
+
+Use `./liveks verify` to prove which Knowledge Source ran, then `./liveks mcp` to prove that an MCP client can consume the Knowledge Base. The current MCP tool result does not expose the retrieve API's separate activity and references arrays.
+
 ## Why use Microsoft Learn MCP for the first sample?
 
 Microsoft Learn MCP is public, official, and does not require tenant-specific setup for the first run.
@@ -79,7 +88,7 @@ Treat `knowledgeSourceParams` as source-specific runtime options, not as a stric
 For deterministic validation, use a single-source Knowledge Base:
 
 - MCP-only KB for MCP Server KS validation.
-- Fabric or combined KB for Fabric and multi-source validation.
+- Fabric-only KB for deterministic Fabric validation, then the combined KB for multi-source routing.
 
 When presenting combined routing, inspect `activity`, `references`, and source-specific data instead of assuming source selection from the final answer text.
 

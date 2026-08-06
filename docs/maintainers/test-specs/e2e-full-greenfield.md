@@ -72,6 +72,7 @@ All generated files must be git ignored and must not contain secrets.
 - `microsoft-learn-mcp-ks`
 - `fabric-ontology-ks`
 - `live-knowledge-sources-mcp-kb`
+- `live-knowledge-sources-fabric-kb`
 - `live-knowledge-sources-kb`
 - `airline-ops-regulatory-docs` Search index
 
@@ -94,6 +95,7 @@ All generated files must be git ignored and must not contain secrets.
 | Ontology-backed GraphModel queryable | PASS |
 | MCP retrieve | PASS with MCP evidence |
 | Fabric live retrieve | PASS with `fabricOntology` evidence |
+| Native Fabric KB MCP | PASS with `grounding-content` matching the generated Airline Ops fact |
 | Combined retrieve | PASS with recognized planner-selected live evidence |
 | App status | HTTP 200 |
 | Generated Fabric cleanup | PASS |

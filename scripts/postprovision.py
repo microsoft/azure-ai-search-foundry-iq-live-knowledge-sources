@@ -180,6 +180,7 @@ def load_regulatory_documents() -> list[dict[str, Any]]:
 
 def write_summary(settings: dict[str, str], smoke: dict[str, Any]) -> Path:
     env_name = settings.get("AZURE_ENV_NAME") or "dev"
+    fabric_enabled = should_create_fabric_source(settings)
     summary_dir = REPO_ROOT / "deployments" / env_name
     summary_dir.mkdir(parents=True, exist_ok=True)
     summary_path = summary_dir / "deployment-summary.md"
@@ -218,6 +219,7 @@ def write_summary(settings: dict[str, str], smoke: dict[str, Any]) -> Path:
         f"- Fabric source created: {'yes' if should_create_fabric_source(settings) else 'no'}",
         f"- Fabric automation status: {fabric_automation_status(settings)}",
         f"- MCP-only KB: {settings.get('MCP_ONLY_KNOWLEDGE_BASE_NAME', '')}",
+        f"- Fabric-only KB: {settings.get('FABRIC_ONLY_KNOWLEDGE_BASE_NAME', '') if fabric_enabled else ''}",
         f"- Combined KB: {settings.get('KNOWLEDGE_BASE_NAME', '')}",
         f"- Airline Ops Search index: {settings.get('AIRLINE_OPS_INDEX_NAME', '')}",
         "",
@@ -229,6 +231,7 @@ def write_summary(settings: dict[str, str], smoke: dict[str, Any]) -> Path:
         f"SEARCH_API_VERSION={settings.get('AZURE_SEARCH_API_VERSION', '2026-05-01-preview')}",
         f"KNOWLEDGE_BASE_NAME={settings.get('KNOWLEDGE_BASE_NAME', '')}",
         f"MCP_ONLY_KNOWLEDGE_BASE_NAME={settings.get('MCP_ONLY_KNOWLEDGE_BASE_NAME', '')}",
+        f"FABRIC_ONLY_KNOWLEDGE_BASE_NAME={settings.get('FABRIC_ONLY_KNOWLEDGE_BASE_NAME', '') if fabric_enabled else ''}",
         f"MCP_KNOWLEDGE_SOURCE_NAME={settings.get('MCP_KNOWLEDGE_SOURCE_NAME', '')}",
         f"FABRIC_ONTOLOGY_KNOWLEDGE_SOURCE_NAME={settings.get('FABRIC_ONTOLOGY_KNOWLEDGE_SOURCE_NAME', '')}",
         f"FABRIC_WORKSPACE_ID={settings.get('FABRIC_WORKSPACE_ID', '')}",
@@ -304,7 +307,7 @@ def write_full_mode_checklist(settings: dict[str, str]) -> Path:
                 "- Azure AI Search",
                 "- Azure OpenAI / Foundry model deployment",
                 "- Microsoft Learn MCP Server Knowledge Source",
-                "- MCP-only and combined Knowledge Bases",
+                "- MCP-only, Fabric-only when configured, and combined Knowledge Bases",
                 "- Airline Ops Search index",
                 "- Static Web Apps demo UI and managed Functions API",
                 "",
@@ -366,6 +369,7 @@ def main() -> None:
         "MCP_SERVER_URL": get_setting("MCP_SERVER_URL", azd_values, "https://learn.microsoft.com/api/mcp"),
         "MCP_TOOL_NAME": get_setting("MCP_TOOL_NAME", azd_values, "microsoft_docs_search"),
         "MCP_ONLY_KNOWLEDGE_BASE_NAME": get_setting("MCP_ONLY_KNOWLEDGE_BASE_NAME", azd_values, "live-knowledge-sources-mcp-kb"),
+        "FABRIC_ONLY_KNOWLEDGE_BASE_NAME": get_setting("FABRIC_ONLY_KNOWLEDGE_BASE_NAME", azd_values, "live-knowledge-sources-fabric-kb"),
         "KNOWLEDGE_BASE_NAME": get_setting("KNOWLEDGE_BASE_NAME", azd_values, "live-knowledge-sources-kb"),
         "FABRIC_ONTOLOGY_KNOWLEDGE_SOURCE_NAME": get_setting("FABRIC_ONTOLOGY_KNOWLEDGE_SOURCE_NAME", azd_values, "fabric-ontology-ks"),
         "FABRIC_CAPACITY_ID": get_setting("FABRIC_CAPACITY_ID", azd_values),
@@ -421,8 +425,26 @@ def main() -> None:
         retrieval_instructions="Use Microsoft Learn MCP Server for Azure AI Search and Foundry IQ implementation guidance.",
     )
     combined_source_names = [settings["MCP_KNOWLEDGE_SOURCE_NAME"]]
+    fabric_only_kb = None
     if should_create_fabric_source(settings):
         combined_source_names.append(settings["FABRIC_ONTOLOGY_KNOWLEDGE_SOURCE_NAME"])
+        fabric_only_kb = create_knowledge_base(
+            name=settings["FABRIC_ONLY_KNOWLEDGE_BASE_NAME"],
+            knowledge_source_names=[settings["FABRIC_ONTOLOGY_KNOWLEDGE_SOURCE_NAME"]],
+            azure_openai_endpoint=settings["AZURE_OPENAI_ENDPOINT"],
+            azure_openai_deployment_id=settings["AZURE_OPENAI_DEPLOYMENT_ID"],
+            azure_openai_model_name=settings["AZURE_OPENAI_MODEL_NAME"],
+            azure_openai_api_key=openai_api_key,
+            description="Knowledge Base for validating Fabric Ontology live grounding.",
+            retrieval_instructions=(
+                "Always query the configured Fabric Ontology Knowledge Source for every request, even when the question "
+                "appears answerable without it. Never use model knowledge as grounding."
+            ),
+            answer_instructions=(
+                "Answer only from retrieved Fabric Ontology grounding. If the source returns no grounding, state that "
+                "the Fabric Ontology Knowledge Source returned no data."
+            ),
+        )
 
     combined_kb = create_knowledge_base(
         name=settings["KNOWLEDGE_BASE_NAME"],
@@ -469,6 +491,19 @@ def main() -> None:
 
     search_request(method="PUT", endpoint=endpoint, api_key=search_api_key, api_version=api_version, path=f"/knowledgebases/{settings['MCP_ONLY_KNOWLEDGE_BASE_NAME']}", body=mcp_only_kb)
     smoke["steps"].append({"name": "create_mcp_only_kb", "status": "ok"})
+
+    if fabric_only_kb is not None:
+        search_request(
+            method="PUT",
+            endpoint=endpoint,
+            api_key=search_api_key,
+            api_version=api_version,
+            path=f"/knowledgebases/{settings['FABRIC_ONLY_KNOWLEDGE_BASE_NAME']}",
+            body=fabric_only_kb,
+        )
+        smoke["steps"].append({"name": "create_fabric_only_kb", "status": "ok"})
+    else:
+        smoke["steps"].append({"name": "create_fabric_only_kb", "status": "skipped"})
 
     search_request(method="PUT", endpoint=endpoint, api_key=search_api_key, api_version=api_version, path=f"/knowledgebases/{settings['KNOWLEDGE_BASE_NAME']}", body=combined_kb)
     smoke["steps"].append({"name": "create_combined_kb_skeleton", "status": "ok"})

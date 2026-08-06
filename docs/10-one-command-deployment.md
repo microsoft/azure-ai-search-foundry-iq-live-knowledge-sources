@@ -69,14 +69,14 @@ Automation can use `--yes`. Full mode still requires the separate cost acknowled
 | Profile | Azure resources | Fabric behavior |
 | --- | --- | --- |
 | `mcp-only` | Search, OpenAI, Storage, app, MCP KS, MCP-only KB, sample index | Skipped |
-| `byo-fabric` | Same Azure assets plus Fabric KS and combined KB | Existing workspace/ontology reused |
-| `full` | Same Azure assets plus generated Fabric KS and combined KB | F2 capacity, workspace, Lakehouse, ontology, and GraphModel created |
+| `byo-fabric` | Same Azure assets plus Fabric KS, Fabric-only KB, and combined KB | Existing workspace/ontology reused |
+| `full` | Same Azure assets plus generated Fabric KS, Fabric-only KB, and combined KB | F2 capacity, workspace, Lakehouse, ontology, and GraphModel created |
 
 The Search managed identity receives Azure OpenAI access for answer synthesis. The default frontend is Azure Static Web Apps with a managed Node.js API, which keeps Search and OpenAI credentials out of browser code.
 
 ## Fabric Full Details
 
-Full mode creates the Fabric stack before `azd up` so long Lakehouse and GraphModel readiness work does not run inside the Azure postprovision timeout. Generated IDs are projected into the selected `azd` environment, then postprovision creates the Fabric Ontology KS and combined KB.
+Full mode creates the Fabric stack before `azd up` so long Lakehouse and GraphModel readiness work does not run inside the Azure postprovision timeout. Generated IDs are projected into the selected `azd` environment, then postprovision creates the Fabric Ontology KS, Fabric-only KB, and combined KB.
 
 Each fresh run clears stale generated IDs, resolves the assets created for the environment by name, and waits through the initial OneLake metadata propagation window. During Azure deployment, Bicep consumes the preprovisioned capacity as an existing asset; the YAML ledger remains `fabric.mode: create` so cleanup ownership stays explicit.
 
