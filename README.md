@@ -9,6 +9,14 @@
 
 [Read the execution manual](https://microsoft.github.io/azure-ai-search-foundry-iq-live-knowledge-sources/) | [Open the trace demo](https://microsoft.github.io/azure-ai-search-foundry-iq-live-knowledge-sources/demo/?demo=combined) | [Watch the KO/EN walkthrough](https://github.com/microsoft/azure-ai-search-foundry-iq-live-knowledge-sources/releases/tag/walkthrough-v1)
 
+<p align="center">
+  <img
+    src="docs/assets/live-knowledge-sources-hero.webp"
+    alt="REST retrieve and native MCP clients calling a Foundry IQ Knowledge Base backed by Fabric Ontology and HTTPS MCP Server knowledge sources, with separate REST and MCP evidence contracts."
+    width="1200"
+  />
+</p>
+
 This public accelerator is designed for managed-organization evaluation, field demos, and implementation review. It is not a production reference architecture.
 
 ## Components At A Glance

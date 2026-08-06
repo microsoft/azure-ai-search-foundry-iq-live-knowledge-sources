@@ -6,7 +6,7 @@ All notable changes to this accelerator are documented here.
 
 ### Added
 
-- Landing-page architecture hero that shows the representative REST and native MCP client paths through Foundry IQ to Fabric Ontology and HTTPS MCP Server knowledge sources, including their distinct evidence contracts.
+- README and manual landing-page architecture hero that shows the representative REST and native MCP client paths through Foundry IQ to Fabric Ontology and HTTPS MCP Server knowledge sources, including their distinct evidence contracts.
 - Managed-organization GitHub Pages manual that leads operators from profile configuration through one Live Knowledge Source, Foundry IQ grounding evidence, native Knowledge Base MCP invocation, and known limitations, with official Microsoft Learn references.
 - Native `liveks mcp` client for JSON and SSE transports, tool discovery and calls, delegated Fabric source authorization, known-fact assertions, redacted reports, and reproducible expected-failure evidence.
 - Dedicated Fabric-only Knowledge Base configuration through `FABRIC_ONLY_KNOWLEDGE_BASE_NAME` so Fabric Ontology grounding can be verified independently of combined planner routing.
