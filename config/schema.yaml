@@ -63,6 +63,9 @@ fields:
   search.mcp_knowledge_base_name:
     type: string
     azd: MCP_ONLY_KNOWLEDGE_BASE_NAME
+  search.fabric_knowledge_base_name:
+    type: string
+    azd: FABRIC_ONLY_KNOWLEDGE_BASE_NAME
   search.combined_knowledge_base_name:
     type: string
     azd: KNOWLEDGE_BASE_NAME
@@ -155,6 +158,7 @@ legacy_env:
   MCP_KNOWLEDGE_SOURCE_NAME: search.mcp_knowledge_source_name
   FABRIC_ONTOLOGY_KNOWLEDGE_SOURCE_NAME: search.fabric_knowledge_source_name
   MCP_ONLY_KNOWLEDGE_BASE_NAME: search.mcp_knowledge_base_name
+  FABRIC_ONLY_KNOWLEDGE_BASE_NAME: search.fabric_knowledge_base_name
   KNOWLEDGE_BASE_NAME: search.combined_knowledge_base_name
   MCP_SERVER_URL: mcp.server_url
   MCP_TOOL_NAME: mcp.tool_name

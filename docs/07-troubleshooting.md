@@ -49,6 +49,15 @@ Start with machine-readable diagnostics:
 - Increase `maxRuntimeInSeconds` if the tool is slow.
 - Use query-time header passthrough for per-user credentials.
 
+## Knowledge Base MCP Client Fails
+
+- Run `./liveks verify --env <environment>` first. The MCP client is not a substitute for source readiness checks.
+- HTTP `401` or `403`: for `--auth bearer`, assign **Search Index Data Reader** and reacquire the token; for the sample admin-key path, confirm Azure CLI can read the Search service keys.
+- HTTP `404`: confirm the selected `azd` environment contains the current Search endpoint, Knowledge Base name, and API version.
+- A normalized tool error on a Fabric profile usually means delegated source authorization is missing, expired, or not permitted to query the ontology.
+- An expected-term mismatch means content returned but the known fact was absent. Check the question and connected ontology rather than treating the transport as failed.
+- The count-only report is `deployments/<environment>/mcp-call-report.json`. Raw MCP responses are intentionally not stored.
+
 ## Fabric Ontology KS Fails
 
 - Confirm the Fabric workspace ID and ontology ID.

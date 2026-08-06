@@ -12,6 +12,7 @@ import time
 from datetime import datetime
 from pathlib import Path
 from typing import Any
+from urllib.parse import quote
 
 import yaml
 
@@ -28,7 +29,7 @@ from .config import (
     write_lock,
     write_user_config,
 )
-from .runtime import CommandRunner, http_json, parse_azd_values, parse_version
+from .runtime import CommandRunner, http_json, http_mcp_json, parse_azd_values, parse_version
 
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -429,6 +430,262 @@ def _evidence_types(payload: Any) -> list[str]:
     return sorted({str(item.get("type")) for item in evidence if isinstance(item, dict) and item.get("type")})
 
 
+def _mcp_text_blocks(payload: Any) -> list[str]:
+    if not isinstance(payload, dict):
+        return []
+    result = payload.get("result")
+    if not isinstance(result, dict):
+        return []
+    content = result.get("content")
+    if not isinstance(content, list):
+        return []
+    return [str(item.get("text", "")) for item in content if isinstance(item, dict) and item.get("type") == "text"]
+
+
+def _mcp_failure_message(status_code: int, payload: Any) -> str:
+    if status_code in {401, 403}:
+        return f"Azure AI Search rejected MCP authentication (HTTP {status_code})."
+    if status_code == 404:
+        return "The Knowledge Base MCP endpoint was not found (HTTP 404)."
+    if status_code >= 500:
+        return f"The Knowledge Base or one of its sources failed (HTTP {status_code})."
+    if isinstance(payload, dict) and payload.get("error"):
+        return "The MCP endpoint returned a JSON-RPC error."
+    if isinstance(payload, dict) and isinstance(payload.get("result"), dict) and payload["result"].get("isError"):
+        return "knowledge_base_retrieve returned a tool error; check source authorization and source readiness."
+    return f"The MCP call did not return usable grounding content (HTTP {status_code})."
+
+
+def _persist_mcp_report(config: ResolvedConfig, report: dict[str, Any]) -> None:
+    report_dir = ROOT / "deployments" / config.environment
+    report_dir.mkdir(parents=True, exist_ok=True)
+    report_path = report_dir / "mcp-call-report.json"
+    report["artifacts"] = [str(report_path.relative_to(ROOT))]
+    report_path.write_text(json.dumps(report, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+
+
+def mcp_report(
+    config: ResolvedConfig,
+    *,
+    query: str | None = None,
+    expected_terms: list[str] | None = None,
+    auth: str = "admin-key",
+    omit_source_authorization: bool = False,
+    expect_failure: bool = False,
+    knowledge_base: str | None = None,
+    persist: bool = True,
+) -> dict[str, Any]:
+    checks: list[dict[str, Any]] = []
+    if config.profile == "offline":
+        report = envelope(
+            "mcp",
+            "fail",
+            profile=config.profile,
+            environment=config.environment,
+            checks=[_check("deployment", "fail", "A deployed live profile is required for an MCP call.")],
+        )
+        if persist:
+            _persist_mcp_report(config, report)
+        return report
+
+    runner = CommandRunner(root=ROOT, env=config.child_env(), quiet=True)
+    selected = runner.run(["azd", "env", "select", config.environment, "--no-prompt"])
+    if selected.returncode != 0:
+        report = envelope(
+            "mcp",
+            "fail",
+            profile=config.profile,
+            environment=config.environment,
+            checks=[_check("azd-environment", "fail", "The deployment environment was not found.")],
+        )
+        if persist:
+            _persist_mcp_report(config, report)
+        return report
+
+    env_result = runner.run(["azd", "env", "get-values"])
+    azd_values = parse_azd_values(env_result.stdout)
+    search_endpoint = azd_values.get("AZURE_SEARCH_ENDPOINT", "").rstrip("/")
+    search_service = azd_values.get("AZURE_SEARCH_SERVICE_NAME", "")
+    resource_group = azd_values.get("AZURE_RESOURCE_GROUP", str(config.get("azure.resource_group", "")))
+    api_version = azd_values.get("AZURE_SEARCH_API_VERSION", str(config.get("search.api_version")))
+    kb_name = knowledge_base or azd_values.get(
+        "FABRIC_ONLY_KNOWLEDGE_BASE_NAME" if config.profile in {"byo-fabric", "full"} else "MCP_ONLY_KNOWLEDGE_BASE_NAME",
+        str(config.get("search.fabric_knowledge_base_name" if config.profile in {"byo-fabric", "full"} else "search.mcp_knowledge_base_name")),
+    )
+    if not all((search_endpoint, api_version, kb_name)):
+        report = envelope(
+            "mcp",
+            "fail",
+            profile=config.profile,
+            environment=config.environment,
+            checks=[_check("deployment-values", "fail", "Search endpoint, API version, or Knowledge Base name is missing.")],
+        )
+        if persist:
+            _persist_mcp_report(config, report)
+        return report
+    checks.append(_check("deployment-values", "pass", "MCP endpoint inputs resolved from the selected deployment."))
+
+    headers: dict[str, str] = {}
+    if auth == "bearer":
+        auth_result = runner.run(
+            ["az", "account", "get-access-token", "--scope", "https://search.azure.com/.default", "--query", "accessToken", "-o", "tsv"]
+        )
+        service_credential = auth_result.stdout.strip()
+        if not service_credential:
+            checks.append(_check("mcp-auth", "fail", "Unable to acquire an Azure AI Search bearer token."))
+        else:
+            headers["Authorization"] = f"Bearer {service_credential}"
+            checks.append(_check("mcp-auth", "pass", "Using a transient Azure AI Search bearer token."))
+    else:
+        key_result = runner.run(
+            [
+                "az",
+                "search",
+                "admin-key",
+                "show",
+                "--resource-group",
+                resource_group,
+                "--service-name",
+                search_service,
+                "--query",
+                "primaryKey",
+                "-o",
+                "tsv",
+            ]
+        )
+        service_credential = key_result.stdout.strip()
+        if not search_service or not service_credential:
+            checks.append(_check("mcp-auth", "fail", "Unable to acquire the transient Search admin key used by the sample deployment."))
+        else:
+            headers["api-key"] = service_credential
+            checks.append(_check("mcp-auth", "pass", "Using the sample deployment's transient Search admin key; no key is printed or persisted."))
+
+    needs_source_authorization = config.profile in {"byo-fabric", "full"}
+    if needs_source_authorization and not omit_source_authorization:
+        source_result = runner.run(
+            ["az", "account", "get-access-token", "--scope", "https://search.azure.com/.default", "--query", "accessToken", "-o", "tsv"]
+        )
+        source_token = source_result.stdout.strip()
+        if not source_token:
+            checks.append(_check("source-authorization", "fail", "Unable to acquire delegated source authorization."))
+        else:
+            headers["x-ms-query-source-authorization"] = source_token
+            checks.append(_check("source-authorization", "pass", "Delegated source authorization is attached transiently."))
+    elif needs_source_authorization:
+        checks.append(_check("source-authorization", "pass" if expect_failure else "warn", "Delegated source authorization was intentionally omitted."))
+    else:
+        checks.append(_check("source-authorization", "pass", "The selected MCP-only profile does not require Fabric source authorization."))
+
+    if any(check["status"] == "fail" for check in checks):
+        report = envelope("mcp", "fail", profile=config.profile, environment=config.environment, checks=checks)
+        if persist:
+            _persist_mcp_report(config, report)
+        return report
+
+    mcp_url = f"{search_endpoint}/knowledgebases/{quote(kb_name, safe='')}/mcp?api-version={quote(api_version, safe='')}"
+    try:
+        list_code, list_payload = http_mcp_json(
+            mcp_url,
+            body={"jsonrpc": "2.0", "id": 1, "method": "tools/list"},
+            headers=headers,
+            attempts=3,
+            delay_seconds=3,
+            timeout=30,
+        )
+    except Exception:
+        checks.append(_check("tools-list", "fail", "The MCP endpoint could not complete tool discovery."))
+        report = envelope("mcp", "fail", profile=config.profile, environment=config.environment, checks=checks)
+        if persist:
+            _persist_mcp_report(config, report)
+        return report
+    tools = list_payload.get("result", {}).get("tools", []) if isinstance(list_payload, dict) else []
+    has_retrieve_tool = any(isinstance(tool, dict) and tool.get("name") == "knowledge_base_retrieve" for tool in tools)
+    if list_code != 200 or not has_retrieve_tool:
+        failure = _mcp_failure_message(list_code, list_payload)
+        checks.append(_check("tools-list", "fail", failure))
+        report = envelope("mcp", "fail", profile=config.profile, environment=config.environment, checks=checks)
+        if persist:
+            _persist_mcp_report(config, report)
+        return report
+    checks.append(_check("tools-list", "pass", "Knowledge Base publishes knowledge_base_retrieve."))
+
+    effective_query = query or (
+        "Which airlines have the highest customer-care exposure this month?"
+        if needs_source_authorization
+        else "What must be configured for an Azure AI Search MCP Server knowledge source?"
+    )
+    try:
+        call_code, call_payload = http_mcp_json(
+            mcp_url,
+            body={
+                "jsonrpc": "2.0",
+                "id": 2,
+                "method": "tools/call",
+                "params": {"name": "knowledge_base_retrieve", "arguments": {"queries": [effective_query]}},
+            },
+            headers=headers,
+            attempts=3,
+            delay_seconds=3,
+            timeout=180,
+        )
+    except Exception:
+        checks.append(_check("tools-call", "fail", "The MCP endpoint could not complete the tool call."))
+        report = envelope("mcp", "fail", profile=config.profile, environment=config.environment, checks=checks)
+        if persist:
+            _persist_mcp_report(config, report)
+        return report
+    text_blocks = _mcp_text_blocks(call_payload)
+    tool_error = isinstance(call_payload, dict) and isinstance(call_payload.get("result"), dict) and bool(call_payload["result"].get("isError"))
+    terms = expected_terms or []
+    combined_text = "\n".join(text_blocks).casefold()
+    matched_terms = sum(1 for term in terms if term.casefold() in combined_text)
+    call_ok = call_code == 200 and bool(text_blocks) and not tool_error
+
+    if expect_failure:
+        if call_ok:
+            checks.append(_check("tools-call", "fail", "The MCP call succeeded, but this run expected a failure."))
+        else:
+            checks.append(_check("tools-call", "pass", f"Expected failure reproduced: {_mcp_failure_message(call_code, call_payload)}"))
+    elif call_ok:
+        checks.append(
+            _check(
+                "tools-call",
+                "pass",
+                f"knowledge_base_retrieve returned {len(text_blocks)} text block(s).",
+                contentBlocks=len(text_blocks),
+            )
+        )
+        if terms:
+            grounding_status = "pass" if matched_terms == len(terms) else "fail"
+            checks.append(
+                _check(
+                    "grounding-content",
+                    grounding_status,
+                    f"MCP content matched {matched_terms}/{len(terms)} expected term(s).",
+                    expectedTermCount=len(terms),
+                    matchedExpectedTermCount=matched_terms,
+                )
+            )
+        else:
+            checks.append(
+                _check(
+                    "grounding-content",
+                    "warn",
+                    "MCP protocol content returned, but source grounding was not content-verified; repeat with --expect-term using a known non-sensitive fact.",
+                    expectedTermCount=0,
+                    matchedExpectedTermCount=0,
+                )
+            )
+    else:
+        checks.append(_check("tools-call", "fail", _mcp_failure_message(call_code, call_payload)))
+
+    status = "fail" if any(check["status"] == "fail" for check in checks) else "pass"
+    report = envelope("mcp", status, profile=config.profile, environment=config.environment, checks=checks)
+    if persist:
+        _persist_mcp_report(config, report)
+    return report
+
+
 def verify_report(config: ResolvedConfig, *, quiet: bool = False) -> dict[str, Any]:
     if config.profile == "offline":
         result = subprocess.run([sys.executable, "tools/try_offline.py", "--format", "json"], cwd=ROOT, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, check=False)
@@ -484,6 +741,40 @@ def verify_report(config: ResolvedConfig, *, quiet: bool = False) -> dict[str, A
                     checks.append(_check("combined-retrieve", "pass" if combined_ok else "fail", message, sourceTypes=source_types))
         except Exception as error:
             checks.append(_check("app-api", "fail", str(error)))
+
+    native_expected_terms = (
+        ["Alpine Air"]
+        if config.profile == "full"
+        else ["Azure AI Search"]
+        if config.profile == "mcp-only"
+        else None
+    )
+    native_mcp = mcp_report(
+        config,
+        query=(
+            "Which airlines have the highest customer-care exposure this month?"
+            if config.profile in {"byo-fabric", "full"}
+            else "What must be configured for an Azure AI Search MCP Server knowledge source?"
+        ),
+        expected_terms=native_expected_terms,
+        persist=False,
+    )
+    native_message = next(
+        (
+            str(check.get("message", ""))
+            for check in reversed(native_mcp.get("checks", []))
+            if check.get("name") in {"grounding-content", "tools-call", "tools-list"}
+        ),
+        "Knowledge Base MCP validation did not complete.",
+    )
+    grounding_check = next(
+        (check for check in native_mcp.get("checks", []) if check.get("name") == "grounding-content"),
+        None,
+    )
+    native_status = "fail" if native_mcp.get("status") != "pass" else "pass"
+    if native_status == "pass" and grounding_check and grounding_check.get("status") == "warn":
+        native_status = "warn"
+    checks.append(_check("knowledge-base-mcp", native_status, native_message))
     status = "fail" if any(check["status"] == "fail" for check in checks) else "pass"
     report = envelope("verify", status, profile=config.profile, environment=config.environment, checks=checks, nextActions=[f"Run ./liveks down --env {config.environment} when finished"])
     report_dir = ROOT / "deployments" / config.environment
@@ -727,6 +1018,14 @@ def build_parser() -> argparse.ArgumentParser:
     up_parser.add_argument("--postprovision-only", action="store_true", help=argparse.SUPPRESS)
     verify_parser = subparsers.add_parser("verify", help="Verify deployed resources and retrieve evidence.")
     _common_config_args(verify_parser, require_env=False)
+    mcp_parser = subparsers.add_parser("mcp", help="Call a deployed Knowledge Base through its MCP endpoint.")
+    _common_config_args(mcp_parser, require_env=True)
+    mcp_parser.add_argument("--query")
+    mcp_parser.add_argument("--expect-term", action="append", default=[])
+    mcp_parser.add_argument("--auth", choices=["admin-key", "bearer"], default="admin-key")
+    mcp_parser.add_argument("--omit-source-authorization", action="store_true")
+    mcp_parser.add_argument("--expect-failure", action="store_true")
+    mcp_parser.add_argument("--knowledge-base")
     down_parser = subparsers.add_parser("down", help="Delete only resources owned by an environment.")
     _common_config_args(down_parser, require_env=False)
     down_parser.add_argument("--yes", action="store_true")
@@ -817,6 +1116,16 @@ def main(argv: list[str] | None = None) -> int:
             )
         elif args.command == "verify":
             report = verify_report(config, quiet=args.format == "json")
+        elif args.command == "mcp":
+            report = mcp_report(
+                config,
+                query=args.query,
+                expected_terms=args.expect_term,
+                auth=args.auth,
+                omit_source_authorization=args.omit_source_authorization,
+                expect_failure=args.expect_failure,
+                knowledge_base=args.knowledge_base,
+            )
         elif args.command == "down":
             report = down_report(config, yes=args.yes, quiet=args.format == "json")
         elif args.command == "e2e":

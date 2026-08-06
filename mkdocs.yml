@@ -55,6 +55,7 @@ nav:
   - Start Here:
       - Home: index.md
       - Runbook: runbook.md
+      - Knowledge Base MCP Client: 22-knowledge-base-mcp.md
       - LiveKS CLI: 20-liveks-cli.md
       - Configuration: 21-configuration.md
       - Overview: 00-overview.md

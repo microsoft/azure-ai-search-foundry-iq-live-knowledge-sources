@@ -47,6 +47,7 @@ Unknown YAML fields fail closed. Secret fields must use `{env: VARIABLE_NAME}` a
 ./liveks plan --env liveks-mcp
 ./liveks up --env liveks-mcp
 ./liveks verify --env liveks-mcp
+./liveks mcp --env liveks-mcp
 ./liveks down --env liveks-mcp
 ```
 
@@ -81,6 +82,8 @@ Use the evidence that matches the claim:
 | MCP path is live | MCP activity or references from `liveks verify` |
 | Fabric path is live | `fabricOntology` evidence in live mode with delegated authorization |
 | Combined routing worked | Recognized live evidence from the source or sources selected by the combined KB planner |
+| Knowledge Base MCP is callable | `liveks mcp` passes `tools/list` and `tools/call` |
+| Knowledge Base MCP returned expected grounding | `liveks mcp --expect-term <known-fact>` passes `grounding-content`; pair it with source-specific `verify` evidence before naming the source that ran |
 | Full rehearsal is complete | Create and retrieve checks pass; deployment RG, generated capacity RG, and generated capacity absence checks pass |
 
 Final answer text alone is not routing evidence. Inspect `activity`, `references`, and `sourceData`, and use the single-source KB checks to prove MCP and Fabric independently.

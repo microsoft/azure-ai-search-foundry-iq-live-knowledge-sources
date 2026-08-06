@@ -22,6 +22,7 @@ defaults:
     mcp_knowledge_source_name: microsoft-learn-mcp-ks
     fabric_knowledge_source_name: fabric-ontology-ks
     mcp_knowledge_base_name: live-knowledge-sources-mcp-kb
+    fabric_knowledge_base_name: live-knowledge-sources-fabric-kb
     combined_knowledge_base_name: live-knowledge-sources-kb
   mcp:
     server_url: https://learn.microsoft.com/api/mcp

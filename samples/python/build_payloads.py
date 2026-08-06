@@ -64,12 +64,21 @@ def main() -> None:
         **azure_openai_model,
     )
 
+    fabric_only_knowledge_base = create_knowledge_base(
+        name="live-knowledge-sources-fabric-kb",
+        knowledge_source_names=["fabric-ontology-ks"],
+        description="Knowledge Base for validating Fabric Ontology live grounding.",
+        retrieval_instructions="Use Fabric Ontology for governed business entities and relationships.",
+        **azure_openai_model,
+    )
+
     print(
         json.dumps(
             {
                 "mcp": mcp_source,
                 "mcpOnlyKnowledgeBase": mcp_only_knowledge_base,
                 "fabric": fabric_source,
+                "fabricOnlyKnowledgeBase": fabric_only_knowledge_base,
                 "combinedKnowledgeBase": knowledge_base,
             },
             indent=2,

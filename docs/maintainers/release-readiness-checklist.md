@@ -33,6 +33,7 @@ The GitHub Actions `Validate` workflow runs the same local validation gate on pu
 [ ] docs/10-one-command-deployment.md matches script behavior
 [ ] docs/maintainers/reviewer-evidence.md matches E2E report behavior
 [ ] docs/13-public-preview-limitations.md captures current caveats
+[ ] docs/22-knowledge-base-mcp.md separates native Knowledge Base MCP from MCP Server KS and distinguishes protocol success from known-fact grounding evidence
 [ ] docs/maintainers/storyline-and-safe-claims.md matches the README and demo walkthrough
 [ ] docs/maintainers/private-review-workflow.md matches the promotion and reviewer evidence flow
 [ ] docs/19-faq.md answers first-run mode choice, offline replay, Fabric source authorization, MCP endpoint requirements, and evidence collection
@@ -53,6 +54,7 @@ The GitHub Actions `Validate` workflow runs the same local validation gate on pu
 [ ] offline response samples are synthetic and safe to commit
 [ ] Fictional Airline Ops data is used for semantic examples
 [ ] MCP examples use remote HTTPS MCP servers
+[ ] Native Knowledge Base MCP acceptance pairs a known-fact `liveks mcp` check with source-specific `liveks verify` evidence
 [ ] Fabric examples use Fabric Ontology KS, not Fabric MCP through generic MCP Server KS
 [ ] Generated deployment reports, logs, local screenshots, and scratch notes are ignored
 ```
@@ -70,7 +72,7 @@ Expected evidence:
 | Mode | Evidence expected |
 | --- | --- |
 | `mcp-only` | MCP KS, MCP-only KB, retrieve activity or references, app load, cleanup. |
-| `byo-fabric` | MCP KS, Fabric KS, combined KB, Fabric live retrieve when delegated token exists or clear offline fallback when absent, app load, cleanup. |
+| `byo-fabric` | MCP KS, Fabric KS, Fabric-only and combined KBs, Fabric live retrieve when delegated token exists or clear offline fallback when absent, native MCP call, app load, cleanup. |
 | `full` | Fabric capacity/workspace/lakehouse/ontology/GraphModel preparation, Azure deploy, KS/KB creation, app load, cleanup. |
 
 Do not commit the report itself. Summarize only sanitized evidence in PRs or review notes.

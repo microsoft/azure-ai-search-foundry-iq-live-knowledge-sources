@@ -30,6 +30,7 @@ PowerShell equivalents replace `./liveks` with `./liveks.ps1`.
 | `plan` | None | Run doctor, build Bicep, dry-run payloads, build the app, and write a redacted lock. |
 | `up` | Yes, after confirmation | Sync the selected `azd` environment, preview ARM changes, provision, deploy, and verify. |
 | `verify` | Read/call only | Check the resource group, app API, and source evidence. |
+| `mcp` | Read/call only | Discover and call `knowledge_base_retrieve` on the deployed Knowledge Base MCP endpoint. |
 | `down` | Yes, after confirmation | Delete only assets owned by the environment. |
 | `e2e` | Yes | Run `up` and either clean up or explicitly retain resources. |
 
@@ -43,6 +44,7 @@ PowerShell equivalents replace `./liveks` with `./liveks.ps1`.
 ./liveks plan --env liveks-mcp
 ./liveks up --env liveks-mcp
 ./liveks verify --env liveks-mcp
+./liveks mcp --env liveks-mcp
 ./liveks down --env liveks-mcp
 ```
 
@@ -55,6 +57,8 @@ Use JSON output when cleanup evidence will be reviewed:
 ```
 
 Every live profile must report `resource-group-absent=pass`. A `full` run that created capacity must additionally report `fabric-capacity-resource-group-absent=pass` and `fabric-capacity-absent=pass`. These checks are omitted for reused capacity so preservation is not misreported as failed deletion.
+
+For `byo-fabric` and `full`, `mcp` attaches delegated source authorization by default. It records text-block and expected-term counts but never persists the endpoint, query, response content, key, or token. A call without `--expect-term` can pass protocol checks but reports `grounding-content=warn`; use a known non-sensitive fact for source-content acceptance. See [Call the Knowledge Base Through MCP](22-knowledge-base-mcp.md).
 
 ## Confirmation Rules
 

@@ -25,6 +25,14 @@ flowchart LR
 - Monitor tool latency, failures, and output size.
 - Keep human oversight for actions that can affect real systems.
 
+## Knowledge Base MCP Client
+
+- The default `./liveks mcp --auth admin-key` path is a sample-development convenience. It reads the key transiently through Azure CLI, never prints it, and never persists raw MCP content.
+- Prefer `--auth bearer` for organization-managed clients after assigning **Search Index Data Reader** to the client identity.
+- Fabric calls need a separate raw user token in `x-ms-query-source-authorization`; the `Authorization` bearer token and source-authorization token have different roles even when acquired for the same user.
+- Keep the generated count-only report under ignored `deployments/`. Do not publish prompts, raw tool content, endpoints, or external error bodies.
+- Review the [Microsoft Learn MCP security guidance](https://learn.microsoft.com/en-us/azure/search/agentic-retrieval-how-to-retrieve#call-the-mcp-endpoint) before connecting an agent runtime.
+
 ## Fabric Ontology KS
 
 - Validate Fabric workspace and ontology permissions.

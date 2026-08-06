@@ -97,7 +97,7 @@ REST equivalent: `samples/rest/03-retrieve-mcp.http`.
 
 ## Test 2: Fabric Ontology KS
 
-This test applies to `byo-fabric` and `full`. In `mcp-only`, an offline response explaining that Fabric was not created is expected and is not a live Fabric pass.
+This test applies to `byo-fabric` and `full`. Those profiles create a Fabric-only Knowledge Base so source execution is deterministic before combined routing. In `mcp-only`, an offline response explaining that Fabric was not created is expected and is not a live Fabric pass.
 
 The packaged app question targets the repo's Airline Ops ontology contract. `full` creates that sample. For `byo-fabric`, the Alpine Air answer is expected only when the connected ontology maps the same sample data and relationships. With another ontology, require live Fabric trace evidence and validate the answer against that ontology's known facts; use the REST sample or Fabric notebook to submit a domain-specific question.
 
@@ -194,6 +194,25 @@ Do not use source badges alone to claim that both live sources ran. Require `mod
 
 REST equivalent: `samples/rest/08-retrieve-combined-airline-ops.http`.
 
+## Test 4: Native Knowledge Base MCP
+
+Run this only after the applicable single-source test has passed. The retrieve trace proves which Knowledge Source ran; the native MCP call proves that an MCP-compatible client can consume the same Knowledge Base.
+
+For the synthetic Airline Ops contract:
+
+```bash
+./liveks mcp \
+  --env <environment> \
+  --query "Which airlines have the highest customer-care exposure this month?" \
+  --expect-term "Alpine Air"
+```
+
+Require `tools-list=pass`, `tools-call=pass`, and `grounding-content=pass`. For a non-Airline Ops BYO ontology, replace both the question and expected term with a non-sensitive known fact from that ontology. A protocol pass with `grounding-content=warn` is not source-content acceptance.
+
+The current MCP result does not return separate `activity` and `references` arrays. Do not use this test by itself to claim that Fabric or MCP Server KS ran. Pair it with the matching source-specific retrieve test above.
+
+See [Call the Knowledge Base Through MCP](22-knowledge-base-mcp.md) for authentication and normalized failure tests.
+
 ## What Each Result Lets You Claim
 
 | Observed evidence | Supported claim |
@@ -203,6 +222,7 @@ REST equivalent: `samples/rest/08-retrieve-combined-airline-ops.http`.
 | Both single-source tests pass | Both live Knowledge Source paths are independently operational. |
 | Combined test is live and its trace contains both source types | This retrieve call used both grounding paths. |
 | Combined test is live and contains one source type | Planner routing worked, but this call does not prove that both sources ran. |
+| Native MCP call matches a known fact after a source-specific retrieve pass | An MCP client consumed expected grounding content from the same operational Knowledge Base. |
 | Any result is offline or offline-replay | Only the packaged response shape and inspection experience are demonstrated. |
 
 ## Pass/Fail Checklist

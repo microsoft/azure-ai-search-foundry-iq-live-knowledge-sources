@@ -101,6 +101,9 @@ param fabricKnowledgeSourceName string = 'fabric-ontology-ks'
 @description('MCP-only Knowledge Base name.')
 param mcpOnlyKnowledgeBaseName string = 'live-knowledge-sources-mcp-kb'
 
+@description('Fabric-only Knowledge Base name.')
+param fabricOnlyKnowledgeBaseName string = 'live-knowledge-sources-fabric-kb'
+
 @description('Combined Knowledge Base name.')
 param knowledgeBaseName string = 'live-knowledge-sources-kb'
 
@@ -176,6 +179,10 @@ var demoRuntimeSettings = [
     value: mcpOnlyKnowledgeBaseName
   }
   {
+    name: 'FABRIC_ONLY_KNOWLEDGE_BASE_NAME'
+    value: fabricOnlyKnowledgeBaseName
+  }
+  {
     name: 'KNOWLEDGE_BASE_NAME'
     value: knowledgeBaseName
   }
@@ -207,6 +214,7 @@ var demoRuntimeSettingsObject = {
   AIRLINE_OPS_INDEX_NAME: airlineOpsIndexName
   MCP_KNOWLEDGE_SOURCE_NAME: mcpKnowledgeSourceName
   MCP_ONLY_KNOWLEDGE_BASE_NAME: mcpOnlyKnowledgeBaseName
+  FABRIC_ONLY_KNOWLEDGE_BASE_NAME: fabricOnlyKnowledgeBaseName
   KNOWLEDGE_BASE_NAME: knowledgeBaseName
   FABRIC_ONTOLOGY_KNOWLEDGE_SOURCE_NAME: fabricKnowledgeSourceName
   AZURE_OPENAI_ENDPOINT: openai.properties.endpoint
@@ -374,6 +382,7 @@ output AZURE_WEBAPP_NAME string = hostingMode == 'appservice' ? webApp!.name : '
 output AZURE_WEBAPP_URL string = hostingMode == 'staticwebapp' ? 'https://${staticWebApp!.properties.defaultHostname}' : 'https://${webApp!.properties.defaultHostName}'
 output MCP_KNOWLEDGE_SOURCE_NAME string = mcpKnowledgeSourceName
 output MCP_ONLY_KNOWLEDGE_BASE_NAME string = mcpOnlyKnowledgeBaseName
+output FABRIC_ONLY_KNOWLEDGE_BASE_NAME string = fabricOnlyKnowledgeBaseName
 output KNOWLEDGE_BASE_NAME string = knowledgeBaseName
 output FABRIC_ONTOLOGY_KNOWLEDGE_SOURCE_NAME string = fabricKnowledgeSourceName
 output DEPLOYMENT_MODE string = deploymentMode

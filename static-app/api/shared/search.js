@@ -5,6 +5,7 @@ function runtimeStatus() {
     searchApiVersion: process.env.AZURE_SEARCH_API_VERSION || '2026-05-01-preview',
     knowledgeBaseName: process.env.KNOWLEDGE_BASE_NAME || 'live-knowledge-sources-kb',
     mcpOnlyKnowledgeBaseName: process.env.MCP_ONLY_KNOWLEDGE_BASE_NAME || 'live-knowledge-sources-mcp-kb',
+    fabricOnlyKnowledgeBaseName: process.env.FABRIC_ONLY_KNOWLEDGE_BASE_NAME || 'live-knowledge-sources-fabric-kb',
     mcpKnowledgeSourceName: process.env.MCP_KNOWLEDGE_SOURCE_NAME || 'microsoft-learn-mcp-ks',
     fabricKnowledgeSourceName: process.env.FABRIC_ONTOLOGY_KNOWLEDGE_SOURCE_NAME || 'fabric-ontology-ks',
     airlineOpsIndexName: process.env.AIRLINE_OPS_INDEX_NAME || 'airline-ops-regulatory-docs',
@@ -123,7 +124,11 @@ function buildRetrieveBody(options) {
 
 async function retrieveFromSearch(options) {
   const status = runtimeStatus();
-  const kbName = options.kind === 'mcp' ? status.mcpOnlyKnowledgeBaseName : status.knowledgeBaseName;
+  const kbName = options.kind === 'mcp'
+    ? status.mcpOnlyKnowledgeBaseName
+    : options.kind === 'fabric'
+      ? status.fabricOnlyKnowledgeBaseName
+      : status.knowledgeBaseName;
   const endpoint = process.env.AZURE_SEARCH_ENDPOINT.replace(/\/$/, '');
   const url = `${endpoint}/knowledgebases/${encodeURIComponent(kbName)}/retrieve?api-version=${status.searchApiVersion}`;
   const headers = {
