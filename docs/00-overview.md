@@ -79,18 +79,19 @@ The final answer alone is not enough. Good evidence shows which source was selec
 
 ## First-Time Reader Path
 
-1. Read the mode selector in [Live Knowledge Sources Manual](index.md).
-2. Use [Choose a Pattern](02-choose-a-pattern.md) to pick a path, and keep [FAQ](19-faq.md) open for mode, auth, offline replay, and endpoint questions.
-3. Run:
+1. From a fresh clone, run the dependency-free first proof:
 
    ```bash
-   bash scripts/validate-local.sh
+   ./liveks try
    ```
 
-4. Start with `mcp-only`.
-5. Open the demo app and inspect source trace evidence.
+2. Read the outcome journey in [Live Knowledge Sources Manual](index.md).
+3. Use [Choose a Pattern](02-choose-a-pattern.md) to pick a path, and keep [FAQ](19-faq.md) open for mode, auth, offline replay, and endpoint questions.
+4. Run `./liveks bootstrap`, then `doctor` and `plan` before any live deployment.
+5. Start with `mcp-only`, open the deployed demo app, and inspect source trace evidence.
 6. Move to `byo-fabric` when Fabric workspace and ontology IDs are ready.
 7. Use `full` only when Fabric quota, tenant settings, region, and delegated auth expectations are clear.
+8. Run `bash scripts/validate-local.sh` before contributing or publishing a claim about repository consistency.
 
 ## Evidence And Safety
 
