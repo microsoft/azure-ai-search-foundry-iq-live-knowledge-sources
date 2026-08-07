@@ -6,7 +6,8 @@ All notable changes to this accelerator are documented here.
 
 ### Added
 
-- README and manual landing-page architecture hero that shows the representative REST and native MCP client paths through Foundry IQ to Fabric Ontology and HTTPS MCP Server knowledge sources, including their distinct evidence contracts.
+- Outcome-first clone-to-grounded-proof hero for the README and manual landing page, backed by the actual LiveKS profile, lifecycle, evidence, and cleanup contracts.
+- MCP Server KS first-live-success procedure and an architecture-to-code traceability map that connect each public claim to checked-in configuration, implementation, CLI, and CI boundaries.
 - Managed-organization GitHub Pages manual that leads operators from profile configuration through one Live Knowledge Source, Foundry IQ grounding evidence, native Knowledge Base MCP invocation, and known limitations, with official Microsoft Learn references.
 - Native `liveks mcp` client for JSON and SSE transports, tool discovery and calls, delegated Fabric source authorization, known-fact assertions, redacted reports, and reproducible expected-failure evidence.
 - Dedicated Fabric-only Knowledge Base configuration through `FABRIC_ONLY_KNOWLEDGE_BASE_NAME` so Fabric Ontology grounding can be verified independently of combined planner routing.
@@ -22,6 +23,8 @@ All notable changes to this accelerator are documented here.
 
 ### Changed
 
+- README and manual onboarding now reserve the hero for the user journey and leave Knowledge Base topology to the detailed Architecture section.
+- The overview reader path now starts with dependency-free offline replay, then moves through profile selection, guarded planning, live evidence, and repository validation.
 - The interactive trace demo now keeps persistent return links to the execution manual and Microsoft GitHub repository on desktop and mobile.
 - README and manual onboarding now start with the repository's user, input, and result contract; profile-specific required settings; one representative first-success path; sanitized evidence; and only then advanced deployment and protocol paths.
 - Live verification now distinguishes MCP protocol success from grounding-content proof. BYO Fabric operators must provide a known, non-sensitive ontology fact instead of treating a fluent response as source evidence.

@@ -8,7 +8,8 @@ Tracked assets must not contain tenant IDs, resource names, service endpoints, t
 
 | Asset | Use it for | Where it appears |
 | --- | --- | --- |
-| `deployment-modes.svg` | First-reader mode selection: `mcp-only`, `byo-fabric`, and `full`. | `README.md`, `docs/02-choose-a-pattern.md` |
+| `clone-to-grounded-proof.svg` | Outcome-first journey from clone and offline replay through guarded deployment, evidence, and cleanup proof. A byte-identical copy is kept in `docs/assets/` for MkDocs. | `README.md`, `docs/index.md` |
+| `deployment-modes.svg` | First-reader mode selection: `mcp-only`, `byo-fabric`, and `full`. | `docs/02-choose-a-pattern.md` |
 | `current-demo-flow.svg` | Short demo walkthrough: choose a path, deploy, run retrieve, inspect trace evidence, and clean up. | `docs/16-demo-walkthrough.md` |
 | `live-knowledge-sources-architecture.svg` | Architecture overview: Knowledge Base retrieval across MCP Server KS and Fabric Ontology KS. | `README.md`, `docs/01-architecture.md` |
 | `social-preview.png` / `social-preview.svg` | GitHub repository social preview image and editable SVG source. | Repository settings |
@@ -38,14 +39,15 @@ Promote a visual into `assets/` only when:
 
 Use this sequence for demos and blog drafts:
 
-1. `current-demo-flow.svg`
-2. `deployment-modes.svg`
-3. `live-knowledge-sources-architecture.svg`
-4. `social-preview.png` for GitHub repository social preview
-5. `how-it-works.gif` for the animated KB and Knowledge Source composition explainer
-6. `trace-contract.gif` for terminal trace contract proof
-7. `demo-overview.png` or `demo-trace.gif` for app viewer context
-8. `deploy-progress.gif` only as a sanitized deployment visual, not live deployment evidence
+1. `clone-to-grounded-proof.svg`
+2. `current-demo-flow.svg`
+3. `deployment-modes.svg`
+4. `live-knowledge-sources-architecture.svg`
+5. `social-preview.png` for GitHub repository social preview
+6. `how-it-works.gif` for the animated KB and Knowledge Source composition explainer
+7. `trace-contract.gif` for terminal trace contract proof
+8. `demo-overview.png` or `demo-trace.gif` for app viewer context
+9. `deploy-progress.gif` only as a sanitized deployment visual, not live deployment evidence
 
 ## Accessibility
 

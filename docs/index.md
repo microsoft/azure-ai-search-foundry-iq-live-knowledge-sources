@@ -7,14 +7,17 @@ Platform teams connect a governed Fabric Ontology or remote HTTPS MCP tool, subm
 
 <figure class="manual-hero">
   <img
-    src="assets/live-knowledge-sources-hero.webp"
-    alt="REST retrieve and native MCP clients calling a Foundry IQ Knowledge Base backed by Fabric Ontology and HTTPS MCP Server knowledge sources, with separate REST and MCP evidence contracts."
-    width="1642"
-    height="958"
+    src="assets/clone-to-grounded-proof.svg"
+    alt="From clone to grounded proof: replay locally, choose a live profile, check with doctor and plan, deploy after confirmation, prove source evidence, and clean up generated resources."
+    width="1600"
+    height="800"
     loading="eager"
     fetchpriority="high"
   />
 </figure>
+
+!!! tip "First success from a fresh clone"
+    Run `./liveks try`. It requires Python 3.11 or newer, installs no packages, creates no cloud resources, and prints the answer before the MCP Server and Fabric Ontology evidence trace. This proves the packaged replay contract only.
 
 The representative path below reuses an existing Fabric workspace and ontology. It proves one source first, then calls the same Knowledge Base through its native MCP endpoint. It does not publish Fabric identifiers, tokens, endpoints, or raw live responses.
 

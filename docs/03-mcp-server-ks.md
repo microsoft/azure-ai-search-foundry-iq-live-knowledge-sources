@@ -25,7 +25,66 @@ https://learn.microsoft.com/api/mcp
 
 Use `notebooks/01-mcp-server-ks-quickstart.ipynb` for the guided MCP path. It builds the MCP Knowledge Source payload, creates an MCP-only Knowledge Base payload, optionally performs live retrieve, and inspects an offline MCP trace.
 
-## Quickstart
+## First Live Success With LiveKS
+
+Use `mcp-only` for the smallest end-to-end live deployment. It uses the public Microsoft Learn MCP endpoint, so no Fabric workspace or ontology is required. The REST files in the next section remain the payload-level path for manual API inspection.
+
+Prerequisites are Python 3.11 or newer, Azure Developer CLI 1.27.0 or newer, Azure CLI, Node.js 22 or newer with npm, and permission to create the Azure resources listed by the plan.
+
+```bash
+./liveks try --sample mcp
+./liveks bootstrap
+az login --tenant <tenant-guid>
+azd auth login
+./liveks init --profile mcp-only --env liveks-mcp
+./liveks doctor --env liveks-mcp
+./liveks plan --env liveks-mcp
+./liveks up --env liveks-mcp
+./liveks verify --env liveks-mcp --format json
+```
+
+The generated `.liveks/liveks-mcp.yaml` ledger is ignored and the checked-in profile defaults are otherwise runnable. `doctor` and `plan` must contain no failed checks. Review the resource list, estimated duration, and cost before `up`; the command runs an ARM preview and then requires the exact phrase `create liveks-mcp` before provisioning.
+
+Accept the first live pass only when `verify` reports all of these checks as `pass`:
+
+| Check | What it proves |
+| --- | --- |
+| `resource-group` | The selected deployment environment resolves to an existing Azure resource group. |
+| `app-status` | The deployed app API is reachable. |
+| `mcp-retrieve` | A live retrieve returned `mcpServer` activity or reference evidence. |
+| `knowledge-base-mcp` | The native Knowledge Base MCP endpoint completed tool discovery, tool execution, and the profile's known-content check. |
+
+For an explicit native MCP content check, run:
+
+```bash
+./liveks mcp \
+  --env liveks-mcp \
+  --query "What must be configured for an Azure AI Search MCP Server knowledge source?" \
+  --expect-term "Azure AI Search"
+```
+
+Require `tools-list=pass`, `tools-call=pass`, and `grounding-content=pass`. The command persists counts only under ignored `deployments/liveks-mcp/`; it does not persist the query, response content, endpoint, key, or token.
+
+The lifecycle boundary is explicit:
+
+| Command | Boundary |
+| --- | --- |
+| `try`, `bootstrap`, `init` | Local only. Bootstrap installs into ignored `.liveks/venv`; no cloud resources are created. |
+| `doctor` | Local checks plus read-only Azure account, provider, and availability probes. |
+| `plan` | Repeats doctor, builds Bicep and the app, and dry-runs payload generation. It does not select or change `azd env`, provision, or deploy. |
+| `up` | Mutates cloud state only after preview and confirmation, then runs verification. |
+| `verify`, `mcp` | Read/call only. They write sanitized reports under ignored paths. |
+| `down` | Deletes generated assets after ownership checks. |
+
+When the evaluation is complete:
+
+```bash
+./liveks down --env liveks-mcp
+```
+
+Require `resource-group-absent=pass`. See [LiveKS CLI](20-liveks-cli.md), [One-Command Deployment](10-one-command-deployment.md), and [Post-Deployment Tests](08-test-queries.md) for the complete command and evidence contracts.
+
+## REST Payload Quickstart
 
 Run these files in order:
 

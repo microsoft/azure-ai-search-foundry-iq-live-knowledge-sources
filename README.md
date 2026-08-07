@@ -11,13 +11,25 @@
 
 <p align="center">
   <img
-    src="docs/assets/live-knowledge-sources-hero.webp"
-    alt="REST retrieve and native MCP clients calling a Foundry IQ Knowledge Base backed by Fabric Ontology and HTTPS MCP Server knowledge sources, with separate REST and MCP evidence contracts."
-    width="1200"
+    src="assets/clone-to-grounded-proof.svg"
+    alt="From clone to grounded proof: replay locally, choose a live profile, check with doctor and plan, deploy after confirmation, prove source evidence, and clean up generated resources."
+    width="1600"
   />
 </p>
 
-This public accelerator is designed for managed-organization evaluation, field demos, and implementation review. It is not a production reference architecture.
+This public accelerator is designed for managed-organization evaluation, field demos, and implementation review. Start with a local proof, move to the smallest live profile that fits the tenant, and finish with source evidence plus cleanup evidence. It is not a production reference architecture.
+
+## First Success: No Cloud Required
+
+From a fresh clone, inspect the complete answer-and-evidence contract before installing packages or configuring Azure:
+
+```bash
+git clone --depth 1 https://github.com/microsoft/azure-ai-search-foundry-iq-live-knowledge-sources.git
+cd azure-ai-search-foundry-iq-live-knowledge-sources
+./liveks try
+```
+
+Python 3.11 or newer is the only requirement for this first pass. The answer prints before trace details, and the replay exposes both `mcpServer` and `fabricOntology` evidence. It creates no cloud resources and proves the packaged response contract only, not a live source call.
 
 ## Components At A Glance
 
@@ -154,13 +166,13 @@ Important boundaries:
 
 See [Configuration](docs/21-configuration.md), [Security and Governance](docs/06-security-governance.md), [Troubleshooting](docs/07-troubleshooting.md), and [Public Preview Limitations](docs/13-public-preview-limitations.md).
 
-## Try Before Going Live
+## Inspect The Offline Trace
 
-No Azure subscription, tenant, Fabric workspace, or key is needed to inspect the checked-in response contract:
+After the first pass, expand the checked-in trace or isolate the MCP replay without an Azure subscription, tenant, Fabric workspace, or key:
 
 ```bash
-./liveks try
 ./liveks try --details
+./liveks try --sample mcp --details
 ```
 
 The answer is printed first, followed by MCP Server KS and Fabric Ontology KS evidence. This is offline replay only; it does not prove that a live source ran.

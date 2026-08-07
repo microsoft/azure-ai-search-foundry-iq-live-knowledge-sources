@@ -1,0 +1,158 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="800" viewBox="0 0 1600 800" role="img" aria-labelledby="title desc">
+  <title id="title">From clone to grounded proof with LiveKS</title>
+  <desc id="desc">A six-step outcome journey: clone and replay without cloud resources, choose a deployment profile, run doctor and plan without provisioning, deploy after preview and confirmation, verify source evidence through REST and MCP, and clean up with ownership and absence checks.</desc>
+
+  <rect width="1600" height="800" fill="#F8FAFC"/>
+
+  <text x="56" y="58" font-family="Segoe UI, Arial, sans-serif" font-size="18" font-weight="700" fill="#0F6CBD">FROM CLONE TO GROUNDED PROOF</text>
+  <text x="56" y="112" font-family="Segoe UI, Arial, sans-serif" font-size="44" font-weight="700" fill="#111827">Clone once. Finish with grounded evidence.</text>
+  <text x="58" y="154" font-family="Segoe UI, Arial, sans-serif" font-size="21" fill="#475569">Replay locally, choose the smallest live path, preview before creating, prove the source trace, and clean up generated resources.</text>
+
+  <rect x="1246" y="42" width="298" height="42" rx="8" fill="#E8F3FC" stroke="#8DC8E8" stroke-width="2"/>
+  <text x="1272" y="69" font-family="Segoe UI, Arial, sans-serif" font-size="16" font-weight="700" fill="#0F548C">OFFLINE FIRST  |  UNDER 1 MINUTE</text>
+  <rect x="1246" y="98" width="298" height="42" rx="8" fill="#E9F5EA" stroke="#9FD89F" stroke-width="2"/>
+  <text x="1295" y="125" font-family="Segoe UI, Arial, sans-serif" font-size="16" font-weight="700" fill="#0B6A0B">3 GUARDED LIVE PROFILES</text>
+
+  <line x1="288" y1="365" x2="304" y2="365" stroke="#64748B" stroke-width="3"/>
+  <polygon points="304,365 294,359 294,371" fill="#64748B"/>
+  <line x1="539" y1="365" x2="555" y2="365" stroke="#64748B" stroke-width="3"/>
+  <polygon points="555,365 545,359 545,371" fill="#64748B"/>
+  <line x1="790" y1="365" x2="806" y2="365" stroke="#64748B" stroke-width="3"/>
+  <polygon points="806,365 796,359 796,371" fill="#64748B"/>
+  <line x1="1041" y1="365" x2="1057" y2="365" stroke="#64748B" stroke-width="3"/>
+  <polygon points="1057,365 1047,359 1047,371" fill="#64748B"/>
+  <line x1="1292" y1="365" x2="1308" y2="365" stroke="#64748B" stroke-width="3"/>
+  <polygon points="1308,365 1298,359 1298,371" fill="#64748B"/>
+
+  <g>
+    <rect x="56" y="208" width="233" height="314" rx="8" fill="#FFFFFF" stroke="#A7C7E7" stroke-width="2"/>
+    <rect x="56" y="208" width="233" height="66" rx="8" fill="#0F6CBD"/>
+    <rect x="56" y="254" width="233" height="20" fill="#0F6CBD"/>
+    <circle cx="84" cy="241" r="16" fill="#FFFFFF"/>
+    <text x="79" y="247" font-family="Segoe UI, Arial, sans-serif" font-size="17" font-weight="700" fill="#0F6CBD">1</text>
+    <text x="110" y="249" font-family="Segoe UI, Arial, sans-serif" font-size="23" font-weight="700" fill="#FFFFFF">Clone &amp; replay</text>
+    <rect x="76" y="302" width="193" height="46" rx="6" fill="#EFF6FF" stroke="#BFDBFE"/>
+    <text x="99" y="331" font-family="Consolas, monospace" font-size="20" font-weight="700" fill="#1D4ED8">./liveks try</text>
+    <text x="78" y="392" font-family="Segoe UI, Arial, sans-serif" font-size="19" font-weight="700" fill="#111827">Answer-first trace</text>
+    <text x="78" y="425" font-family="Segoe UI, Arial, sans-serif" font-size="17" fill="#475569">No Azure or Fabric</text>
+    <text x="78" y="452" font-family="Segoe UI, Arial, sans-serif" font-size="17" fill="#475569">No package install</text>
+    <rect x="76" y="478" width="142" height="26" rx="6" fill="#E8F3FC"/>
+    <text x="91" y="496" font-family="Segoe UI, Arial, sans-serif" font-size="14" font-weight="700" fill="#0F548C">FIRST LOCAL PASS</text>
+  </g>
+
+  <g>
+    <rect x="307" y="208" width="233" height="314" rx="8" fill="#FFFFFF" stroke="#91D5D0" stroke-width="2"/>
+    <rect x="307" y="208" width="233" height="66" rx="8" fill="#008575"/>
+    <rect x="307" y="254" width="233" height="20" fill="#008575"/>
+    <circle cx="335" cy="241" r="16" fill="#FFFFFF"/>
+    <text x="330" y="247" font-family="Segoe UI, Arial, sans-serif" font-size="17" font-weight="700" fill="#008575">2</text>
+    <text x="361" y="249" font-family="Segoe UI, Arial, sans-serif" font-size="23" font-weight="700" fill="#FFFFFF">Choose a path</text>
+    <rect x="327" y="296" width="94" height="30" rx="6" fill="#FFF1E7" stroke="#F4B183"/>
+    <text x="340" y="316" font-family="Consolas, monospace" font-size="14" font-weight="700" fill="#9A3412">mcp-only</text>
+    <text x="431" y="316" font-family="Segoe UI, Arial, sans-serif" font-size="14" fill="#475569">fastest live</text>
+    <rect x="327" y="342" width="108" height="30" rx="6" fill="#E9F5EA" stroke="#9FD89F"/>
+    <text x="338" y="362" font-family="Consolas, monospace" font-size="14" font-weight="700" fill="#166534">byo-fabric</text>
+    <text x="445" y="362" font-family="Segoe UI, Arial, sans-serif" font-size="14" fill="#475569">reuse</text>
+    <rect x="327" y="388" width="66" height="30" rx="6" fill="#E8F3FC" stroke="#8DC8E8"/>
+    <text x="342" y="408" font-family="Consolas, monospace" font-size="14" font-weight="700" fill="#1D4ED8">full</text>
+    <text x="403" y="408" font-family="Segoe UI, Arial, sans-serif" font-size="14" fill="#475569">greenfield + F2</text>
+    <text x="329" y="462" font-family="Segoe UI, Arial, sans-serif" font-size="17" fill="#475569">Match tenant readiness,</text>
+    <text x="329" y="489" font-family="Segoe UI, Arial, sans-serif" font-size="17" fill="#475569">ownership, and cost.</text>
+  </g>
+
+  <g>
+    <rect x="558" y="208" width="233" height="314" rx="8" fill="#FFFFFF" stroke="#B8C4CE" stroke-width="2"/>
+    <rect x="558" y="208" width="233" height="66" rx="8" fill="#4F6473"/>
+    <rect x="558" y="254" width="233" height="20" fill="#4F6473"/>
+    <circle cx="586" cy="241" r="16" fill="#FFFFFF"/>
+    <text x="581" y="247" font-family="Segoe UI, Arial, sans-serif" font-size="17" font-weight="700" fill="#4F6473">3</text>
+    <text x="612" y="249" font-family="Segoe UI, Arial, sans-serif" font-size="23" font-weight="700" fill="#FFFFFF">Check first</text>
+    <rect x="578" y="302" width="193" height="46" rx="6" fill="#F1F5F9" stroke="#CBD5E1"/>
+    <text x="596" y="331" font-family="Consolas, monospace" font-size="18" font-weight="700" fill="#334155">doctor -&gt; plan</text>
+    <text x="580" y="392" font-family="Segoe UI, Arial, sans-serif" font-size="18" font-weight="700" fill="#111827">Tools, auth, config</text>
+    <text x="580" y="425" font-family="Segoe UI, Arial, sans-serif" font-size="17" fill="#475569">Resources + cost</text>
+    <text x="580" y="452" font-family="Segoe UI, Arial, sans-serif" font-size="17" fill="#475569">Payload + app builds</text>
+    <rect x="578" y="478" width="162" height="26" rx="6" fill="#F1F5F9"/>
+    <text x="592" y="496" font-family="Segoe UI, Arial, sans-serif" font-size="14" font-weight="700" fill="#334155">NO PROVISIONING</text>
+  </g>
+
+  <g>
+    <rect x="809" y="208" width="233" height="314" rx="8" fill="#FFFFFF" stroke="#F4B183" stroke-width="2"/>
+    <rect x="809" y="208" width="233" height="66" rx="8" fill="#D83B01"/>
+    <rect x="809" y="254" width="233" height="20" fill="#D83B01"/>
+    <circle cx="837" cy="241" r="16" fill="#FFFFFF"/>
+    <text x="832" y="247" font-family="Segoe UI, Arial, sans-serif" font-size="17" font-weight="700" fill="#D83B01">4</text>
+    <text x="863" y="249" font-family="Segoe UI, Arial, sans-serif" font-size="23" font-weight="700" fill="#FFFFFF">Deploy once</text>
+    <rect x="829" y="302" width="193" height="46" rx="6" fill="#FFF1E7" stroke="#F4B183"/>
+    <text x="853" y="331" font-family="Consolas, monospace" font-size="20" font-weight="700" fill="#9A3412">./liveks up</text>
+    <text x="831" y="392" font-family="Segoe UI, Arial, sans-serif" font-size="18" font-weight="700" fill="#111827">ARM preview first</text>
+    <text x="831" y="425" font-family="Segoe UI, Arial, sans-serif" font-size="17" fill="#475569">Exact confirmation</text>
+    <text x="831" y="452" font-family="Segoe UI, Arial, sans-serif" font-size="17" fill="#475569">Provision + app + verify</text>
+    <rect x="829" y="478" width="168" height="26" rx="6" fill="#FFF1E7"/>
+    <text x="844" y="496" font-family="Segoe UI, Arial, sans-serif" font-size="14" font-weight="700" fill="#9A3412">GUARDED MUTATION</text>
+  </g>
+
+  <g>
+    <rect x="1060" y="208" width="233" height="314" rx="8" fill="#FFFFFF" stroke="#9FD89F" stroke-width="2"/>
+    <rect x="1060" y="208" width="233" height="66" rx="8" fill="#107C10"/>
+    <rect x="1060" y="254" width="233" height="20" fill="#107C10"/>
+    <circle cx="1088" cy="241" r="16" fill="#FFFFFF"/>
+    <text x="1083" y="247" font-family="Segoe UI, Arial, sans-serif" font-size="17" font-weight="700" fill="#107C10">5</text>
+    <text x="1114" y="249" font-family="Segoe UI, Arial, sans-serif" font-size="23" font-weight="700" fill="#FFFFFF">Prove grounding</text>
+    <rect x="1080" y="302" width="193" height="46" rx="6" fill="#E9F5EA" stroke="#9FD89F"/>
+    <text x="1095" y="331" font-family="Consolas, monospace" font-size="18" font-weight="700" fill="#166534">verify -&gt; mcp</text>
+    <text x="1082" y="392" font-family="Segoe UI, Arial, sans-serif" font-size="18" font-weight="700" fill="#111827">Live source trace</text>
+    <text x="1082" y="425" font-family="Segoe UI, Arial, sans-serif" font-size="17" fill="#475569">Activity + references</text>
+    <text x="1082" y="452" font-family="Segoe UI, Arial, sans-serif" font-size="17" fill="#475569">Known-fact MCP check</text>
+    <rect x="1080" y="478" width="178" height="26" rx="6" fill="#E9F5EA"/>
+    <text x="1095" y="496" font-family="Segoe UI, Arial, sans-serif" font-size="14" font-weight="700" fill="#166534">EVIDENCE, NOT CLAIMS</text>
+  </g>
+
+  <g>
+    <rect x="1311" y="208" width="233" height="314" rx="8" fill="#FFFFFF" stroke="#D5B9E8" stroke-width="2"/>
+    <rect x="1311" y="208" width="233" height="66" rx="8" fill="#744DA9"/>
+    <rect x="1311" y="254" width="233" height="20" fill="#744DA9"/>
+    <circle cx="1339" cy="241" r="16" fill="#FFFFFF"/>
+    <text x="1334" y="247" font-family="Segoe UI, Arial, sans-serif" font-size="17" font-weight="700" fill="#744DA9">6</text>
+    <text x="1365" y="249" font-family="Segoe UI, Arial, sans-serif" font-size="23" font-weight="700" fill="#FFFFFF">Clean up</text>
+    <rect x="1331" y="302" width="193" height="46" rx="6" fill="#F5F0FA" stroke="#D5B9E8"/>
+    <text x="1341" y="331" font-family="Consolas, monospace" font-size="18" font-weight="700" fill="#5C2D91">./liveks down</text>
+    <text x="1333" y="392" font-family="Segoe UI, Arial, sans-serif" font-size="18" font-weight="700" fill="#111827">Ownership checked</text>
+    <text x="1333" y="425" font-family="Segoe UI, Arial, sans-serif" font-size="17" fill="#475569">BYO assets preserved</text>
+    <text x="1333" y="452" font-family="Segoe UI, Arial, sans-serif" font-size="17" fill="#475569">Absence verified</text>
+    <rect x="1331" y="478" width="177" height="26" rx="6" fill="#F5F0FA"/>
+    <text x="1345" y="496" font-family="Segoe UI, Arial, sans-serif" font-size="14" font-weight="700" fill="#5C2D91">CLEANUP PROOF</text>
+  </g>
+
+  <rect x="56" y="574" width="1488" height="166" rx="8" fill="#111827"/>
+  <text x="84" y="616" font-family="Segoe UI, Arial, sans-serif" font-size="18" font-weight="700" fill="#93C5FD">YOU FINISH WITH</text>
+  <line x1="84" y1="638" x2="1516" y2="638" stroke="#334155" stroke-width="2"/>
+
+  <g transform="translate(86 663)">
+    <circle cx="18" cy="18" r="18" fill="#2563EB"/>
+    <path d="M10 18 L16 24 L27 12" fill="none" stroke="#FFFFFF" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+    <text x="52" y="13" font-family="Segoe UI, Arial, sans-serif" font-size="20" font-weight="700" fill="#FFFFFF">Grounded answer</text>
+    <text x="52" y="40" font-family="Consolas, monospace" font-size="15" fill="#CBD5E1">answer content</text>
+  </g>
+
+  <g transform="translate(442 663)">
+    <circle cx="18" cy="18" r="18" fill="#107C10"/>
+    <path d="M10 18 L16 24 L27 12" fill="none" stroke="#FFFFFF" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+    <text x="52" y="13" font-family="Segoe UI, Arial, sans-serif" font-size="20" font-weight="700" fill="#FFFFFF">Source execution</text>
+    <text x="52" y="40" font-family="Consolas, monospace" font-size="15" fill="#CBD5E1">activity + references + sourceData</text>
+  </g>
+
+  <g transform="translate(842 663)">
+    <circle cx="18" cy="18" r="18" fill="#D83B01"/>
+    <path d="M10 18 L16 24 L27 12" fill="none" stroke="#FFFFFF" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+    <text x="52" y="13" font-family="Segoe UI, Arial, sans-serif" font-size="20" font-weight="700" fill="#FFFFFF">MCP client proof</text>
+    <text x="52" y="40" font-family="Consolas, monospace" font-size="15" fill="#CBD5E1">tools/list + tools/call + known fact</text>
+  </g>
+
+  <g transform="translate(1238 663)">
+    <circle cx="18" cy="18" r="18" fill="#744DA9"/>
+    <path d="M10 18 L16 24 L27 12" fill="none" stroke="#FFFFFF" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+    <text x="52" y="13" font-family="Segoe UI, Arial, sans-serif" font-size="20" font-weight="700" fill="#FFFFFF">Cleanup proof</text>
+    <text x="52" y="40" font-family="Consolas, monospace" font-size="15" fill="#CBD5E1">resource-group-absent</text>
+  </g>
+</svg>
