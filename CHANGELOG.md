@@ -38,6 +38,7 @@ All notable changes to this accelerator are documented here.
 - Full runs reconcile generated Fabric state, tolerate initial OneLake metadata propagation, and hand preprovisioned capacity IDs to Bicep without duplicate creation.
 - Cleanup polls for Azure resource-group deletion and removes an accelerator-created residual group only when the pre-preview ownership record proves it was not pre-existing.
 - Full cleanup now proves both generated resource groups are absent and the matching Fabric capacity resource count is zero, while omitting deletion claims for reused capacity.
+- Fabric-only E2E cleanup now waits for deletion and ends with a mandatory release check that proves generated workspaces and create-mode capacities are absent while preserving BYO capacity.
 
 ### Compatibility
 

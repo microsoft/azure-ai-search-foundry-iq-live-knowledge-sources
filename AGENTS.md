@@ -84,6 +84,7 @@ Use the evidence that matches the claim:
 | Combined routing worked | Recognized live evidence from the source or sources selected by the combined KB planner |
 | Knowledge Base MCP is callable | `liveks mcp` passes `tools/list` and `tools/call` |
 | Knowledge Base MCP returned expected grounding | `liveks mcp --expect-term <known-fact>` passes `grounding-content`; pair it with source-specific `verify` evidence before naming the source that ran |
+| Fabric-only rehearsal is complete | `scripts/fabric-e2e-test.sh --cleanup` ends with `fabric_release=PASS`; generated workspace and, for create mode, capacity resource group and ARM capacity are absent |
 | Full rehearsal is complete | Create and retrieve checks pass; deployment RG, generated capacity RG, and generated capacity absence checks pass |
 
 Final answer text alone is not routing evidence. Inspect `activity`, `references`, and `sourceData`, and use the single-source KB checks to prove MCP and Fabric independently.

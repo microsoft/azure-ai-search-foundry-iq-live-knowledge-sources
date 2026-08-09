@@ -25,6 +25,7 @@ CHECK_IDS=(
   "ontology_definition"
   "graph_model"
   "cleanup"
+  "fabric_release"
 )
 CHECK_LABELS=(
   "External tenant login is active"
@@ -37,6 +38,7 @@ CHECK_LABELS=(
   "Ontology definition is readable"
   "Ontology-backed GraphModel is queryable"
   "Fabric cleanup completes"
+  "Generated Fabric assets are released"
 )
 CHECK_STATUS=()
 CHECK_NOTES=()
@@ -187,12 +189,24 @@ json_expr() {
 cleanup() {
   if [[ "$CLEANUP" == "true" ]]; then
     if python3 scripts/fabric-destroy.py --env-name "$ENV_NAME" --yes 2>&1 | tee -a "$LOG_FILE"; then
-      set_check "cleanup" "PASS" "fabric-destroy.py completed"
+      set_check "cleanup" "PASS" "fabric-destroy.py completed and waited for deletion"
     else
       set_check "cleanup" "FAIL" "fabric-destroy.py failed"
+      set_check "fabric_release" "FAIL" "Cleanup failed; Fabric release could not be verified."
+      return
+    fi
+    if python3 scripts/fabric-destroy.py --env-name "$ENV_NAME" --verify-only 2>&1 | tee -a "$LOG_FILE"; then
+      if [[ "$FABRIC_CAPACITY_MODE" == "create" ]]; then
+        set_check "fabric_release" "PASS" "Generated workspace, capacity resource group, and capacity are absent."
+      else
+        set_check "fabric_release" "PASS" "Generated workspace is absent and the BYO capacity is preserved."
+      fi
+    else
+      set_check "fabric_release" "FAIL" "Generated Fabric assets are still present or could not be verified."
     fi
   else
     set_check "cleanup" "SKIP" "Resources kept for debugging."
+    set_check "fabric_release" "SKIP" "Resources intentionally retained; release was not requested."
   fi
 }
 
