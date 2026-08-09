@@ -27,6 +27,15 @@ def load_fabric_provision_module():
     return module
 
 
+def load_fabric_destroy_module():
+    path = ROOT / "scripts/fabric-destroy.py"
+    spec = importlib.util.spec_from_file_location("fabric_destroy_for_tests", path)
+    module = importlib.util.module_from_spec(spec)
+    assert spec and spec.loader
+    spec.loader.exec_module(module)
+    return module
+
+
 class FakeHttpResponse:
     status = 200
     headers = {}
@@ -142,6 +151,109 @@ class FabricProvisionSafetyTests(unittest.TestCase):
             self.assertEqual(summary["status"], "failed")
             self.assertTrue(summary["capacityCreated"])
             self.assertIn("workspace boom", summary["error"])
+
+
+class FabricDestroySafetyTests(unittest.TestCase):
+    def test_verify_only_fails_when_cleanup_summary_is_missing(self):
+        module = load_fabric_destroy_module()
+        with (
+            mock.patch.object(sys, "argv", ["fabric-destroy.py", "--env-name", "missing", "--verify-only"]),
+            mock.patch.object(module, "load_azd_env", return_value={}),
+            mock.patch.object(module, "load_summary", return_value=None),
+        ):
+            with self.assertRaisesRegex(RuntimeError, "release cannot be verified"):
+                module.main()
+
+    def test_generated_capacity_group_delete_waits_for_completion(self):
+        module = load_fabric_destroy_module()
+        summary = {
+            "capacityCreated": True,
+            "capacityName": "fabunit",
+            "capacityResourceGroup": "rg-unit-fabric",
+        }
+        with (
+            mock.patch.object(module, "resource_group_exists", return_value=True),
+            mock.patch.object(module, "run", return_value="") as run,
+            contextlib.redirect_stdout(io.StringIO()),
+        ):
+            deferred = module.delete_capacity_resource_group(summary, {"AZURE_RESOURCE_GROUP": "rg-unit-app"})
+        self.assertFalse(deferred)
+        commands = [call.args[0] for call in run.call_args_list]
+        self.assertIn(["az", "group", "delete", "--name", "rg-unit-fabric", "--yes", "--no-wait"], commands)
+        self.assertIn(["az", "group", "wait", "--name", "rg-unit-fabric", "--deleted", "--timeout", "1800"], commands)
+
+    def test_cleanup_verification_requires_generated_assets_to_be_absent(self):
+        module = load_fabric_destroy_module()
+        summary = {
+            "capacityCreated": True,
+            "capacityName": "fabunit",
+            "capacityResourceGroup": "rg-unit-fabric",
+            "workspaceCreated": True,
+            "workspaceId": "workspace-id",
+            "lakehouseCreated": True,
+            "lakehouseId": "lakehouse-id",
+            "ontologyCreated": True,
+            "ontologyId": "ontology-id",
+        }
+        with (
+            mock.patch.object(module, "wait_for_fabric_absent") as wait,
+            mock.patch.object(module, "resource_group_exists", return_value=False),
+            mock.patch.object(module, "wait_for_capacity_absent") as capacity_wait,
+            contextlib.redirect_stdout(io.StringIO()),
+        ):
+            module.verify_cleanup(summary, "token")
+        self.assertEqual(wait.call_count, 3)
+        capacity_wait.assert_called_once_with("fabunit", "token")
+
+    def test_cleanup_verification_fails_when_generated_capacity_remains(self):
+        module = load_fabric_destroy_module()
+        summary = {
+            "capacityCreated": True,
+            "capacityName": "fabunit",
+            "capacityResourceGroup": "rg-unit-fabric",
+        }
+        with (
+            mock.patch.object(module, "resource_group_exists", return_value=False),
+            mock.patch.object(
+                module,
+                "wait_for_capacity_absent",
+                side_effect=RuntimeError("Generated Fabric capacity still exists after cleanup: fabunit"),
+            ),
+        ):
+            with self.assertRaisesRegex(RuntimeError, "capacity still exists"):
+                module.verify_cleanup(summary, "token")
+
+    def test_capacity_absence_waits_for_arm_and_fabric_inventories(self):
+        module = load_fabric_destroy_module()
+        with (
+            mock.patch.object(module, "arm_capacity_exists", side_effect=[True, False]) as arm_exists,
+            mock.patch.object(module, "fabric_capacity_exists", side_effect=[True, False]) as fabric_exists,
+            mock.patch.object(module.time, "sleep") as sleep,
+            contextlib.redirect_stdout(io.StringIO()),
+        ):
+            module.wait_for_capacity_absent("fabunit", "token")
+        self.assertEqual(arm_exists.call_count, 2)
+        self.assertEqual(fabric_exists.call_count, 2)
+        sleep.assert_called_once_with(module.FABRIC_DELETE_DELAY_SECONDS)
+
+    def test_cleanup_verification_preserves_reused_capacity(self):
+        module = load_fabric_destroy_module()
+        summary = {
+            "capacityCreated": False,
+            "capacityName": "fab-byo",
+            "workspaceCreated": True,
+            "workspaceId": "workspace-id",
+        }
+        with (
+            mock.patch.object(module, "wait_for_fabric_absent") as wait,
+            mock.patch.object(module, "resource_group_exists") as group_exists,
+            mock.patch.object(module, "fabric_capacity_exists", return_value=True) as capacity_exists,
+            contextlib.redirect_stdout(io.StringIO()),
+        ):
+            module.verify_cleanup(summary, "token")
+        wait.assert_called_once_with("/workspaces/workspace-id", "token", "workspace")
+        group_exists.assert_not_called()
+        capacity_exists.assert_called_once_with("fab-byo", "token")
 
 
 class FakeCleanupRunner:

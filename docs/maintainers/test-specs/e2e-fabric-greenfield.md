@@ -70,6 +70,7 @@ bash scripts/fabric-e2e-test.sh \
 | Ontology definition readable | PASS |
 | Ontology-backed GraphModel queryable | PASS |
 | Cleanup completes | PASS when `--cleanup` is used |
+| Fabric release verification | PASS after generated assets are confirmed absent |
 
 ## Pass Criteria
 
@@ -82,5 +83,7 @@ The run passes when `deployments/<env>/fabric-test-report.md` shows all checks p
 - `ontologyValidation.status == "ok"`
 - `graphValidation.status == "ok"`
 - `graphValidation.probe.rowCount > 0`
+
+The final `fabric_release` check is mandatory when `--cleanup` is used. In `create` mode it confirms that the generated workspace, capacity resource group, and ARM Fabric capacity are absent. In `byo` mode it confirms that the generated workspace is absent while the existing capacity is preserved. A delete request by itself is not release evidence.
 
 Generated reports are ignored by git and must not contain tokens or credentials.

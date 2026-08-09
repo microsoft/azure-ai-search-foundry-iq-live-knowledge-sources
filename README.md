@@ -189,6 +189,8 @@ Before cleanup, open the App URL in `deployments/<environment>/deployment-summar
 
 Require `resource-group-absent`. A `full` run that generated Fabric capacity must also report `fabric-capacity-resource-group-absent` and `fabric-capacity-absent`.
 
+A Fabric-only rehearsal must run `scripts/fabric-e2e-test.sh --cleanup` and end with `fabric_release=PASS`. Create mode proves the generated workspace, capacity resource group, and capacity are absent; BYO mode proves the generated workspace is absent while preserving the existing capacity.
+
 For a controlled end-to-end rehearsal:
 
 ```bash
