@@ -29,6 +29,8 @@ Use `notebooks/01-mcp-server-ks-quickstart.ipynb` for the guided MCP path. It bu
 
 Use `mcp-only` for the smallest end-to-end live deployment. It uses the public Microsoft Learn MCP endpoint, so no Fabric workspace or ontology is required. The REST files in the next section remain the payload-level path for manual API inspection.
 
+Before a live run, review [Public Preview Limitations and Caveats](13-public-preview-limitations.md) alongside the official manual.
+
 Prerequisites are Python 3.11 or newer, Azure Developer CLI 1.27.0 or newer, Azure CLI, Node.js 22 or newer with npm, and permission to create the Azure resources listed by the plan.
 
 ```bash

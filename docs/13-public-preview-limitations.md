@@ -7,6 +7,8 @@ The official manuals remain the source of truth:
 - [Create an MCP Server knowledge source](https://learn.microsoft.com/azure/search/agentic-knowledge-source-how-to-mcp-server)
 - [Create a Fabric Ontology knowledge source](https://learn.microsoft.com/azure/search/agentic-knowledge-source-how-to-fabric-ontology)
 
+Return to [Overview](00-overview.md) to choose a repository path, or continue with [MCP Server Knowledge Source](03-mcp-server-ks.md) for the `mcp-only` live procedure.
+
 ## Preview API Boundary
 
 This sample uses Azure AI Search Knowledge Source APIs in `2026-05-01-preview`.
