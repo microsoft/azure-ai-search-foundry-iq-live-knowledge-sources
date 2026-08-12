@@ -23,6 +23,7 @@ All notable changes to this accelerator are documented here.
 
 ### Changed
 
+- The MCP Server guide now uses one payload-to-cleanup execution contract that distinguishes representative JSON, the resolved deployment dry-run, live retrieve evidence, and native Knowledge Base MCP content proof.
 - MCP Server and public-preview guidance now provide a reciprocal reader path, backed by a maintainer audit of the repository's documentation, CI, deployment, authentication, and traffic evidence.
 - README and manual onboarding now reserve the hero for the user journey and leave Knowledge Base topology to the detailed Architecture section.
 - The overview reader path now starts with dependency-free offline replay, then moves through profile selection, guarded planning, live evidence, and repository validation.
