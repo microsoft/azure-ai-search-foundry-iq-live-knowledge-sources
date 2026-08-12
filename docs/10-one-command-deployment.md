@@ -147,27 +147,26 @@ Cleanup order:
 3. delete Fabric only when both identify it as generated,
 4. run `azd down --purge --force`,
 5. verify the generated deployment resource group is absent,
-6. when this run created a Fabric capacity, verify its dedicated resource group is absent and the matching ARM capacity count is zero.
+6. when this run created a Fabric capacity, verify the matching ARM capacity is absent,
+7. when this run also created the dedicated capacity resource group, verify that group is absent.
 
-For `byo-fabric`, Fabric cleanup is always skipped. For `full`, a Fabric cleanup failure is reported as partial but Azure cleanup continues.
+For `byo-fabric`, Fabric cleanup is always skipped. For `full`, a Fabric cleanup failure, missing or invalid lock, or missing ownership summary is reported as partial but Azure cleanup continues. Create mode refuses to adopt an existing capacity unless the same environment's prior summary proves ownership. The direct `azd` compatibility path can instead prove the exact Bicep-created ARM ID with matching environment, solution, and manager tags.
 
 Successful `down --format json` output contains these checks:
 
 | Check | Applies to | Required result |
 | --- | --- | --- |
 | `resource-group-absent` | Every live profile | `pass` |
-| `fabric-capacity-resource-group-absent` | `full` when the run created capacity | `pass` |
+| `fabric-capacity-resource-group-absent` | `full` when the run created the dedicated capacity group | `pass` |
+| `fabric-capacity-resource-group-preserved` | `full` when the capacity was created in a pre-existing group | `pass` |
 | `fabric-capacity-absent` | `full` when the run created capacity | `pass` |
 
-For an independent Azure CLI confirmation, take the generated names from the ignored Fabric summary and expect `false`, `false`, and `0`:
+For an independent Azure CLI confirmation, take the generated values from the ignored Fabric summary. Expect the deployment group to be absent and the exact capacity lookup to return `ResourceNotFound`. Expect the capacity group to be absent when `capacityResourceGroupCreated` is true, present when it is false, and manually reviewed when the field is missing:
 
 ```bash
 az group exists --name <deployment-resource-group>
 az group exists --name <fabric-capacity-resource-group>
-az resource list \
-  --resource-type Microsoft.Fabric/capacities \
-  --query "length([?name=='<fabric-capacity-name>'])" \
-  --output tsv
+az resource show --ids <fabric-capacity-arm-id> --only-show-errors
 ```
 
 Do not apply the Fabric absence checks to `byo-fabric`: preserving its existing capacity, workspace, and ontology is the required result.
@@ -197,17 +196,21 @@ The lifecycle writes ignored `deployments/<environment>/e2e-report.json` and `te
 If full cleanup reports a residual capacity:
 
 1. inspect `deployments/<environment>/fabric-summary.json`,
-2. confirm the capacity was created by this exact environment,
-3. list every resource in its Azure resource group,
-4. confirm no shared workspace is assigned in Fabric,
-5. delete only the generated capacity or its dedicated empty resource group.
+2. confirm `capacityCreated` is true for this exact environment,
+3. check `capacityResourceGroupCreated` before treating the whole group as owned,
+4. list every resource in its Azure resource group,
+5. confirm no shared workspace is assigned in Fabric,
+6. delete only the generated capacity or its owned, otherwise empty resource group.
 
 ```bash
 az resource list --resource-group <fabric-capacity-resource-group> -o table
+# Use only when capacityResourceGroupCreated is true and the inventory is otherwise empty:
 az group delete --name <fabric-capacity-resource-group> --yes --no-wait
+# Otherwise delete the proven generated capacity and preserve the group:
+az resource delete --ids <fabric-capacity-arm-id>
 ```
 
-Do not delete a group that contains non-sample resources, a BYO capacity, or an asset whose ownership cannot be proven. Inspect both Azure and the Fabric admin portal before manual cleanup.
+Do not delete a group that contains non-sample resources, a BYO capacity, or an asset whose ownership cannot be proven. New full runs tag generated capacity resources with the environment and solution, but tags support the ownership record rather than replacing it. Inspect both Azure and the Fabric admin portal before manual cleanup.
 
 ## Direct azd Compatibility
 

@@ -172,13 +172,13 @@ Use [Call the Knowledge Base Through MCP](22-knowledge-base-mcp.md) for bearer a
 ./liveks down --env liveks-mcp
 ```
 
-Type `delete liveks-mcp`. The command verifies the generated deployment resource group is absent afterward. For a generated `full` capacity, it also waits for the Fabric capacity resource group to disappear and confirms that the matching ARM capacity count is zero.
+Type `delete liveks-mcp`. The command verifies the generated deployment resource group is absent afterward. For a generated `full` capacity, it also confirms that the exact ARM capacity is absent. When the run created the dedicated capacity resource group, it waits for that group to disappear as well.
 
 - `mcp-only` deletes generated Azure resources.
 - `byo-fabric` deletes generated Azure resources and preserves the existing Fabric workspace and ontology.
 - `full` deletes generated Fabric assets first, continues with Azure cleanup if Fabric reports a partial failure, and returns a nonzero partial-cleanup status.
 
-Do not close a rehearsal until `resource-group-absent` passes. For generated `full`, also require `fabric-capacity-resource-group-absent` and `fabric-capacity-absent`.
+Do not close a rehearsal until `resource-group-absent` passes. For generated `full`, also require `fabric-capacity-absent`; require `fabric-capacity-resource-group-absent` for a generated group or `fabric-capacity-resource-group-preserved` for a pre-existing group. Treat a missing summary or unresolved create-mode ownership as partial cleanup.
 
 The YAML and redacted lock must both identify Fabric assets as generated before Fabric deletion is allowed.
 

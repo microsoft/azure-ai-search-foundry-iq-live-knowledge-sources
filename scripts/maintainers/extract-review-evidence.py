@@ -119,9 +119,12 @@ def render_evidence(mode_verdicts: list[tuple[str, str, str]], checks_by_mode: d
         )
         v2_pass = all(checks.get(name) == "PASS" for name in ("fabric-cleanup", "azure-cleanup", "resource-group-absent"))
         if mode == "full" and v2_pass:
-            v2_pass = all(
-                checks.get(name) == "PASS"
-                for name in ("fabric-capacity-resource-group-absent", "fabric-capacity-absent")
+            group_release = checks.get("fabric-capacity-resource-group-absent") == "PASS" or checks.get(
+                "fabric-capacity-resource-group-preserved"
+            ) == "PASS"
+            v2_pass = (
+                checks.get("fabric-capacity-absent") == "PASS"
+                and group_release
             )
         if legacy_pass or v2_pass:
             cleanup_pass_modes.append(mode)
@@ -171,7 +174,7 @@ def render_evidence(mode_verdicts: list[tuple[str, str, str]], checks_by_mode: d
         ),
         "- Cleanup: "
         + (
-            f"Fabric ownership, Azure cleanup, and all required absence checks PASS in {', '.join(cleanup_pass_modes)}."
+            f"Fabric ownership, Azure cleanup, and all required release checks PASS in {', '.join(cleanup_pass_modes)}."
             if cleanup_pass_modes
             else "not fully proven by the sanitized summary."
         ),

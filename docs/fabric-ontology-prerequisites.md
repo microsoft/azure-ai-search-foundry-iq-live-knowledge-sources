@@ -43,7 +43,7 @@ The YAML ledger is the authoring source. LiveKS derives and projects the followi
 | `FABRIC_CAPACITY_NAME` | generated from env name | Optional capacity display/resource name. | None by itself |
 | `FABRIC_CAPACITY_ID` | empty before provisioning | Generated capacity ID. | Identifies generated billing |
 | `FABRIC_CAPACITY_ARM_ID` | empty before provisioning | Generated ARM capacity ID. | Identifies generated billing |
-| `FABRIC_CAPACITY_RESOURCE_GROUP` | `AZURE_RESOURCE_GROUP` or `rg-<env>-fabric` | Resource group for generated capacity. | Deleted by `fabric-destroy.py` only when this run created the capacity |
+| `FABRIC_CAPACITY_RESOURCE_GROUP` | `AZURE_RESOURCE_GROUP` or `rg-<env>-fabric` | Resource group for generated capacity. | The group is deleted only when this run created it and it contains no unrelated resources; otherwise only the owned capacity is deleted |
 | `FABRIC_CAPACITY_ADMIN` | signed-in Azure user | UPN assigned as capacity administrator when creating capacity. | None by itself |
 | `FABRIC_LOCATION` | `AZURE_LOCATION` or `westus3` | Fabric capacity location. Use a region with Fabric quota. | Region quota controls whether capacity can be created |
 | `FABRIC_WORKSPACE_ID` | empty before provisioning | Generated workspace ID. | Uses generated capacity |
@@ -53,7 +53,7 @@ The YAML ledger is the authoring source. LiveKS derives and projects the followi
 | `FABRIC_ONTOLOGY_ID` | empty before provisioning | Generated ontology item ID. | Uses generated workspace |
 | `FABRIC_ONTOLOGY_NAME` | `AirlineOpsOntology` | Generated ontology name. | Uses selected capacity |
 
-`full` rejects authored workspace and ontology IDs. Fresh runs clear stale generated IDs before resolving assets by their derived names. Generated IDs are written only to ignored deployment state so cleanup can find partially created assets, then cleared from `azd env` after `down`.
+`full` rejects authored workspace and ontology IDs. Fresh runs clear stale generated IDs before resolving assets by their derived names. Create mode also rejects a same-named existing capacity unless the same environment summary proves it was created by an earlier attempt, or the direct `azd` path supplies the exact Bicep-created ARM ID with matching ownership tags. Generated IDs and separate capacity/resource-group ownership flags are written only to ignored deployment state so cleanup can find partially created assets, then generated IDs are cleared from `azd env` after `down`.
 
 If the Azure portal shows a leftover generated Fabric capacity resource group after a test run, use [Residual Fabric Capacity](10-one-command-deployment.md#residual-fabric-capacity) before assuming the resource is still needed.
 

@@ -52,7 +52,47 @@ class MaintainerEvidenceTests(unittest.TestCase):
         self.assertIn("Microsoft Learn MCP KS PASS in byo-fabric", extracted)
         self.assertIn("Fabric Ontology KS PASS in byo-fabric", extracted)
         self.assertIn("Combined KB PASS in byo-fabric", extracted)
-        self.assertIn("all required absence checks PASS in byo-fabric", extracted)
+        self.assertIn("all required release checks PASS in byo-fabric", extracted)
+
+    def test_full_cleanup_accepts_preexisting_capacity_group_preservation(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = Path(temp_dir)
+            report = root / "test-report.md"
+            summary = root / "summary.md"
+            report.write_text(
+                "# LiveKS E2E Test Report\n\n"
+                "- Deployment mode: `full`\n"
+                "- Location: `eastus`\n"
+                "- Cleanup requested: `yes`\n"
+                "- Generated: `2026-08-13 12:00 KST`\n\n"
+                "| Status | Check | Note |\n"
+                "| --- | --- | --- |\n"
+                "| `PASS` | fabric-cleanup | deleted |\n"
+                "| `PASS` | azure-cleanup | deleted |\n"
+                "| `PASS` | resource-group-absent | absent |\n"
+                "| `PASS` | fabric-capacity-absent | absent |\n"
+                "| `PASS` | fabric-capacity-resource-group-preserved | preserved |\n",
+                encoding="utf-8",
+            )
+            subprocess.run(
+                [
+                    sys.executable,
+                    str(ROOT / "scripts/maintainers/summarize-e2e-evidence.py"),
+                    str(report),
+                    "--output",
+                    str(summary),
+                ],
+                check=True,
+                capture_output=True,
+                text=True,
+            )
+            extracted = subprocess.run(
+                [sys.executable, str(ROOT / "scripts/maintainers/extract-review-evidence.py"), str(summary)],
+                check=True,
+                capture_output=True,
+                text=True,
+            ).stdout
+        self.assertIn("all required release checks PASS in full", extracted)
 
 
 if __name__ == "__main__":

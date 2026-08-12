@@ -197,7 +197,11 @@ cleanup() {
     fi
     if python3 scripts/fabric-destroy.py --env-name "$ENV_NAME" --verify-only 2>&1 | tee -a "$LOG_FILE"; then
       if [[ "$FABRIC_CAPACITY_MODE" == "create" ]]; then
-        set_check "fabric_release" "PASS" "Generated workspace, capacity resource group, and capacity are absent."
+        if json_expr 'd.get("capacityResourceGroupCreated") is True' < "deployments/${ENV_NAME}/fabric-summary.json"; then
+          set_check "fabric_release" "PASS" "Generated workspace, capacity resource group, and capacity are absent."
+        else
+          set_check "fabric_release" "PASS" "Generated workspace and capacity are absent; the pre-existing capacity resource group is preserved."
+        fi
       else
         set_check "fabric_release" "PASS" "Generated workspace is absent and the BYO capacity is preserved."
       fi
@@ -259,6 +263,8 @@ if [[ -z "$FABRIC_CAPACITY_NAME" ]]; then
   FABRIC_CAPACITY_NAME="$(printf 'fab%s' "$ENV_NAME" | tr '[:upper:]' '[:lower:]' | tr -cd 'a-z0-9' | cut -c1-63)"
 fi
 azd env set FABRIC_CAPACITY_NAME "$FABRIC_CAPACITY_NAME" 2>&1 | tee -a "$LOG_FILE"
+azd env set FABRIC_CAPACITY_ID "" >/dev/null
+azd env set FABRIC_CAPACITY_ARM_ID "" >/dev/null
 azd env set FABRIC_WORKSPACE_ID "" >/dev/null
 azd env set FABRIC_ONTOLOGY_ID "" >/dev/null
 azd env set FABRIC_LAKEHOUSE_ID "" >/dev/null

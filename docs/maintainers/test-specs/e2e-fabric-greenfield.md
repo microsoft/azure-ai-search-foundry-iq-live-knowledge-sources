@@ -84,6 +84,6 @@ The run passes when `deployments/<env>/fabric-test-report.md` shows all checks p
 - `graphValidation.status == "ok"`
 - `graphValidation.probe.rowCount > 0`
 
-The final `fabric_release` check is mandatory when `--cleanup` is used. In `create` mode it confirms that the generated workspace, capacity resource group, and ARM Fabric capacity are absent. In `byo` mode it confirms that the generated workspace is absent while the existing capacity is preserved. A delete request by itself is not release evidence.
+The final `fabric_release` check is mandatory when `--cleanup` is used. In `create` mode it confirms that the generated workspace and ARM Fabric capacity are absent, and that the capacity resource group was deleted or preserved according to `capacityResourceGroupCreated`. In `byo` mode it confirms that the generated workspace is absent while the existing capacity is preserved. A delete request by itself is not release evidence.
 
 Generated reports are ignored by git and must not contain tokens or credentials.
