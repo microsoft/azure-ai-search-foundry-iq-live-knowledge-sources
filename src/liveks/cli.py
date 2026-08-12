@@ -808,6 +808,11 @@ def _load_fabric_summary(environment: str) -> dict[str, Any] | None:
         raise ConfigError(f"Invalid Fabric summary: {summary_path}: {error}") from error
     if not isinstance(summary, dict):
         raise ConfigError(f"Invalid Fabric summary object: {summary_path}")
+    recorded_environment = str(summary.get("environmentName") or "")
+    if recorded_environment and recorded_environment != environment:
+        raise ConfigError(
+            f"Fabric summary identity mismatch: expected {environment}, found {recorded_environment}"
+        )
     return summary
 
 
@@ -821,15 +826,32 @@ def _locked_identity(environment: str) -> tuple[str | None, dict[str, str] | Non
 
 def _cleanup_ownership(config: ResolvedConfig) -> tuple[dict[str, str], str]:
     configured = config.ownership()
-    _, locked = _locked_identity(config.environment)
+    try:
+        _, locked = _locked_identity(config.environment)
+    except ConfigError as error:
+        locked = None
+        missing_reason = f"invalid environment lock: {error}"
+    else:
+        missing_reason = "environment lock is missing"
     if locked is None:
-        return configured, "resolved configuration"
+        effective = dict(configured)
+        for key in ("fabricCapacity", "fabricWorkspace", "fabricOntology"):
+            if configured.get(key) == "create":
+                effective[key] = "none"
+        return effective, f"resolved configuration; {missing_reason}"
 
     # Deletion is allowed only when both records identify the Fabric asset as generated.
     effective = dict(configured)
     for key in ("fabricCapacity", "fabricWorkspace", "fabricOntology"):
         if configured.get(key) != "create" or locked.get(key) != "create":
             effective[key] = "reuse" if "reuse" in {configured.get(key), locked.get(key)} else "none"
+    if any(
+        configured.get(key) != effective.get(key)
+        for key in ("fabricCapacity", "fabricWorkspace", "fabricOntology")
+    ):
+        for key in ("fabricCapacity", "fabricWorkspace", "fabricOntology"):
+            if configured.get(key) == "create":
+                effective[key] = "none"
     return effective, "resolved configuration + environment lock"
 
 
@@ -845,11 +867,74 @@ def down_report(config: ResolvedConfig, *, yes: bool, quiet: bool = False) -> di
     if selected.returncode != 0:
         return envelope("down", "fail", profile=config.profile, environment=config.environment, checks=[_check("azd-environment", "fail", f"Environment not found: {config.environment}")])
     ownership, ownership_source = _cleanup_ownership(config)
-    fabric_summary = _load_fabric_summary(config.environment) if ownership["fabricWorkspace"] == "create" else None
-    checks.append(_check("ownership", "pass", ownership_source, ownership=ownership))
+    configured_ownership = config.ownership()
+    ownership_disagreement = any(
+        configured_ownership.get(key) != ownership.get(key)
+        for key in ("fabricCapacity", "fabricWorkspace", "fabricOntology")
+    )
+    checks.append(
+        _check(
+            "ownership",
+            "warn" if ownership_disagreement else "pass",
+            (
+                f"Fabric ownership cannot be proven ({ownership_source}); uncertain assets are preserved for manual review"
+                if ownership_disagreement
+                else ownership_source
+            ),
+            ownership=ownership,
+        )
+    )
+    fabric_summary = None
     if ownership["fabricWorkspace"] == "create":
+        try:
+            fabric_summary = _load_fabric_summary(config.environment)
+        except ConfigError as error:
+            checks.append(_check("fabric-summary", "warn", str(error)))
+        if fabric_summary is None and not any(check["name"] == "fabric-summary" for check in checks):
+            checks.append(
+                _check(
+                    "fabric-summary",
+                    "warn",
+                    "Fabric ownership summary is missing; generated Fabric release cannot be verified",
+                )
+            )
+    if ownership["fabricWorkspace"] == "create":
+        if (
+            fabric_summary is not None
+            and ownership.get("fabricCapacity") == "create"
+            and not fabric_summary.get("capacityCreated")
+            and fabric_summary.get("capacityResourceGroupCreated") is not True
+        ):
+            checks.append(
+                _check(
+                    "fabric-capacity-ownership",
+                    "warn",
+                    "Full-mode capacity was not created by this environment; it was preserved and needs an explicit cleanup owner review",
+                )
+            )
+        if (
+            fabric_summary is not None
+            and fabric_summary.get("capacityCreated")
+            and not isinstance(fabric_summary.get("capacityResourceGroupCreated"), bool)
+        ):
+            checks.append(
+                _check(
+                    "fabric-capacity-resource-group-ownership",
+                    "warn",
+                    "Capacity resource-group ownership is missing; the group is preserved for manual review",
+                )
+            )
         fabric = runner.run([sys.executable, "scripts/fabric-destroy.py", "--env-name", config.environment, "--yes"])
-        checks.append(_check("fabric-cleanup", "pass" if fabric.returncode == 0 else "warn", "Generated Fabric assets deleted" if fabric.returncode == 0 else "Fabric cleanup needs manual follow-up; Azure cleanup continued"))
+        if (
+            fabric.returncode == 0
+            and fabric_summary is not None
+            and not fabric_summary.get("capacityCreated")
+            and fabric_summary.get("capacityResourceGroupCreated") is not True
+        ):
+            fabric_message = "Generated Fabric workspace assets deleted; unowned capacity preserved"
+        else:
+            fabric_message = "Generated Fabric assets deleted" if fabric.returncode == 0 else "Fabric cleanup needs manual follow-up; Azure cleanup continued"
+        checks.append(_check("fabric-cleanup", "pass" if fabric.returncode == 0 else "warn", fabric_message))
     else:
         checks.append(_check("fabric-cleanup", "pass", "No generated Fabric assets owned by this environment"))
     azure = runner.run(["azd", "down", "--environment", config.environment, "--purge", "--force", "--no-prompt"])
@@ -868,7 +953,11 @@ def down_report(config: ResolvedConfig, *, yes: bool, quiet: bool = False) -> di
             break
         if attempt < 11:
             time.sleep(5)
-    lock = _load_lock(config.environment)
+    try:
+        lock = _load_lock(config.environment)
+    except ConfigError as error:
+        lock = None
+        checks.append(_check("environment-lock", "warn", str(error)))
     preexisting = lock.get("resourceGroupPreexisting") if lock else None
     if not absent and preexisting is False:
         fallback = runner.run(["az", "group", "delete", "--name", resource_group, "--yes", "--no-wait"])
@@ -889,8 +978,14 @@ def down_report(config: ResolvedConfig, *, yes: bool, quiet: bool = False) -> di
                     time.sleep(5)
     checks.append(_check("resource-group-absent", "pass" if absent else "fail", f"Deployment resource group {resource_group} is absent" if absent else f"Deployment resource group {resource_group} still exists"))
 
-    capacity_created = bool(fabric_summary and fabric_summary.get("capacityCreated"))
-    if ownership.get("fabricCapacity") == "create" and capacity_created:
+    capacity_cleanup_owned = bool(
+        fabric_summary
+        and (
+            fabric_summary.get("capacityCreated")
+            or fabric_summary.get("capacityResourceGroupCreated") is True
+        )
+    )
+    if ownership.get("fabricCapacity") == "create" and capacity_cleanup_owned:
         capacity_group = str(
             fabric_summary.get("capacityResourceGroup")
             or projected.get("FABRIC_CAPACITY_RESOURCE_GROUP")
@@ -901,38 +996,66 @@ def down_report(config: ResolvedConfig, *, yes: bool, quiet: bool = False) -> di
             or projected.get("FABRIC_CAPACITY_NAME")
             or config.get("fabric.capacity_name")
         )
+        capacity_group_ownership = fabric_summary.get("capacityResourceGroupCreated")
+        capacity_group_owned = capacity_group_ownership is True
         capacity_group_absent = False
         capacity_absent = False
         for attempt in range(12):
             group_probe = runner.run(["az", "group", "exists", "--name", capacity_group])
             capacity_group_absent = group_probe.returncode == 0 and group_probe.stdout.strip().lower() == "false"
-            capacity_probe = runner.run(
-                [
-                    "az",
-                    "resource",
-                    "list",
-                    "--resource-type",
-                    "Microsoft.Fabric/capacities",
-                    "--query",
-                    f"length([?name=='{capacity_name}'])",
-                    "--output",
-                    "tsv",
-                ]
-            )
-            capacity_absent = capacity_probe.returncode == 0 and capacity_probe.stdout.strip() in {"", "0"}
-            if capacity_group_absent and capacity_absent:
+            if capacity_group_absent:
+                capacity_absent = True
+            else:
+                capacity_probe = runner.run(
+                    [
+                        "az",
+                        "resource",
+                        "list",
+                        "--resource-group",
+                        capacity_group,
+                        "--resource-type",
+                        "Microsoft.Fabric/capacities",
+                        "--output",
+                        "json",
+                    ]
+                )
+                try:
+                    capacities = json.loads(capacity_probe.stdout or "[]")
+                except json.JSONDecodeError:
+                    capacities = None
+                capacity_absent = bool(
+                    capacity_probe.returncode == 0
+                    and isinstance(capacities, list)
+                    and not any(
+                        isinstance(capacity, dict)
+                        and str(capacity.get("name") or "").lower() == capacity_name.lower()
+                        for capacity in capacities
+                    )
+                )
+            if capacity_absent:
                 break
             if attempt < 11:
                 time.sleep(5)
-        checks.append(
-            _check(
-                "fabric-capacity-resource-group-absent",
-                "pass" if capacity_group_absent else "fail",
-                f"Generated Fabric capacity resource group {capacity_group} is absent"
-                if capacity_group_absent
-                else f"Generated Fabric capacity resource group {capacity_group} still exists",
+        if capacity_group_owned:
+            checks.append(
+                _check(
+                    "fabric-capacity-resource-group-absent",
+                    "pass" if capacity_group_absent else "fail",
+                    f"Generated Fabric capacity resource group {capacity_group} is absent"
+                    if capacity_group_absent
+                    else f"Generated Fabric capacity resource group {capacity_group} still exists",
+                )
             )
-        )
+        elif capacity_group_ownership is False:
+            checks.append(
+                _check(
+                    "fabric-capacity-resource-group-preserved",
+                    "pass" if not capacity_group_absent else "fail",
+                    f"Pre-existing Fabric capacity resource group {capacity_group} is preserved"
+                    if not capacity_group_absent
+                    else f"Pre-existing Fabric capacity resource group {capacity_group} is absent",
+                )
+            )
         checks.append(
             _check(
                 "fabric-capacity-absent",

@@ -6,6 +6,8 @@ All notable changes to this accelerator are documented here.
 
 ### Added
 
+- Fabric capacity and dedicated resource-group ownership journaling, environment tags, and cleanup tests for partial provisioning, failed capacity creation, shared resource groups, missing summaries, and pre-existing capacities.
+- Weekly Dependabot coverage for the root Python requirements files.
 - Outcome-first clone-to-grounded-proof hero for the README and manual landing page, backed by the actual LiveKS profile, lifecycle, evidence, and cleanup contracts.
 - MCP Server KS first-live-success procedure and an architecture-to-code traceability map that connect each public claim to checked-in configuration, implementation, CLI, and CI boundaries.
 - Managed-organization GitHub Pages manual that leads operators from profile configuration through one Live Knowledge Source, Foundry IQ grounding evidence, native Knowledge Base MCP invocation, and known limitations, with official Microsoft Learn references.
@@ -24,6 +26,8 @@ All notable changes to this accelerator are documented here.
 ### Changed
 
 - The MCP Server guide now uses one payload-to-cleanup execution contract that distinguishes representative JSON, the resolved deployment dry-run, live retrieve evidence, and native Knowledge Base MCP content proof.
+- Full create mode now rejects an existing capacity unless the same environment summary or exact tagged Bicep output proves ownership, records ARM ownership before readiness polling, and redacts administrator and generated IDs from provisioning settings output.
+- Fabric cleanup deletes a capacity resource group only when this run created the group and no unrelated resources are present; otherwise it deletes only the owned capacity and verifies preservation of a pre-existing group. Missing, conflicting, or unresolved full-mode ownership now reports partial cleanup instead of a false pass.
 - MCP Server and public-preview guidance now provide a reciprocal reader path, backed by a maintainer audit of the repository's documentation, CI, deployment, authentication, and traffic evidence.
 - README and manual onboarding now reserve the hero for the user journey and leave Knowledge Base topology to the detailed Architecture section.
 - The overview reader path now starts with dependency-free offline replay, then moves through profile selection, guarded planning, live evidence, and repository validation.

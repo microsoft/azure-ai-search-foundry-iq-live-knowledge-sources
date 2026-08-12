@@ -23,7 +23,7 @@ import urllib.parse
 import urllib.request
 import uuid
 from pathlib import Path
-from typing import Any
+from typing import Any, Callable
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 DATA_DIR = REPO_ROOT / "samples" / "data" / "airline-ops"
@@ -46,6 +46,9 @@ FABRIC_CAPACITY_LIST_ATTEMPTS = 72
 FABRIC_GRAPH_PROBE_ATTEMPTS = 60
 FABRIC_GRAPH_SECOND_PROBE_ATTEMPTS = 45
 FABRIC_GRAPH_PROBE_DELAY_SECONDS = 20
+SOLUTION_TAG = "foundry-iq-live-knowledge-sources"
+FABRIC_MANAGED_BY_TAG = "liveks-fabric-provision"
+BICEP_MANAGED_BY_TAG = "azd-bicep"
 
 ENTITY_SPECS = [
     ("Airline", "airlines.csv", "airline_code"),
@@ -238,6 +241,21 @@ def az_rest(method: str, url: str, body: dict[str, Any] | None = None) -> dict[s
     return json.loads(output) if output else {}
 
 
+def resource_group_exists(name: str) -> bool:
+    output = run(["az", "group", "exists", "--name", name]).strip().lower()
+    if output not in {"true", "false"}:
+        raise RuntimeError(f"Could not determine whether resource group {name} exists: {output}")
+    return output == "true"
+
+
+def capacity_resource_tags(settings: dict[str, str]) -> dict[str, str]:
+    return {
+        "azdEnvName": settings["AZURE_ENV_NAME"],
+        "solution": SOLUTION_TAG,
+        "managedBy": FABRIC_MANAGED_BY_TAG,
+    }
+
+
 def wait_for_arm_capacity(resource_id: str, *, attempts: int = 60, delay_seconds: int = 5) -> dict[str, Any]:
     url = f"https://management.azure.com{resource_id}?api-version={FABRIC_CAPACITY_API_VERSION}"
     last: dict[str, Any] = {}
@@ -274,36 +292,159 @@ def capacity_by_name_with_retry(token: str, name: str, *, attempts: int = 3, del
     return None
 
 
-def create_arm_capacity(settings: dict[str, str], *, dry_run: bool) -> str:
+def previous_capacity_is_owned(
+    previous: dict[str, Any],
+    settings: dict[str, str],
+    *,
+    fabric_id: str = "",
+) -> bool:
+    if not previous.get("capacityCreated"):
+        return False
+
+    capacity_name = settings["FABRIC_CAPACITY_NAME"]
+    if str(previous.get("capacityName") or "") != capacity_name:
+        return False
+
+    expected_group = settings.get("FABRIC_CAPACITY_RESOURCE_GROUP", "")
+    recorded_group = str(previous.get("capacityResourceGroup") or "")
+    if expected_group and recorded_group.lower() != expected_group.lower():
+        return False
+
+    recorded_id = str(previous.get("capacityId") or "")
+    recorded_arm_id = str(previous.get("capacityArmId") or "")
+    configured_arm_id = settings.get("FABRIC_CAPACITY_ARM_ID", "")
+    if configured_arm_id and recorded_arm_id and configured_arm_id.lower() != recorded_arm_id.lower():
+        return False
+    if fabric_id and recorded_id:
+        return recorded_id == fabric_id
+
+    if not recorded_arm_id or not recorded_group:
+        return False
+
+    expected_suffix = (
+        f"/resourcegroups/{recorded_group}/providers/microsoft.fabric/capacities/{capacity_name}"
+    ).lower()
+    return recorded_arm_id.lower().startswith("/subscriptions/") and recorded_arm_id.lower().endswith(expected_suffix)
+
+
+def bicep_capacity_is_owned(settings: dict[str, str]) -> bool:
+    arm_id = settings.get("FABRIC_CAPACITY_ARM_ID", "")
+    environment = settings.get("AZURE_ENV_NAME", "")
+    resource_group = settings.get("FABRIC_CAPACITY_RESOURCE_GROUP", "")
+    capacity_name = settings.get("FABRIC_CAPACITY_NAME", "")
+    if not all((arm_id, environment, resource_group, capacity_name)):
+        return False
+
+    expected_suffix = (
+        f"/resourcegroups/{resource_group}/providers/microsoft.fabric/capacities/{capacity_name}"
+    ).lower()
+    if not arm_id.lower().startswith("/subscriptions/") or not arm_id.lower().endswith(expected_suffix):
+        return False
+
+    output = run(["az", "resource", "show", "--ids", arm_id, "--output", "json"], allow_failure=True)
+    try:
+        resource = json.loads(output or "{}")
+    except json.JSONDecodeError:
+        return False
+    if not isinstance(resource, dict) or str(resource.get("id") or "").lower() != arm_id.lower():
+        return False
+    tags = resource.get("tags")
+    return bool(
+        isinstance(tags, dict)
+        and tags.get("azdEnvName") == environment
+        and tags.get("solution") == SOLUTION_TAG
+        and tags.get("managedBy") == BICEP_MANAGED_BY_TAG
+    )
+
+
+def create_arm_capacity(
+    settings: dict[str, str],
+    *,
+    dry_run: bool,
+    resource_group_previously_owned: bool = False,
+    on_ownership_update: Callable[[dict[str, Any]], None] | None = None,
+) -> dict[str, Any]:
     subscription_id = run(["az", "account", "show", "--query", "id", "-o", "tsv"])
     resource_group = settings["FABRIC_CAPACITY_RESOURCE_GROUP"]
     location = settings["FABRIC_LOCATION"]
     name = settings["FABRIC_CAPACITY_NAME"]
     admin = settings["FABRIC_CAPACITY_ADMIN"]
     sku = settings["FABRIC_CAPACITY_SKU"]
+    resource_id = f"/subscriptions/{subscription_id}/resourceGroups/{resource_group}/providers/Microsoft.Fabric/capacities/{name}"
     if dry_run:
         print(f"[dry-run] create Microsoft.Fabric/capacities {name} ({sku}, {location}) in {resource_group}")
-        return f"/subscriptions/{subscription_id}/resourceGroups/{resource_group}/providers/Microsoft.Fabric/capacities/{name}"
+        return {"armId": resource_id, "resourceGroupCreated": False}
 
-    run(["az", "group", "create", "--name", resource_group, "--location", location, "-o", "none"])
     check_url = f"https://management.azure.com/subscriptions/{subscription_id}/providers/Microsoft.Fabric/locations/{location}/checkNameAvailability?api-version={FABRIC_CAPACITY_API_VERSION}"
     availability = az_rest("post", check_url, {"name": name, "type": "Microsoft.Fabric/capacities"})
     if availability.get("nameAvailable") is False:
         raise RuntimeError(f"Fabric capacity name is not available: {name} ({availability})")
 
+    group_preexisting = resource_group_exists(resource_group)
+    tags = capacity_resource_tags(settings)
+    group_owned = not group_preexisting or resource_group_previously_owned
+    if not group_preexisting:
+        tag_arguments = [f"{key}={value}" for key, value in tags.items()]
+        run(
+            [
+                "az",
+                "group",
+                "create",
+                "--name",
+                resource_group,
+                "--location",
+                location,
+                "--tags",
+                *tag_arguments,
+                "-o",
+                "none",
+            ]
+        )
+    if on_ownership_update:
+        on_ownership_update(
+            {
+                "capacityId": "",
+                "capacityArmId": "",
+                "capacityName": name,
+                "capacityResourceGroup": resource_group,
+                "capacityResourceGroupCreated": group_owned,
+                "capacityCreated": False,
+            }
+        )
+
     resource_url = f"https://management.azure.com/subscriptions/{subscription_id}/resourceGroups/{resource_group}/providers/Microsoft.Fabric/capacities/{name}?api-version={FABRIC_CAPACITY_API_VERSION}"
     body = {
         "location": location,
+        "tags": tags,
         "sku": {"name": sku, "tier": "Fabric"},
         "properties": {"administration": {"members": [admin]}},
     }
     created = az_rest("put", resource_url, body)
-    resource_id = created.get("id") or f"/subscriptions/{subscription_id}/resourceGroups/{resource_group}/providers/Microsoft.Fabric/capacities/{name}"
+    resource_id = created.get("id") or resource_id
+    creation = {"armId": resource_id, "resourceGroupCreated": group_owned}
+    if on_ownership_update:
+        on_ownership_update(
+            {
+                "capacityId": "",
+                "capacityArmId": resource_id,
+                "capacityName": name,
+                "capacityResourceGroup": resource_group,
+                "capacityResourceGroupCreated": group_owned,
+                "capacityCreated": True,
+            }
+        )
     wait_for_arm_capacity(resource_id)
-    return resource_id
+    return creation
 
 
-def ensure_capacity(settings: dict[str, str], token: str, *, dry_run: bool) -> tuple[str, dict[str, Any]]:
+def ensure_capacity(
+    settings: dict[str, str],
+    token: str,
+    *,
+    dry_run: bool,
+    previous_summary: dict[str, Any] | None = None,
+    on_ownership_update: Callable[[dict[str, Any]], None] | None = None,
+) -> tuple[str, dict[str, Any]]:
     mode = settings["FABRIC_CAPACITY_MODE"]
     if mode == "skip":
         raise RuntimeError("FABRIC_CAPACITY_MODE=skip cannot create a greenfield Fabric workspace.")
@@ -311,24 +452,84 @@ def ensure_capacity(settings: dict[str, str], token: str, *, dry_run: bool) -> t
     capacity_name = settings["FABRIC_CAPACITY_NAME"]
     existing = capacity_by_name_with_retry(token, capacity_name) if not dry_run else None
     if existing:
-        return str(existing["id"]), {**existing, "created": False}
+        existing_id = str(existing["id"])
+        previous = previous_summary or {}
+        previously_owned = previous_capacity_is_owned(
+            previous,
+            settings,
+            fabric_id=existing_id,
+        )
+        bicep_owned = mode == "create" and not previously_owned and bicep_capacity_is_owned(settings)
+        if mode == "create" and not previously_owned and not bicep_owned:
+            raise RuntimeError(
+                f"Fabric capacity '{capacity_name}' already exists but is not owned by this environment. "
+                "Use a unique environment or capacity name; use BYO mode only for intentionally shared capacity."
+            )
+        if previously_owned:
+            resource_group_created = previous.get("capacityResourceGroupCreated")
+        elif bicep_owned:
+            resource_group_created = None
+        else:
+            resource_group_created = False
+        return existing_id, {
+            **existing,
+            "created": False,
+            "owned": previously_owned or bicep_owned,
+            "armId": previous.get("capacityArmId") or settings.get("FABRIC_CAPACITY_ARM_ID", ""),
+            "resourceGroupCreated": resource_group_created,
+        }
 
     if mode != "create":
         raise RuntimeError(f"Fabric capacity '{capacity_name}' was not found and FABRIC_CAPACITY_MODE={mode}.")
 
     arm_id = settings.get("FABRIC_CAPACITY_ARM_ID", "")
+    resource_group_created = (previous_summary or {}).get("capacityResourceGroupCreated")
+    created_now = False
+    owned = False
     if arm_id and not dry_run:
+        if not previous_capacity_is_owned(previous_summary or {}, settings) and not bicep_capacity_is_owned(settings):
+            raise RuntimeError(
+                f"Fabric capacity ARM resource '{arm_id}' is not proven as owned by this environment."
+            )
         wait_for_arm_capacity(arm_id)
+        owned = True
     else:
-        arm_id = create_arm_capacity(settings, dry_run=dry_run)
+        creation = create_arm_capacity(
+            settings,
+            dry_run=dry_run,
+            resource_group_previously_owned=bool(
+                (previous_summary or {}).get("capacityResourceGroupCreated") is True
+                and str((previous_summary or {}).get("capacityResourceGroup") or "").lower()
+                == settings.get("FABRIC_CAPACITY_RESOURCE_GROUP", "").lower()
+            ),
+            on_ownership_update=on_ownership_update,
+        )
+        arm_id = str(creation["armId"])
+        resource_group_created = creation.get("resourceGroupCreated")
+        created_now = True
+        owned = True
 
     if dry_run:
-        return "00000000-0000-0000-0000-000000000010", {"displayName": capacity_name, "id": "dry-run-capacity", "state": "DryRun", "created": True, "armId": arm_id}
+        return "00000000-0000-0000-0000-000000000010", {
+            "displayName": capacity_name,
+            "id": "dry-run-capacity",
+            "state": "DryRun",
+            "created": True,
+            "owned": True,
+            "armId": arm_id,
+            "resourceGroupCreated": resource_group_created,
+        }
 
     for _ in range(FABRIC_CAPACITY_LIST_ATTEMPTS):
         found = capacity_by_name(token, capacity_name)
         if found:
-            return str(found["id"]), {**found, "created": True, "armId": arm_id}
+            return str(found["id"]), {
+                **found,
+                "created": created_now,
+                "owned": owned,
+                "armId": arm_id,
+                "resourceGroupCreated": resource_group_created,
+            }
         time.sleep(5)
     raise RuntimeError(
         f"Created Fabric capacity '{capacity_name}' in ARM, but Fabric API did not list it before the sample timeout. "
@@ -1069,6 +1270,7 @@ def base_summary(settings: dict[str, str]) -> dict[str, Any]:
         "capacityState": "",
         "capacityArmId": settings.get("FABRIC_CAPACITY_ARM_ID", ""),
         "capacityResourceGroup": settings["FABRIC_CAPACITY_RESOURCE_GROUP"],
+        "capacityResourceGroupCreated": None,
         "capacityCreated": False,
         "workspaceId": settings.get("FABRIC_WORKSPACE_ID", ""),
         "workspaceName": settings["FABRIC_WORKSPACE_NAME"],
@@ -1140,6 +1342,65 @@ def retain_created_ownership(previous: dict[str, Any], kind: str, item_id: str, 
     return created_now or bool(previous.get(f"{kind}Created") and str(previous.get(f"{kind}Id") or "") == item_id)
 
 
+def retain_capacity_group_ownership(
+    previous: dict[str, Any],
+    resource_group: str,
+    *,
+    capacity_owned: bool,
+    created_now: bool | None,
+) -> bool | None:
+    if created_now is not None:
+        return created_now
+    if not capacity_owned:
+        return False
+    if str(previous.get("capacityResourceGroup") or "").lower() != resource_group.lower():
+        return None
+    recorded = previous.get("capacityResourceGroupCreated")
+    return recorded if isinstance(recorded, bool) else None
+
+
+def seed_previous_capacity_ownership(
+    summary: dict[str, Any], previous: dict[str, Any], settings: dict[str, str]
+) -> None:
+    if str(previous.get("capacityName") or "") != settings["FABRIC_CAPACITY_NAME"]:
+        return
+    if str(previous.get("capacityResourceGroup") or "").lower() != settings["FABRIC_CAPACITY_RESOURCE_GROUP"].lower():
+        return
+    if previous.get("capacityResourceGroupCreated") is True:
+        summary["capacityName"] = previous["capacityName"]
+        summary["capacityResourceGroup"] = previous["capacityResourceGroup"]
+        summary["capacityResourceGroupCreated"] = True
+    if not previous.get("capacityCreated"):
+        return
+    for key in (
+        "capacityId",
+        "capacityName",
+        "capacitySku",
+        "capacityState",
+        "capacityArmId",
+        "capacityResourceGroup",
+        "capacityResourceGroupCreated",
+        "capacityCreated",
+    ):
+        if key in previous:
+            summary[key] = previous[key]
+
+
+def settings_for_log(settings: dict[str, str]) -> dict[str, str]:
+    private_keys = {
+        "FABRIC_CAPACITY_ADMIN",
+        "FABRIC_CAPACITY_ID",
+        "FABRIC_CAPACITY_ARM_ID",
+        "FABRIC_WORKSPACE_ID",
+        "FABRIC_LAKEHOUSE_ID",
+        "FABRIC_ONTOLOGY_ID",
+    }
+    return {
+        key: "<configured>" if key in private_keys and value else value
+        for key, value in settings.items()
+    }
+
+
 def main() -> None:
     args = parse_args()
     azd_values = load_azd_env()
@@ -1153,7 +1414,7 @@ def main() -> None:
         raise SystemExit("FABRIC_CAPACITY_ADMIN is required when FABRIC_CAPACITY_MODE=create.")
 
     print("Fabric provision settings loaded")
-    print(json.dumps(settings, indent=2))
+    print(json.dumps(settings_for_log(settings), indent=2))
 
     if args.dry_run:
         definition, manifest = build_ontology_definition(
@@ -1166,12 +1427,33 @@ def main() -> None:
 
     previous_summary = load_previous_summary(settings["AZURE_ENV_NAME"])
     summary = base_summary(settings)
+    seed_previous_capacity_ownership(summary, previous_summary, settings)
 
     try:
         fabric_token = get_token(FABRIC_RESOURCE)
         storage_token = get_token(STORAGE_RESOURCE)
 
-        capacity_id, capacity = ensure_capacity(settings, fabric_token, dry_run=False)
+        def record_capacity_creation(created: dict[str, Any]) -> None:
+            summary.update(
+                {
+                    **created,
+                    "capacitySku": settings["FABRIC_CAPACITY_SKU"],
+                    "capacityState": "Provisioning" if created.get("capacityCreated") else "ResourceGroupReady",
+                }
+            )
+            write_partial_outputs(settings, summary)
+            sync_capacity_to_azd(summary, dry_run=False)
+
+        capacity_id, capacity = ensure_capacity(
+            settings,
+            fabric_token,
+            dry_run=False,
+            previous_summary=previous_summary,
+            on_ownership_update=record_capacity_creation,
+        )
+        capacity_owned = bool(capacity.get("owned")) or retain_created_ownership(
+            previous_summary, "capacity", capacity_id, bool(capacity.get("created"))
+        )
         summary.update(
             {
                 "capacityId": capacity_id,
@@ -1180,7 +1462,17 @@ def main() -> None:
                 "capacityState": capacity.get("state", ""),
                 "capacityArmId": capacity.get("armId") or settings.get("FABRIC_CAPACITY_ARM_ID", ""),
                 "capacityResourceGroup": settings["FABRIC_CAPACITY_RESOURCE_GROUP"],
-                "capacityCreated": retain_created_ownership(previous_summary, "capacity", capacity_id, bool(capacity.get("created"))),
+                "capacityResourceGroupCreated": retain_capacity_group_ownership(
+                    previous_summary,
+                    settings["FABRIC_CAPACITY_RESOURCE_GROUP"],
+                    capacity_owned=capacity_owned,
+                    created_now=(
+                        bool(capacity.get("resourceGroupCreated"))
+                        if capacity.get("created")
+                        else None
+                    ),
+                ),
+                "capacityCreated": capacity_owned,
             }
         )
         write_partial_outputs(settings, summary)

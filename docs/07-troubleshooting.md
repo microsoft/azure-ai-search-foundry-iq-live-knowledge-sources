@@ -106,7 +106,7 @@ Start with machine-readable diagnostics:
 - Read the ownership check in the `down` output and the redacted `.liveks/<env>.lock.json`.
 - BYO Fabric assets must remain untouched even when Azure cleanup fails.
 - For full mode, Azure cleanup continues after a Fabric cleanup warning.
-- Every live cleanup must pass `resource-group-absent`. A full run that created capacity must also pass `fabric-capacity-resource-group-absent` and `fabric-capacity-absent`.
+- Every live cleanup must pass `resource-group-absent`. A full run that created capacity must also pass `fabric-capacity-absent`, plus `fabric-capacity-resource-group-absent` for a generated group or `fabric-capacity-resource-group-preserved` for a pre-existing group.
 - If an absence check is still pending, wait for ARM deletion propagation and rerun `liveks down --env <environment> --yes --format json` before deleting anything manually.
 - Before manually deleting a Fabric capacity resource group, list its contents and verify in Fabric that no shared workspace is assigned.
 - Return code `4` means cleanup needs explicit follow-up; do not report the rehearsal as complete.

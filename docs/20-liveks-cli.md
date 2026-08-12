@@ -56,7 +56,7 @@ Use JSON output when cleanup evidence will be reviewed:
 ./liveks down --env liveks-full --yes --format json
 ```
 
-Every live profile must report `resource-group-absent=pass`. A `full` run that created capacity must additionally report `fabric-capacity-resource-group-absent=pass` and `fabric-capacity-absent=pass`. These checks are omitted for reused capacity so preservation is not misreported as failed deletion.
+Every live profile must report `resource-group-absent=pass`. A `full` run that created capacity must additionally report `fabric-capacity-absent=pass`. It must also report `fabric-capacity-resource-group-absent=pass` when the same run created that dedicated group, or `fabric-capacity-resource-group-preserved=pass` when the group predated the run. A missing summary or unresolved ownership produces partial cleanup instead of a deletion claim.
 
 For `byo-fabric` and `full`, `mcp` attaches delegated source authorization by default. It records text-block and expected-term counts but never persists the endpoint, query, response content, key, or token. A call without `--expect-term` can pass protocol checks but reports `grounding-content=warn`; use a known non-sensitive fact for source-content acceptance. See [Call the Knowledge Base Through MCP](22-knowledge-base-mcp.md).
 

@@ -187,9 +187,9 @@ Before cleanup, open the App URL in `deployments/<environment>/deployment-summar
 ./liveks down --env liveks-byo
 ```
 
-Require `resource-group-absent`. A `full` run that generated Fabric capacity must also report `fabric-capacity-resource-group-absent` and `fabric-capacity-absent`.
+Require `resource-group-absent`. A `full` run that generated Fabric capacity must also report `fabric-capacity-absent`, plus either `fabric-capacity-resource-group-absent` for a generated group or `fabric-capacity-resource-group-preserved` for a pre-existing group.
 
-A Fabric-only rehearsal must run `scripts/fabric-e2e-test.sh --cleanup` and end with `fabric_release=PASS`. Create mode proves the generated workspace, capacity resource group, and capacity are absent; BYO mode proves the generated workspace is absent while preserving the existing capacity.
+A Fabric-only rehearsal must run `scripts/fabric-e2e-test.sh --cleanup` and end with `fabric_release=PASS`. Create mode proves the generated workspace and capacity are absent, and separately proves that the capacity group was deleted or preserved according to its ownership record. BYO mode proves the generated workspace is absent while preserving the existing capacity.
 
 For a controlled end-to-end rehearsal:
 

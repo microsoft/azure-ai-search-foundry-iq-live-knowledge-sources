@@ -106,7 +106,15 @@ def load_summary(env_name: str) -> dict[str, Any] | None:
     path = REPO_ROOT / "deployments" / env_name / "fabric-summary.json"
     if not path.exists():
         return None
-    return json.loads(path.read_text(encoding="utf-8"))
+    payload = json.loads(path.read_text(encoding="utf-8"))
+    if not isinstance(payload, dict):
+        raise RuntimeError(f"Fabric cleanup summary is not a JSON object: {path}")
+    recorded_environment = str(payload.get("environmentName") or "")
+    if recorded_environment and recorded_environment != env_name:
+        raise RuntimeError(
+            f"Fabric cleanup summary identity mismatch: expected {env_name}, found {recorded_environment}"
+        )
+    return payload
 
 
 def confirm(summary: dict[str, Any]) -> None:
@@ -124,16 +132,37 @@ def resource_group_exists(name: str) -> bool:
     return output == "true"
 
 
-def arm_capacity_exists(name: str) -> bool:
-    output = run(["az", "resource", "list", "--resource-type", "Microsoft.Fabric/capacities", "--output", "json"])
+def list_resource_group_resources(resource_group: str) -> list[dict[str, Any]]:
+    output = run(["az", "resource", "list", "--resource-group", resource_group, "--output", "json"])
     try:
-        capacities = json.loads(output or "[]")
+        resources = json.loads(output or "[]")
     except json.JSONDecodeError as error:
-        raise RuntimeError("Could not parse the Fabric capacity inventory returned by Azure CLI.") from error
+        raise RuntimeError(f"Could not parse the Azure resource inventory for {resource_group}.") from error
+    if not isinstance(resources, list):
+        raise RuntimeError(f"Azure resource inventory for {resource_group} is not a list.")
+    return [resource for resource in resources if isinstance(resource, dict)]
+
+
+def capacity_resource(resources: list[dict[str, Any]], name: str) -> dict[str, Any] | None:
+    return next(
+        (
+            resource
+            for resource in resources
+            if str(resource.get("type") or "").lower() == "microsoft.fabric/capacities"
+            and str(resource.get("name") or "").lower() == name.lower()
+        ),
+        None,
+    )
+
+
+def arm_capacity_exists(name: str, resource_group: str) -> bool:
+    if not resource_group_exists(resource_group):
+        return False
+    resources = list_resource_group_resources(resource_group)
     return any(
-        str(capacity.get("name") or "") == name
-        for capacity in capacities
-        if isinstance(capacity, dict)
+        str(resource.get("type") or "").lower() == "microsoft.fabric/capacities"
+        and str(resource.get("name") or "").lower() == name.lower()
+        for resource in resources
     )
 
 
@@ -159,11 +188,11 @@ def fabric_capacity_exists(name: str, token: str) -> bool:
     )
 
 
-def wait_for_capacity_absent(name: str, token: str) -> None:
+def wait_for_capacity_absent(name: str, resource_group: str, token: str) -> None:
     arm_present = False
     fabric_present = False
     for attempt in range(FABRIC_DELETE_ATTEMPTS):
-        arm_present = arm_capacity_exists(name)
+        arm_present = arm_capacity_exists(name, resource_group)
         fabric_present = fabric_capacity_exists(name, token)
         if not arm_present and not fabric_present:
             print(f"[verify] Generated Fabric capacity {name} is absent from ARM and Fabric API.")
@@ -177,19 +206,55 @@ def wait_for_capacity_absent(name: str, token: str) -> None:
 
 
 def delete_capacity_resource_group(summary: dict[str, Any], azd_values: dict[str, str]) -> bool:
-    if not summary.get("capacityCreated"):
+    if not summary.get("capacityCreated") and summary.get("capacityResourceGroupCreated") is not True:
         return False
     rg = str(summary.get("capacityResourceGroup") or "")
-    if not rg:
-        raise RuntimeError("Generated Fabric capacity is missing capacityResourceGroup in the cleanup summary.")
+    capacity_name = str(summary.get("capacityName") or "")
+    if not rg or not capacity_name:
+        raise RuntimeError("Generated Fabric capacity is missing its name or resource group in the cleanup summary.")
     azure_rg = azd_values.get("AZURE_RESOURCE_GROUP", "")
     if rg.lower() == azure_rg.lower():
         print(f"[skip] Fabric capacity is in azd resource group {rg}; azd down will delete it.")
         return True
-    if resource_group_exists(rg):
+
+    if not resource_group_exists(rg):
+        return False
+
+    resources = list_resource_group_resources(rg)
+    target = capacity_resource(resources, capacity_name)
+    unexpected = [resource for resource in resources if resource is not target]
+    group_owned = summary.get("capacityResourceGroupCreated") is True
+    target_id = ""
+    if target:
+        target_id = str(target.get("id") or summary.get("capacityArmId") or "")
+        if not target_id:
+            raise RuntimeError(f"Generated Fabric capacity {capacity_name} is missing its ARM resource ID.")
+        recorded_id = str(summary.get("capacityArmId") or "")
+        if recorded_id and target_id.lower() != recorded_id.lower():
+            raise RuntimeError(
+                f"Fabric capacity ARM identity mismatch for {capacity_name}; preserving the unresolved resource."
+            )
+
+    if group_owned and not unexpected:
         print(f"[delete] Azure resource group for generated Fabric capacity: {rg}")
         run(["az", "group", "delete", "--name", rg, "--yes", "--no-wait"])
         run(["az", "group", "wait", "--name", rg, "--deleted", "--timeout", "1800"])
+        return False
+
+    if target:
+        print(f"[delete] Generated Fabric capacity from preserved resource group: {capacity_name}")
+        run(["az", "resource", "delete", "--ids", target_id])
+
+    if group_owned and unexpected:
+        print(
+            f"[preserve] Fabric capacity resource group {rg} contains {len(unexpected)} additional resource(s); "
+            "only the generated capacity was deleted."
+        )
+    elif not group_owned:
+        if summary.get("capacityResourceGroupCreated") is False:
+            print(f"[preserve] Fabric capacity resource group {rg} was not created by this run.")
+        else:
+            print(f"[preserve] Fabric capacity resource group {rg} has no ownership record.")
     return False
 
 
@@ -222,16 +287,33 @@ def verify_cleanup(summary: dict[str, Any], token: str, *, verify_capacity: bool
             raise RuntimeError("Generated Fabric workspace is missing workspaceId in the cleanup summary.")
         wait_for_fabric_absent(f"/workspaces/{workspace_id}", token, "workspace")
 
-    if summary.get("capacityCreated") and verify_capacity:
+    capacity_or_group_created = bool(
+        summary.get("capacityCreated") or summary.get("capacityResourceGroupCreated") is True
+    )
+    if capacity_or_group_created and verify_capacity:
         capacity_name = str(summary.get("capacityName") or "")
         capacity_group = str(summary.get("capacityResourceGroup") or "")
         if not capacity_name or not capacity_group:
             raise RuntimeError("Generated Fabric capacity is missing its name or resource group in the cleanup summary.")
-        if resource_group_exists(capacity_group):
-            raise RuntimeError(f"Generated Fabric capacity resource group still exists: {capacity_group}")
-        wait_for_capacity_absent(capacity_name, token)
-        print(f"[verify] Generated Fabric capacity resource group {capacity_group} is absent.")
-    elif summary.get("capacityCreated"):
+        group_ownership = summary.get("capacityResourceGroupCreated")
+        group_owned = group_ownership is True
+        if group_ownership is False and not resource_group_exists(capacity_group):
+            raise RuntimeError(f"Pre-existing Fabric capacity resource group is no longer present: {capacity_group}")
+        wait_for_capacity_absent(capacity_name, capacity_group, token)
+        if group_owned:
+            if resource_group_exists(capacity_group):
+                raise RuntimeError(f"Generated Fabric capacity resource group still exists: {capacity_group}")
+            print(f"[verify] Generated Fabric capacity resource group {capacity_group} is absent.")
+        elif group_ownership is False:
+            if not resource_group_exists(capacity_group):
+                raise RuntimeError(f"Pre-existing Fabric capacity resource group is no longer present: {capacity_group}")
+            print(f"[verify] Pre-existing Fabric capacity resource group {capacity_group} is preserved.")
+        else:
+            raise RuntimeError(
+                f"Fabric capacity {capacity_name} is absent, but resource-group ownership is missing; "
+                f"preserved {capacity_group} for manual review."
+            )
+    elif capacity_or_group_created:
         print("[verify] Generated Fabric capacity release is deferred to azd down.")
     else:
         capacity_name = str(summary.get("capacityName") or "")
@@ -248,7 +330,8 @@ def main() -> None:
     env_name = args.env_name or os.environ.get("AZURE_ENV_NAME") or azd_values.get("AZURE_ENV_NAME") or "dev"
     summary = load_summary(env_name)
     if not summary:
-        if args.verify_only:
+        deployment_mode = os.environ.get("DEPLOYMENT_MODE") or azd_values.get("DEPLOYMENT_MODE")
+        if args.verify_only or deployment_mode == "full":
             raise RuntimeError(f"Fabric cleanup summary is missing for {env_name}; release cannot be verified.")
         print(f"No Fabric summary found for {env_name}; nothing to delete.")
         return

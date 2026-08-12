@@ -107,7 +107,11 @@ class FabricProvisionSafetyTests(unittest.TestCase):
         }
         with (
             mock.patch.object(module, "capacity_by_name_with_retry", return_value=None),
-            mock.patch.object(module, "create_arm_capacity", return_value="arm-id") as create,
+            mock.patch.object(
+                module,
+                "create_arm_capacity",
+                return_value={"armId": "arm-id", "resourceGroupCreated": True},
+            ) as create,
             mock.patch.object(
                 module,
                 "capacity_by_name",
@@ -124,6 +128,242 @@ class FabricProvisionSafetyTests(unittest.TestCase):
         previous = {"workspaceCreated": True, "workspaceId": "owned-id"}
         self.assertTrue(module.retain_created_ownership(previous, "workspace", "owned-id", False))
         self.assertFalse(module.retain_created_ownership(previous, "workspace", "different-id", False))
+
+    def test_create_mode_refuses_existing_capacity_without_environment_ownership(self):
+        module = load_fabric_provision_module()
+        settings = {
+            "FABRIC_CAPACITY_MODE": "create",
+            "FABRIC_CAPACITY_NAME": "fabshared",
+        }
+        with mock.patch.object(
+            module,
+            "capacity_by_name_with_retry",
+            return_value={"id": "shared-id", "displayName": "fabshared"},
+        ):
+            with self.assertRaisesRegex(RuntimeError, "not owned by this environment"):
+                module.ensure_capacity(settings, "token", dry_run=False)
+
+    def test_create_mode_reuses_capacity_owned_by_same_environment(self):
+        module = load_fabric_provision_module()
+        settings = {
+            "FABRIC_CAPACITY_MODE": "create",
+            "FABRIC_CAPACITY_NAME": "fabunit",
+            "FABRIC_CAPACITY_ARM_ID": "",
+        }
+        previous = {
+            "capacityCreated": True,
+            "capacityId": "owned-id",
+            "capacityName": "fabunit",
+            "capacityArmId": "arm-id",
+            "capacityResourceGroupCreated": True,
+        }
+        with mock.patch.object(
+            module,
+            "capacity_by_name_with_retry",
+            return_value={"id": "owned-id", "displayName": "fabunit"},
+        ):
+            capacity_id, capacity = module.ensure_capacity(
+                settings,
+                "token",
+                dry_run=False,
+                previous_summary=previous,
+            )
+        self.assertEqual(capacity_id, "owned-id")
+        self.assertFalse(capacity["created"])
+        self.assertTrue(capacity["owned"])
+        self.assertTrue(capacity["resourceGroupCreated"])
+
+    def test_create_mode_reuses_arm_journal_before_fabric_id_was_recorded(self):
+        module = load_fabric_provision_module()
+        arm_id = "/subscriptions/sub/resourceGroups/rg-unit-fabric/providers/Microsoft.Fabric/capacities/fabunit"
+        settings = {
+            "FABRIC_CAPACITY_MODE": "create",
+            "FABRIC_CAPACITY_NAME": "fabunit",
+            "FABRIC_CAPACITY_RESOURCE_GROUP": "rg-unit-fabric",
+            "FABRIC_CAPACITY_ARM_ID": "",
+        }
+        previous = {
+            "capacityCreated": True,
+            "capacityId": "",
+            "capacityName": "fabunit",
+            "capacityArmId": arm_id,
+            "capacityResourceGroup": "rg-unit-fabric",
+            "capacityResourceGroupCreated": True,
+        }
+        with mock.patch.object(
+            module,
+            "capacity_by_name_with_retry",
+            return_value={"id": "eventual-id", "displayName": "fabunit"},
+        ):
+            capacity_id, capacity = module.ensure_capacity(
+                settings,
+                "token",
+                dry_run=False,
+                previous_summary=previous,
+            )
+        self.assertEqual(capacity_id, "eventual-id")
+        self.assertTrue(capacity["owned"])
+        self.assertTrue(capacity["resourceGroupCreated"])
+
+    def test_create_mode_refuses_unjournaled_arm_capacity(self):
+        module = load_fabric_provision_module()
+        settings = {
+            "FABRIC_CAPACITY_MODE": "create",
+            "FABRIC_CAPACITY_NAME": "fabunit",
+            "FABRIC_CAPACITY_RESOURCE_GROUP": "rg-unit-fabric",
+            "FABRIC_CAPACITY_ARM_ID": "/subscriptions/sub/resourceGroups/rg-unit-fabric/providers/Microsoft.Fabric/capacities/fabunit",
+        }
+        with (
+            mock.patch.object(module, "capacity_by_name_with_retry", return_value=None),
+            mock.patch.object(module, "wait_for_arm_capacity") as wait,
+        ):
+            with self.assertRaisesRegex(RuntimeError, "not proven as owned"):
+                module.ensure_capacity(settings, "token", dry_run=False)
+        wait.assert_not_called()
+
+    def test_create_mode_accepts_exact_bicep_managed_capacity_during_propagation(self):
+        module = load_fabric_provision_module()
+        arm_id = "/subscriptions/sub/resourceGroups/rg-unit/providers/Microsoft.Fabric/capacities/fabunit"
+        settings = {
+            "AZURE_ENV_NAME": "unit",
+            "FABRIC_CAPACITY_MODE": "create",
+            "FABRIC_CAPACITY_NAME": "fabunit",
+            "FABRIC_CAPACITY_RESOURCE_GROUP": "rg-unit",
+            "FABRIC_CAPACITY_ARM_ID": arm_id,
+        }
+        resource = {
+            "id": arm_id,
+            "tags": {
+                "azdEnvName": "unit",
+                "solution": module.SOLUTION_TAG,
+                "managedBy": module.BICEP_MANAGED_BY_TAG,
+            },
+        }
+        with (
+            mock.patch.object(module, "capacity_by_name_with_retry", return_value=None),
+            mock.patch.object(module, "run", return_value=json.dumps(resource)),
+            mock.patch.object(module, "wait_for_arm_capacity") as wait,
+            mock.patch.object(
+                module,
+                "capacity_by_name",
+                return_value={"id": "capacity-id", "displayName": "fabunit"},
+            ),
+        ):
+            capacity_id, capacity = module.ensure_capacity(settings, "token", dry_run=False)
+        self.assertEqual(capacity_id, "capacity-id")
+        self.assertFalse(capacity["created"])
+        self.assertTrue(capacity["owned"])
+        self.assertIsNone(capacity["resourceGroupCreated"])
+        wait.assert_called_once_with(arm_id)
+
+    def test_arm_creation_records_tagged_ownership_before_readiness_wait(self):
+        module = load_fabric_provision_module()
+        settings = {
+            "AZURE_ENV_NAME": "unit-full",
+            "FABRIC_CAPACITY_RESOURCE_GROUP": "rg-unit-full-fabric",
+            "FABRIC_LOCATION": "westus3",
+            "FABRIC_CAPACITY_NAME": "fabunitfull",
+            "FABRIC_CAPACITY_ADMIN": "admin@example.com",
+            "FABRIC_CAPACITY_SKU": "F2",
+        }
+        arm_id = "/subscriptions/sub/resourceGroups/rg-unit-full-fabric/providers/Microsoft.Fabric/capacities/fabunitfull"
+        ownership_callback = mock.Mock()
+        with (
+            mock.patch.object(module, "run", return_value="sub") as run,
+            mock.patch.object(module, "resource_group_exists", return_value=False),
+            mock.patch.object(
+                module,
+                "az_rest",
+                side_effect=[{"nameAvailable": True}, {"id": arm_id}],
+            ) as az_rest,
+            mock.patch.object(module, "wait_for_arm_capacity", side_effect=RuntimeError("ARM wait timed out")),
+        ):
+            with self.assertRaisesRegex(RuntimeError, "ARM wait timed out"):
+                module.create_arm_capacity(
+                    settings,
+                    dry_run=False,
+                    on_ownership_update=ownership_callback,
+                )
+        self.assertEqual(
+            ownership_callback.call_args_list,
+            [
+                mock.call(
+                    {
+                        "capacityId": "",
+                        "capacityArmId": "",
+                        "capacityName": "fabunitfull",
+                        "capacityResourceGroup": "rg-unit-full-fabric",
+                        "capacityResourceGroupCreated": True,
+                        "capacityCreated": False,
+                    }
+                ),
+                mock.call(
+                    {
+                        "capacityId": "",
+                        "capacityArmId": arm_id,
+                        "capacityName": "fabunitfull",
+                        "capacityResourceGroup": "rg-unit-full-fabric",
+                        "capacityResourceGroupCreated": True,
+                        "capacityCreated": True,
+                    }
+                ),
+            ],
+        )
+        create_body = az_rest.call_args_list[1].args[2]
+        self.assertEqual(create_body["tags"]["azdEnvName"], "unit-full")
+        self.assertEqual(create_body["tags"]["managedBy"], module.FABRIC_MANAGED_BY_TAG)
+        group_create = next(call.args[0] for call in run.call_args_list if call.args[0][:3] == ["az", "group", "create"])
+        self.assertIn("azdEnvName=unit-full", group_create)
+
+    def test_arm_creation_journals_group_before_capacity_put_failure(self):
+        module = load_fabric_provision_module()
+        settings = {
+            "AZURE_ENV_NAME": "unit-full",
+            "FABRIC_CAPACITY_RESOURCE_GROUP": "rg-unit-full-fabric",
+            "FABRIC_LOCATION": "westus3",
+            "FABRIC_CAPACITY_NAME": "fabunitfull",
+            "FABRIC_CAPACITY_ADMIN": "admin@example.com",
+            "FABRIC_CAPACITY_SKU": "F2",
+        }
+        ownership_callback = mock.Mock()
+        with (
+            mock.patch.object(module, "run", return_value="sub"),
+            mock.patch.object(module, "resource_group_exists", return_value=False),
+            mock.patch.object(
+                module,
+                "az_rest",
+                side_effect=[{"nameAvailable": True}, RuntimeError("capacity PUT failed")],
+            ),
+        ):
+            with self.assertRaisesRegex(RuntimeError, "capacity PUT failed"):
+                module.create_arm_capacity(
+                    settings,
+                    dry_run=False,
+                    on_ownership_update=ownership_callback,
+                )
+        ownership_callback.assert_called_once_with(
+            {
+                "capacityId": "",
+                "capacityArmId": "",
+                "capacityName": "fabunitfull",
+                "capacityResourceGroup": "rg-unit-full-fabric",
+                "capacityResourceGroupCreated": True,
+                "capacityCreated": False,
+            }
+        )
+
+    def test_provision_log_settings_redact_admin_and_runtime_ids(self):
+        module = load_fabric_provision_module()
+        logged = module.settings_for_log(
+            {
+                "FABRIC_CAPACITY_ADMIN": "admin@example.com",
+                "FABRIC_WORKSPACE_ID": "workspace-id",
+                "FABRIC_CAPACITY_NAME": "fabunit",
+            }
+        )
+        self.assertEqual(logged["FABRIC_CAPACITY_ADMIN"], "<configured>")
+        self.assertEqual(logged["FABRIC_WORKSPACE_ID"], "<configured>")
+        self.assertEqual(logged["FABRIC_CAPACITY_NAME"], "fabunit")
 
     def test_main_writes_capacity_summary_when_later_step_fails(self):
         module = load_fabric_provision_module()
@@ -170,10 +410,20 @@ class FabricDestroySafetyTests(unittest.TestCase):
             "capacityCreated": True,
             "capacityName": "fabunit",
             "capacityResourceGroup": "rg-unit-fabric",
+            "capacityResourceGroupCreated": True,
         }
+        resources = json.dumps(
+            [
+                {
+                    "id": "/subscriptions/000/resourceGroups/rg-unit-fabric/providers/Microsoft.Fabric/capacities/fabunit",
+                    "name": "fabunit",
+                    "type": "Microsoft.Fabric/capacities",
+                }
+            ]
+        )
         with (
             mock.patch.object(module, "resource_group_exists", return_value=True),
-            mock.patch.object(module, "run", return_value="") as run,
+            mock.patch.object(module, "run", side_effect=[resources, "", ""]) as run,
             contextlib.redirect_stdout(io.StringIO()),
         ):
             deferred = module.delete_capacity_resource_group(summary, {"AZURE_RESOURCE_GROUP": "rg-unit-app"})
@@ -182,12 +432,95 @@ class FabricDestroySafetyTests(unittest.TestCase):
         self.assertIn(["az", "group", "delete", "--name", "rg-unit-fabric", "--yes", "--no-wait"], commands)
         self.assertIn(["az", "group", "wait", "--name", "rg-unit-fabric", "--deleted", "--timeout", "1800"], commands)
 
+    def test_group_created_before_failed_capacity_put_is_deleted(self):
+        module = load_fabric_destroy_module()
+        summary = {
+            "capacityCreated": False,
+            "capacityName": "fabunit",
+            "capacityResourceGroup": "rg-unit-fabric",
+            "capacityResourceGroupCreated": True,
+        }
+        with (
+            mock.patch.object(module, "resource_group_exists", return_value=True),
+            mock.patch.object(module, "run", side_effect=["[]", "", ""]) as run,
+            contextlib.redirect_stdout(io.StringIO()),
+        ):
+            deferred = module.delete_capacity_resource_group(summary, {"AZURE_RESOURCE_GROUP": "rg-unit-app"})
+        self.assertFalse(deferred)
+        commands = [call.args[0] for call in run.call_args_list]
+        self.assertIn(["az", "group", "delete", "--name", "rg-unit-fabric", "--yes", "--no-wait"], commands)
+
+    def test_cleanup_preserves_group_with_other_resources_and_deletes_only_capacity(self):
+        module = load_fabric_destroy_module()
+        capacity_id = "/subscriptions/000/resourceGroups/rg-shared/providers/Microsoft.Fabric/capacities/fabunit"
+        summary = {
+            "capacityCreated": True,
+            "capacityName": "fabunit",
+            "capacityArmId": capacity_id,
+            "capacityResourceGroup": "rg-shared",
+            "capacityResourceGroupCreated": True,
+        }
+        resources = json.dumps(
+            [
+                {"id": capacity_id, "name": "fabunit", "type": "Microsoft.Fabric/capacities"},
+                {
+                    "id": "/subscriptions/000/resourceGroups/rg-shared/providers/Microsoft.Storage/storageAccounts/shared",
+                    "name": "shared",
+                    "type": "Microsoft.Storage/storageAccounts",
+                },
+            ]
+        )
+        with (
+            mock.patch.object(module, "resource_group_exists", return_value=True),
+            mock.patch.object(module, "run", side_effect=[resources, ""]) as run,
+            contextlib.redirect_stdout(io.StringIO()),
+        ):
+            deferred = module.delete_capacity_resource_group(summary, {"AZURE_RESOURCE_GROUP": "rg-app"})
+        self.assertFalse(deferred)
+        commands = [call.args[0] for call in run.call_args_list]
+        self.assertIn(["az", "resource", "delete", "--ids", capacity_id], commands)
+        self.assertFalse(any(command[:3] == ["az", "group", "delete"] for command in commands))
+
+    def test_cleanup_refuses_capacity_arm_identity_mismatch_before_group_delete(self):
+        module = load_fabric_destroy_module()
+        recorded_id = "/subscriptions/expected/resourceGroups/rg-unit/providers/Microsoft.Fabric/capacities/fabunit"
+        discovered_id = "/subscriptions/other/resourceGroups/rg-unit/providers/Microsoft.Fabric/capacities/fabunit"
+        summary = {
+            "capacityCreated": True,
+            "capacityName": "fabunit",
+            "capacityArmId": recorded_id,
+            "capacityResourceGroup": "rg-unit",
+            "capacityResourceGroupCreated": True,
+        }
+        resources = json.dumps(
+            [{"id": discovered_id, "name": "fabunit", "type": "Microsoft.Fabric/capacities"}]
+        )
+        with (
+            mock.patch.object(module, "resource_group_exists", return_value=True),
+            mock.patch.object(module, "run", return_value=resources) as run,
+        ):
+            with self.assertRaisesRegex(RuntimeError, "identity mismatch"):
+                module.delete_capacity_resource_group(summary, {"AZURE_RESOURCE_GROUP": "rg-app"})
+        commands = [call.args[0] for call in run.call_args_list]
+        self.assertFalse(any(command[:3] == ["az", "group", "delete"] for command in commands))
+
+    def test_full_cleanup_fails_closed_when_summary_is_missing(self):
+        module = load_fabric_destroy_module()
+        with (
+            mock.patch.object(sys, "argv", ["fabric-destroy.py", "--env-name", "unit-full", "--yes"]),
+            mock.patch.object(module, "load_azd_env", return_value={"DEPLOYMENT_MODE": "full"}),
+            mock.patch.object(module, "load_summary", return_value=None),
+        ):
+            with self.assertRaisesRegex(RuntimeError, "release cannot be verified"):
+                module.main()
+
     def test_cleanup_verification_requires_generated_assets_to_be_absent(self):
         module = load_fabric_destroy_module()
         summary = {
             "capacityCreated": True,
             "capacityName": "fabunit",
             "capacityResourceGroup": "rg-unit-fabric",
+            "capacityResourceGroupCreated": True,
             "workspaceCreated": True,
             "workspaceId": "workspace-id",
             "lakehouseCreated": True,
@@ -203,7 +536,7 @@ class FabricDestroySafetyTests(unittest.TestCase):
         ):
             module.verify_cleanup(summary, "token")
         self.assertEqual(wait.call_count, 3)
-        capacity_wait.assert_called_once_with("fabunit", "token")
+        capacity_wait.assert_called_once_with("fabunit", "rg-unit-fabric", "token")
 
     def test_cleanup_verification_fails_when_generated_capacity_remains(self):
         module = load_fabric_destroy_module()
@@ -211,6 +544,7 @@ class FabricDestroySafetyTests(unittest.TestCase):
             "capacityCreated": True,
             "capacityName": "fabunit",
             "capacityResourceGroup": "rg-unit-fabric",
+            "capacityResourceGroupCreated": True,
         }
         with (
             mock.patch.object(module, "resource_group_exists", return_value=False),
@@ -223,6 +557,34 @@ class FabricDestroySafetyTests(unittest.TestCase):
             with self.assertRaisesRegex(RuntimeError, "capacity still exists"):
                 module.verify_cleanup(summary, "token")
 
+    def test_cleanup_verification_requires_preexisting_capacity_group_to_remain(self):
+        module = load_fabric_destroy_module()
+        summary = {
+            "capacityCreated": True,
+            "capacityName": "fabunit",
+            "capacityResourceGroup": "rg-shared",
+            "capacityResourceGroupCreated": False,
+        }
+        with (
+            mock.patch.object(module, "resource_group_exists", return_value=True) as group_exists,
+            mock.patch.object(module, "wait_for_capacity_absent") as capacity_wait,
+            contextlib.redirect_stdout(io.StringIO()),
+        ):
+            module.verify_cleanup(summary, "token")
+        self.assertEqual(group_exists.call_count, 2)
+        capacity_wait.assert_called_once_with("fabunit", "rg-shared", "token")
+
+    def test_cleanup_verification_flags_unknown_capacity_group_ownership(self):
+        module = load_fabric_destroy_module()
+        summary = {
+            "capacityCreated": True,
+            "capacityName": "fabunit",
+            "capacityResourceGroup": "rg-unknown",
+        }
+        with mock.patch.object(module, "wait_for_capacity_absent"):
+            with self.assertRaisesRegex(RuntimeError, "ownership is missing"):
+                module.verify_cleanup(summary, "token")
+
     def test_capacity_absence_waits_for_arm_and_fabric_inventories(self):
         module = load_fabric_destroy_module()
         with (
@@ -231,7 +593,7 @@ class FabricDestroySafetyTests(unittest.TestCase):
             mock.patch.object(module.time, "sleep") as sleep,
             contextlib.redirect_stdout(io.StringIO()),
         ):
-            module.wait_for_capacity_absent("fabunit", "token")
+            module.wait_for_capacity_absent("fabunit", "rg-unit-fabric", "token")
         self.assertEqual(arm_exists.call_count, 2)
         self.assertEqual(fabric_exists.call_count, 2)
         sleep.assert_called_once_with(module.FABRIC_DELETE_DELAY_SECONDS)
@@ -268,7 +630,7 @@ class FakeCleanupRunner:
         if args[:3] == ["az", "group", "exists"]:
             output = "false\n"
         elif args[:3] == ["az", "resource", "list"]:
-            output = "0\n"
+            output = "[]\n"
         else:
             output = "ok\n"
         return CommandResult(args, 0, output)
@@ -304,6 +666,18 @@ class OwnedResidualCleanupRunner(FakeCleanupRunner):
             return CommandResult(args, 0, "false\n" if self.__class__.deleted else "true\n")
         if args[:3] == ["az", "group", "delete"]:
             self.__class__.deleted = True
+        return CommandResult(args, 0, "ok\n")
+
+
+class PreexistingCapacityGroupCleanupRunner(FakeCleanupRunner):
+    def run(self, command, **kwargs):
+        args = [str(item) for item in command]
+        self.__class__.history.append(args)
+        if args[:3] == ["az", "group", "exists"]:
+            group_name = args[args.index("--name") + 1]
+            return CommandResult(args, 0, "true\n" if group_name == "rg-unit-full-shared" else "false\n")
+        if args[:3] == ["az", "resource", "list"]:
+            return CommandResult(args, 0, "[]\n")
         return CommandResult(args, 0, "ok\n")
 
 
@@ -363,9 +737,11 @@ class CleanupOwnershipTests(unittest.TestCase):
             "capacityCreated": True,
             "capacityName": "fabunitfull",
             "capacityResourceGroup": "rg-unit-full-fabric",
+            "capacityResourceGroupCreated": True,
         }
         with (
             mock.patch.object(cli, "CommandRunner", FakeCleanupRunner),
+            mock.patch.object(cli, "_locked_identity", return_value=("full", config.ownership())),
             mock.patch.object(cli, "_load_fabric_summary", return_value=fabric_summary),
             mock.patch.object(cli, "write_lock"),
         ):
@@ -379,20 +755,111 @@ class CleanupOwnershipTests(unittest.TestCase):
         self.assertEqual(checks["fabric-capacity-resource-group-absent"], "pass")
         self.assertEqual(checks["fabric-capacity-absent"], "pass")
 
+    def test_full_cleanup_preserves_preexisting_capacity_group(self):
+        config = resolve_config(profile="full", environment="unit-full-shared-group")
+        fabric_summary = {
+            "capacityCreated": True,
+            "capacityName": "fabunitfull",
+            "capacityResourceGroup": "rg-unit-full-shared",
+            "capacityResourceGroupCreated": False,
+        }
+        with (
+            mock.patch.object(cli, "CommandRunner", PreexistingCapacityGroupCleanupRunner),
+            mock.patch.object(cli, "_locked_identity", return_value=("full", config.ownership())),
+            mock.patch.object(cli, "_load_fabric_summary", return_value=fabric_summary),
+            mock.patch.object(cli, "write_lock"),
+        ):
+            report = cli.down_report(config, yes=True, quiet=True)
+        checks = {check["name"]: check["status"] for check in report["checks"]}
+        self.assertEqual(report["status"], "pass")
+        self.assertEqual(checks["fabric-capacity-resource-group-preserved"], "pass")
+        self.assertEqual(checks["fabric-capacity-absent"], "pass")
+
+    def test_full_cleanup_releases_group_left_by_failed_capacity_put(self):
+        config = resolve_config(profile="full", environment="unit-full-group-only")
+        fabric_summary = {
+            "capacityCreated": False,
+            "capacityName": "fabunitfull",
+            "capacityResourceGroup": "rg-unit-full-fabric",
+            "capacityResourceGroupCreated": True,
+        }
+        with (
+            mock.patch.object(cli, "CommandRunner", FakeCleanupRunner),
+            mock.patch.object(cli, "_locked_identity", return_value=("full", config.ownership())),
+            mock.patch.object(cli, "_load_fabric_summary", return_value=fabric_summary),
+            mock.patch.object(cli, "write_lock"),
+        ):
+            report = cli.down_report(config, yes=True, quiet=True)
+        checks = {check["name"]: check["status"] for check in report["checks"]}
+        self.assertEqual(report["status"], "pass")
+        self.assertNotIn("fabric-capacity-ownership", checks)
+        self.assertEqual(checks["fabric-capacity-resource-group-absent"], "pass")
+        self.assertEqual(checks["fabric-capacity-absent"], "pass")
+
     def test_full_cleanup_preserves_reused_capacity_without_absence_claim(self):
         config = resolve_config(profile="full", environment="unit-full-reused-capacity")
         with (
             mock.patch.object(cli, "CommandRunner", FakeCleanupRunner),
+            mock.patch.object(cli, "_locked_identity", return_value=("full", config.ownership())),
             mock.patch.object(cli, "_load_fabric_summary", return_value={"capacityCreated": False}),
             mock.patch.object(cli, "write_lock"),
         ):
             report = cli.down_report(config, yes=True, quiet=True)
         check_names = {check["name"] for check in report["checks"]}
-        self.assertEqual(report["status"], "pass")
+        self.assertEqual(report["status"], "partial")
+        checks = {check["name"]: check["status"] for check in report["checks"]}
+        self.assertEqual(checks["fabric-capacity-ownership"], "warn")
         self.assertNotIn("fabric-capacity-resource-group-absent", check_names)
         self.assertNotIn("fabric-capacity-absent", check_names)
 
-    def test_lock_disagreement_preserves_fabric(self):
+    def test_full_cleanup_with_missing_summary_is_partial_but_continues_azure_cleanup(self):
+        config = resolve_config(profile="full", environment="unit-full-missing-summary")
+        with (
+            mock.patch.object(cli, "CommandRunner", FakeCleanupRunner),
+            mock.patch.object(cli, "_locked_identity", return_value=("full", config.ownership())),
+            mock.patch.object(cli, "_load_fabric_summary", return_value=None),
+            mock.patch.object(cli, "write_lock"),
+        ):
+            report = cli.down_report(config, yes=True, quiet=True)
+        checks = {check["name"]: check["status"] for check in report["checks"]}
+        commands = [" ".join(command) for command in FakeCleanupRunner.history]
+        self.assertEqual(report["status"], "partial")
+        self.assertEqual(checks["fabric-summary"], "warn")
+        self.assertTrue(any("azd down" in command for command in commands))
+
+    def test_full_cleanup_with_unknown_capacity_group_ownership_is_partial(self):
+        config = resolve_config(profile="full", environment="unit-full-unknown-group")
+        fabric_summary = {
+            "capacityCreated": True,
+            "capacityName": "fabunitfull",
+            "capacityResourceGroup": "rg-unit-full-fabric",
+        }
+        with (
+            mock.patch.object(cli, "CommandRunner", FakeCleanupRunner),
+            mock.patch.object(cli, "_locked_identity", return_value=("full", config.ownership())),
+            mock.patch.object(cli, "_load_fabric_summary", return_value=fabric_summary),
+            mock.patch.object(cli, "write_lock"),
+        ):
+            report = cli.down_report(config, yes=True, quiet=True)
+        checks = {check["name"]: check["status"] for check in report["checks"]}
+        self.assertEqual(report["status"], "partial")
+        self.assertEqual(checks["fabric-capacity-resource-group-ownership"], "warn")
+
+    def test_full_cleanup_without_lock_preserves_fabric_and_continues_azure_cleanup(self):
+        config = resolve_config(profile="full", environment="unit-full-missing-lock")
+        with (
+            mock.patch.object(cli, "CommandRunner", FakeCleanupRunner),
+            mock.patch.object(cli, "write_lock"),
+        ):
+            report = cli.down_report(config, yes=True, quiet=True)
+        checks = {check["name"]: check["status"] for check in report["checks"]}
+        commands = [" ".join(command) for command in FakeCleanupRunner.history]
+        self.assertEqual(report["status"], "partial")
+        self.assertEqual(checks["ownership"], "warn")
+        self.assertFalse(any("fabric-destroy.py" in command for command in commands))
+        self.assertTrue(any("azd down" in command for command in commands))
+
+    def test_any_lock_disagreement_preserves_all_fabric(self):
         config = resolve_config(profile="full", environment="unit-lock-safety")
         lock = {
             "environment": "unit-lock-safety",
@@ -400,8 +867,8 @@ class CleanupOwnershipTests(unittest.TestCase):
             "ownership": {
                 "azure": "create",
                 "fabricCapacity": "reuse",
-                "fabricWorkspace": "reuse",
-                "fabricOntology": "reuse",
+                "fabricWorkspace": "create",
+                "fabricOntology": "create",
             },
         }
         config.lock_path.parent.mkdir(parents=True, exist_ok=True)
@@ -410,7 +877,9 @@ class CleanupOwnershipTests(unittest.TestCase):
         with mock.patch.object(cli, "CommandRunner", FakeCleanupRunner), mock.patch.object(cli, "write_lock"):
             report = cli.down_report(config, yes=True, quiet=True)
         commands = [" ".join(command) for command in FakeCleanupRunner.history]
-        self.assertEqual(report["status"], "pass")
+        self.assertEqual(report["status"], "partial")
+        checks = {check["name"]: check["status"] for check in report["checks"]}
+        self.assertEqual(checks["ownership"], "warn")
         self.assertFalse(any("fabric-destroy.py" in command for command in commands))
 
 

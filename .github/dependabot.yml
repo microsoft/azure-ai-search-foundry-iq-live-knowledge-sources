@@ -27,3 +27,19 @@ updates:
       static-app-dependencies:
         patterns:
           - "*"
+
+  - package-ecosystem: pip
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+      time: "09:00"
+      timezone: "Etc/UTC"
+    open-pull-requests-limit: 5
+    labels:
+      - dependencies
+      - python
+    groups:
+      python-dependencies:
+        patterns:
+          - "*"
