@@ -130,7 +130,15 @@ class LiveKsConfigTests(unittest.TestCase):
             "environment": "unit-report",
             "phases": {
                 "up": {"checks": [{"name": "mcp-retrieve", "status": "pass", "message": "live | evidence"}]},
-                "down": {"checks": [{"name": "resource-group-absent", "status": "pass", "message": "absent"}]},
+                "down": {
+                    "checks": [
+                        {
+                            "name": "resource-group-absent",
+                            "status": "pass",
+                            "message": "absent; super-secret-token; https://private-search.example",
+                        }
+                    ]
+                },
             },
             "artifacts": [],
         }
@@ -138,11 +146,19 @@ class LiveKsConfigTests(unittest.TestCase):
             artifacts = cli.write_e2e_reports(config, report, cleanup_requested=True)
             json_report = json.loads((Path(temp_dir) / "deployments/unit-report/e2e-report.json").read_text())
             markdown_report = (Path(temp_dir) / "deployments/unit-report/test-report.md").read_text()
-        self.assertEqual(len(artifacts), 2)
+            capsule = json.loads((Path(temp_dir) / "deployments/unit-report/evidence-capsule.json").read_text())
+            capsule_markdown = (Path(temp_dir) / "deployments/unit-report/evidence-capsule.md").read_text()
+        self.assertEqual(len(artifacts), 4)
         self.assertEqual(json_report["status"], "pass")
         self.assertIn("- Deployment mode: `mcp-only`", markdown_report)
         self.assertIn("| `PASS` | mcp-retrieve | live \\| evidence |", markdown_report)
-        self.assertIn("| `PASS` | resource-group-absent | absent |", markdown_report)
+        self.assertIn("| `PASS` | resource-group-absent | absent; super-secret-token", markdown_report)
+        self.assertEqual(capsule["kind"], "liveks-evidence-capsule")
+        self.assertEqual(capsule["observedEvidence"]["sourceTypes"], ["mcpServer"])
+        self.assertFalse(capsule["privacy"]["messagesIncluded"])
+        self.assertNotIn("unit-report", json.dumps(capsule))
+        self.assertNotIn("super-secret-token", json.dumps(capsule))
+        self.assertNotIn("private-search.example", capsule_markdown)
 
     def test_bicep_parameters_cover_canonical_names(self):
         parameters = json.loads((ROOT / "infra/main.parameters.json").read_text(encoding="utf-8"))["parameters"]

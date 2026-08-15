@@ -189,7 +189,7 @@ Full mode:
 
 Choose exactly one of `--cleanup` or `--keep-resources`. Use the latter only for active debugging with an assigned cleanup owner.
 
-The lifecycle writes ignored `deployments/<environment>/e2e-report.json` and `test-report.md` files for machine inspection and the existing maintainer evidence workflow.
+The lifecycle writes detailed ignored `e2e-report.json` and `test-report.md` files, plus allowlist-sanitized `evidence-capsule.json` and `evidence-capsule.md` views. The capsules retain revision, profile, assertion status, proved source types, and a detailed-report digest while omitting messages and environment-specific identifiers.
 
 ## Residual Fabric Capacity
 

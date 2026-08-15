@@ -29,6 +29,7 @@ from .config import (
     write_lock,
     write_user_config,
 )
+from .evidence import generated_at, repository_revision, runtime_summary, sha256_file, write_json
 from .runtime import CommandRunner, http_json, http_mcp_json, parse_azd_values, parse_version
 
 
@@ -86,13 +87,138 @@ def _markdown_cell(value: Any) -> str:
     return str(value or "").replace("\n", " ").replace("|", "\\|").strip()
 
 
+def _sanitized_e2e_checks(report: dict[str, Any]) -> list[dict[str, Any]]:
+    checks: list[dict[str, Any]] = []
+    for phase_name in ("up", "down"):
+        phase = report.get("phases", {}).get(phase_name)
+        if not isinstance(phase, dict):
+            continue
+        for check in phase.get("checks", []):
+            if not isinstance(check, dict):
+                continue
+            safe_check: dict[str, Any] = {
+                "phase": phase_name,
+                "name": str(check.get("name", "unknown")),
+                "status": str(check.get("status", "unknown")),
+            }
+            source_types = check.get("sourceTypes")
+            if isinstance(source_types, list):
+                safe_check["sourceTypes"] = sorted(
+                    {str(item) for item in source_types if item in {"fabricOntology", "mcpServer"}}
+                )
+            checks.append(safe_check)
+    return checks
+
+
+def _write_e2e_evidence_capsule(
+    config: ResolvedConfig,
+    report: dict[str, Any],
+    *,
+    cleanup_requested: bool,
+    source_report: Path,
+    json_path: Path,
+    markdown_path: Path,
+) -> None:
+    checks = _sanitized_e2e_checks(report)
+    status_counts: dict[str, int] = {}
+    for check in checks:
+        status = str(check["status"])
+        status_counts[status] = status_counts.get(status, 0) + 1
+
+    successful_names = {check["name"] for check in checks if check["status"] == "pass"}
+    source_types: list[str] = []
+    if "fabric-retrieve" in successful_names:
+        source_types.append("fabricOntology")
+    if "mcp-retrieve" in successful_names:
+        source_types.append("mcpServer")
+    mcp_status = next(
+        (str(check["status"]) for check in checks if check["name"] == "knowledge-base-mcp"),
+        "not-run",
+    )
+    combined_status = next(
+        (str(check["status"]) for check in checks if check["name"] == "combined-retrieve"),
+        "not-run",
+    )
+
+    capsule = {
+        "schemaVersion": 1,
+        "kind": "liveks-evidence-capsule",
+        "scope": "live-e2e-sanitized",
+        "status": str(report.get("status", "unknown")),
+        "generatedAt": generated_at(),
+        "repositoryRevision": repository_revision(ROOT),
+        "profile": config.profile,
+        "command": {
+            "entryPoint": "./liveks e2e",
+            "environment": "redacted",
+            "cleanupRequested": cleanup_requested,
+        },
+        "runtime": runtime_summary(),
+        "declaredContracts": {
+            "mcpServerKnowledgeSourceTransport": "remote-https",
+            "knowledgeBaseMcpTransport": "stateless-json-rpc-http",
+            "liveGrounding": "protected-integration",
+        },
+        "observedEvidence": {
+            "sourceTypes": sorted(source_types),
+            "knowledgeBaseMcp": mcp_status,
+            "combinedRouting": combined_status,
+        },
+        "summary": {
+            "checkCount": len(checks),
+            "statusCounts": dict(sorted(status_counts.items())),
+        },
+        "assertions": checks,
+        "sourceReport": {
+            "kind": "e2e-report",
+            "sha256": sha256_file(source_report),
+        },
+        "privacy": {
+            "environmentIncluded": False,
+            "messagesIncluded": False,
+            "resourceIdentifiersIncluded": False,
+            "serviceEndpointsIncluded": False,
+            "rawResponsesIncluded": False,
+            "credentialsIncluded": False,
+        },
+    }
+    write_json(json_path, capsule)
+
+    revision = str(capsule["repositoryRevision"])
+    lines = [
+        "# LiveKS Evidence Capsule",
+        "",
+        "> Ignored, allowlist-sanitized evidence. Review before sharing.",
+        "",
+        f"- Status: `{str(capsule['status']).upper()}`",
+        f"- Profile: `{config.profile}`",
+        f"- Repository revision: `{revision}`",
+        f"- Cleanup requested: `{'yes' if cleanup_requested else 'no'}`",
+        f"- Source types proved: `{', '.join(sorted(source_types)) or 'none'}`",
+        f"- Knowledge Base MCP: `{mcp_status}`",
+        f"- Source report SHA-256: `{capsule['sourceReport']['sha256']}`",
+        "",
+        "| Phase | Status | Assertion |",
+        "| --- | --- | --- |",
+    ]
+    lines.extend(f"| `{check['phase']}` | `{str(check['status']).upper()}` | {check['name']} |" for check in checks)
+    markdown_path.write_text("\n".join(lines) + "\n", encoding="utf-8")
+
+
 def write_e2e_reports(config: ResolvedConfig, report: dict[str, Any], *, cleanup_requested: bool) -> list[str]:
     """Persist ignored machine and maintainer reports for the complete lifecycle."""
     report_dir = ROOT / "deployments" / config.environment
     report_dir.mkdir(parents=True, exist_ok=True)
     json_path = report_dir / "e2e-report.json"
     markdown_path = report_dir / "test-report.md"
-    artifacts = [_display_path(json_path), _display_path(markdown_path)]
+    capsule_json_path = report_dir / "evidence-capsule.json"
+    capsule_markdown_path = report_dir / "evidence-capsule.md"
+    artifacts = [
+        _display_path(json_path),
+        _display_path(markdown_path),
+        _display_path(capsule_json_path),
+        _display_path(capsule_markdown_path),
+    ]
     report["artifacts"] = list(dict.fromkeys(report.get("artifacts", []) + artifacts))
     json_path.write_text(json.dumps(report, indent=2, sort_keys=True) + "\n", encoding="utf-8")
 
@@ -127,6 +253,14 @@ def write_e2e_reports(config: ResolvedConfig, report: dict[str, Any], *, cleanup
     ]
     lines.extend(f"| `{status}` | {name} | {message} |" for status, name, message in checks)
     markdown_path.write_text("\n".join(lines) + "\n", encoding="utf-8")
+    _write_e2e_evidence_capsule(
+        config,
+        report,
+        cleanup_requested=cleanup_requested,
+        source_report=json_path,
+        json_path=capsule_json_path,
+        markdown_path=capsule_markdown_path,
+    )
     return artifacts
 
 
@@ -1120,6 +1254,7 @@ def build_parser() -> argparse.ArgumentParser:
     try_parser.add_argument("--sample", choices=["mcp", "fabric", "combined"], default="combined")
     try_parser.add_argument("--details", action="store_true")
     try_parser.add_argument("--format", choices=["text", "json"], default="text")
+    try_parser.add_argument("--evidence-out", type=Path)
 
     init_parser = subparsers.add_parser("init", help="Create an ignored YAML environment ledger.")
     init_parser.add_argument("--profile", choices=["mcp-only", "byo-fabric", "full"], required=True)
@@ -1211,6 +1346,8 @@ def main(argv: list[str] | None = None) -> int:
             command = [sys.executable, "tools/try_offline.py", "--sample", args.sample, "--format", args.format]
             if args.details:
                 command.append("--details")
+            if args.evidence_out:
+                command.extend(["--evidence-out", str(args.evidence_out)])
             return subprocess.run(command, cwd=ROOT, check=False).returncode
         if args.command == "init":
             destination = args.config or ROOT / ".liveks" / f"{args.environment}.yaml"

@@ -6,6 +6,8 @@ All notable changes to this accelerator are documented here.
 
 ### Added
 
+- Executable offline first-success assertions and revision-bound evidence capsules for the documented `liveks try` path, plus allowlist-sanitized JSON and Markdown capsules for live E2E runs.
+- Pull-request retention of the exact no-cloud first-success capsule as a short-lived `first-success-evidence` Actions artifact.
 - Fabric capacity and dedicated resource-group ownership journaling, environment tags, and cleanup tests for partial provisioning, failed capacity creation, shared resource groups, missing summaries, and pre-existing capacities.
 - Weekly Dependabot coverage for the root Python requirements files.
 - Outcome-first clone-to-grounded-proof hero for the README and manual landing page, backed by the actual LiveKS profile, lifecycle, evidence, and cleanup contracts.
@@ -25,6 +27,7 @@ All notable changes to this accelerator are documented here.
 
 ### Changed
 
+- Local and Windows validation now execute the documented first-success command; a damaged known-answer, activity, reference, or source-identity fixture fails the same entry point shown to users.
 - The MCP Server guide now uses one payload-to-cleanup execution contract that distinguishes representative JSON, the resolved deployment dry-run, live retrieve evidence, and native Knowledge Base MCP content proof.
 - Full create mode now rejects an existing capacity unless the same environment summary or exact tagged Bicep output proves ownership, records ARM ownership before readiness polling, and redacts administrator and generated IDs from provisioning settings output.
 - Fabric cleanup deletes a capacity resource group only when this run created the group and no unrelated resources are present; otherwise it deletes only the owned capacity and verifies preservation of a pre-existing group. Missing, conflicting, or unresolved full-mode ownership now reports partial cleanup instead of a false pass.

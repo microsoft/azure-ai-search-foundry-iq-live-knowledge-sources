@@ -17,6 +17,7 @@ Options:
 This script performs local, non-deploying validation:
 - shell syntax
 - LiveKS CLI dependencies and profile schema
+- documented first-success execution contract
 - Python compile
 - Python contract tests
 - notebook JSON parse
@@ -75,7 +76,7 @@ fi
 
 cd "$(git rev-parse --show-toplevel)"
 
-TOTAL=15
+TOTAL=16
 CURRENT=0
 FAILED=false
 SKIPPED=0
@@ -168,6 +169,7 @@ run_required "Python compile" \
     samples/python/build_payloads.py \
     samples/python/inspect_retrieve_response.py \
     src/liveks/runtime.py \
+    src/liveks/evidence.py \
     src/liveks/cli.py
 
 run_required "Python contract tests" \
@@ -209,6 +211,9 @@ run_required "Sample packaging hygiene" \
 
 run_required "Repository size hygiene" \
   python3 scripts/check-repo-size.py
+
+run_required "Documented first-success contract" \
+  ./liveks try --evidence-out .deployment/first-run-evidence.json
 
 run_required "Sample payload generation" \
   bash -c 'python3 samples/python/build_payloads.py >/dev/null'

@@ -3,6 +3,7 @@
 > Platform teams connect a governed Fabric Ontology or remote HTTPS MCP tool, submit a natural-language question to a Foundry IQ Knowledge Base, and receive a grounded result with source evidence that can also be consumed through MCP.
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+[![Validate](https://github.com/microsoft/azure-ai-search-foundry-iq-live-knowledge-sources/actions/workflows/validate.yml/badge.svg)](https://github.com/microsoft/azure-ai-search-foundry-iq-live-knowledge-sources/actions/workflows/validate.yml)
 ![Azure AI Search](https://img.shields.io/badge/Azure%20AI%20Search-2026--05--01--preview-orange)
 ![Python](https://img.shields.io/badge/Python-3.11%2B-blue)
 ![Node.js](https://img.shields.io/badge/Node.js-22%2B-green)
@@ -26,10 +27,12 @@ From a fresh clone, inspect the complete answer-and-evidence contract before ins
 ```bash
 git clone --depth 1 https://github.com/microsoft/azure-ai-search-foundry-iq-live-knowledge-sources.git
 cd azure-ai-search-foundry-iq-live-knowledge-sources
-./liveks try
+./liveks try --evidence-out .deployment/first-run-evidence.json
 ```
 
-Python 3.11 or newer is the only requirement for this first pass. The answer prints before trace details, and the replay exposes both `mcpServer` and `fabricOntology` evidence. It creates no cloud resources and proves the packaged response contract only, not a live source call.
+Python 3.11 or newer is the only requirement for this first pass. Require `Contract: PASS (4/4 assertions)`: the known synthetic fact, both required activity types, both required reference types, and both Knowledge Source names must be present. The ignored evidence capsule records the repository revision, runtime, fixture digest, source counts, and assertion statuses without the answer, query, raw response, or credentials.
+
+The pull-request `Validate` workflow executes this same entry point and retains the capsule as the `first-success-evidence` artifact. This creates no cloud resources and proves the packaged response contract only, not a live source call.
 
 ## Components At A Glance
 
