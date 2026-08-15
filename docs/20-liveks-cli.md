@@ -7,9 +7,11 @@ LiveKS is the plan-first lifecycle entry point for this accelerator. The same co
 Offline replay has no package installation step:
 
 ```bash
-./liveks try
+./liveks try --evidence-out .deployment/first-run-evidence.json
 ./liveks try --sample mcp --details
 ```
+
+The first command exits nonzero if the packaged known-answer, activity, reference, or source-identity contract fails. Its evidence capsule is safe-field-only and does not include the answer, query, raw response, or credentials.
 
 Install the pinned CLI dependency into the ignored `.liveks/venv` before using the remaining commands:
 
@@ -91,7 +93,16 @@ Choose exactly one cleanup behavior:
 
 Use `--keep-resources` only while debugging. Release evidence should include successful cleanup.
 
-Every E2E run writes ignored `deployments/<environment>/e2e-report.json` and `test-report.md` artifacts. The JSON preserves the nested lifecycle result; the Markdown format remains compatible with the maintainer evidence summarizer.
+Every E2E run writes four ignored artifacts under `deployments/<environment>/`:
+
+| Artifact | Purpose |
+| --- | --- |
+| `e2e-report.json` | Complete nested lifecycle result for local diagnosis. |
+| `test-report.md` | Detailed maintainer report compatible with the evidence summarizer. |
+| `evidence-capsule.json` | Allowlist-sanitized machine manifest with revision, profile, assertion statuses, proved source types, and source-report digest. |
+| `evidence-capsule.md` | Human-readable view of the same sanitized assertion set. |
+
+The capsules omit the environment name, check messages, resource identifiers, endpoints, raw responses, and credentials. Review them before sharing because the detailed reports beside them remain local-only.
 
 ## Machine-Readable Output
 

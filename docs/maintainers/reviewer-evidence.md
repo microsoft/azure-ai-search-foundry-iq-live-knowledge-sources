@@ -11,6 +11,7 @@ The important point: do not judge the sample only by final answer text. A good r
 | Local validation gate | Terminal output from `bash scripts/validate-local.sh` | No | The repo builds, notebooks parse, payloads generate, offline traces inspect, no-secret scan passes, and Bicep compiles when Azure CLI is available. |
 | Deployment summary | `deployments/<env>/deployment-summary.md` | No | The deployed app URL, resource names, endpoints, Knowledge Source names, Knowledge Base names, and smoke-test status. |
 | E2E test report | `deployments/<env>/test-report.md` | No | Create-call-load-delete checks with PASS, FAIL, or SKIP per deployment mode. |
+| Sanitized evidence capsule | `deployments/<env>/evidence-capsule.json` and `.md` | Review first | Revision, profile, assertion statuses, proved source types, and detailed-report digest without messages or environment-specific identifiers. |
 | Sanitized E2E evidence summary | `scratch/review-packets/e2e-evidence-summary-*.local.md` | No | PASS, FAIL, and SKIP counts plus checklist names without raw report notes, endpoints, tenant IDs, or resource names. |
 | Offline replay samples | `samples/responses/*.json` | Yes | Expected retrieve trace shape without live tenant dependencies. |
 | Test specifications | `docs/maintainers/test-specs/*.md` | Yes | The expected checks and pass criteria for each full-run path. |

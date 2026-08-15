@@ -65,6 +65,8 @@ For each deployment mode you plan to demonstrate, keep an ignored local report:
 
 ```text
 deployments/<env>/test-report.md
+deployments/<env>/evidence-capsule.json
+deployments/<env>/evidence-capsule.md
 ```
 
 Expected evidence:

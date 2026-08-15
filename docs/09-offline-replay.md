@@ -5,13 +5,25 @@ Offline replay exposes the Foundry IQ retrieve response contract without Azure r
 ## CLI
 
 ```bash
-./liveks try
+./liveks try --evidence-out .deployment/first-run-evidence.json
 ./liveks try --sample mcp
 ./liveks try --sample fabric
 ./liveks try --sample combined --details
 ```
 
-The default combined replay prints the answer before trace details. `--details` expands `activity`, `references`, and source-specific `sourceData`.
+The default combined replay prints the answer before trace details and fails unless all four packaged assertions pass: known answer, required activity types, required reference types, and required Knowledge Source names. `--details` expands `activity`, `references`, and source-specific `sourceData`.
+
+## Evidence Capsule
+
+`--evidence-out` writes a machine-readable, ignored capsule for the exact first-success command. It includes:
+
+- repository revision and runtime,
+- fixture path and SHA-256 digest,
+- activity and reference counts,
+- expected and observed source types and names,
+- assertion statuses and the explicit `offline-replay` boundary.
+
+The capsule excludes the answer, query, raw response, and credentials. The `Validate` workflow runs this entry point and uploads the resulting `first-success-evidence` artifact after the local gate passes.
 
 ## Browser
 
@@ -38,4 +50,4 @@ The three canonical fixtures live under `samples/responses/`. The CLI, Pages bui
 
 ## Boundary
 
-The responses use synthetic Airline Ops data and demonstrate trace shape and teaching flow. They do not prove that Azure AI Search called Microsoft Learn MCP, that a Fabric GraphModel was ready, or that delegated Fabric authorization worked. Use `liveks verify` and live E2E reports for those claims.
+The responses use synthetic Airline Ops data and demonstrate trace shape and teaching flow. They do not prove that Azure AI Search called Microsoft Learn MCP, that a Fabric GraphModel was ready, or that delegated Fabric authorization worked. Use `liveks verify` and live E2E reports for those claims. Live E2E writes detailed ignored reports plus allowlist-sanitized JSON and Markdown evidence capsules; the capsule records assertion names and statuses without copying live messages or identifiers.

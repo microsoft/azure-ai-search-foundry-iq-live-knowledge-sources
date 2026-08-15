@@ -25,10 +25,12 @@ Normally, do not author that optional token field at all. `verify` and `mcp` acq
 ## 1. Replay The Contract
 
 ```bash
-./liveks try
+./liveks try --evidence-out .deployment/first-run-evidence.json
 ```
 
-Expected: an answer naming Alpine Air, followed by both `MCP Server KS` and `Fabric Ontology KS` evidence. No package install or cloud access is used.
+Expected: an answer naming Alpine Air, both `MCP Server KS` and `Fabric Ontology KS` evidence, and `Contract: PASS (4/4 assertions)`. No package install or cloud access is used.
+
+The ignored `.deployment/first-run-evidence.json` capsule contains only the source revision, runtime, fixture digest, source identities and counts, and assertion statuses. It excludes the answer, query, raw response, and credentials. Pull requests run the same command and retain this capsule as the `first-success-evidence` workflow artifact.
 
 Open the same response visually in the [interactive trace demo](https://microsoft.github.io/azure-ai-search-foundry-iq-live-knowledge-sources/demo/?demo=combined).
 
@@ -204,4 +206,4 @@ Never use `--keep-resources` for a release rehearsal without recording who owns 
 
 ## Evidence Boundary
 
-Keep `.liveks/`, `.deployment/`, `deployments/`, raw responses, tokens, and private screenshots out of git. Public summaries should include only profile, status, sanitized resource/source names, evidence counts, and cleanup result.
+Keep `.liveks/`, `.deployment/`, `deployments/`, raw responses, tokens, and private screenshots out of git. Every `e2e` run writes allowlist-sanitized `evidence-capsule.json` and `evidence-capsule.md` files beside the detailed local reports. Review even sanitized capsules before sharing; public summaries should include only profile, revision, status, source types, assertion names, evidence counts, report digest, and cleanup result.

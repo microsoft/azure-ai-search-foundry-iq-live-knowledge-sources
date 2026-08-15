@@ -37,6 +37,15 @@ jobs:
       - name: Run local validation gate
         run: bash scripts/validate-local.sh --no-color
 
+      - name: Upload first-success evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: first-success-evidence
+          path: .deployment/first-run-evidence.json
+          if-no-files-found: error
+          include-hidden-files: true
+          retention-days: 14
+
       - name: Check whitespace
         run: git diff --check
 
@@ -57,7 +66,7 @@ jobs:
       - name: Bootstrap and run the Windows launcher
         shell: pwsh
         run: |
-          .\liveks.ps1 try --format json
+          .\liveks.ps1 try --format json --evidence-out .deployment/windows-first-run-evidence.json
           .\liveks.ps1 bootstrap
           .\liveks.ps1 profiles --format json
           .\liveks.ps1 doctor --profile offline --format json

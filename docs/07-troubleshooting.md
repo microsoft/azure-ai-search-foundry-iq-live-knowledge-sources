@@ -16,7 +16,11 @@ Generated diagnostics are written under ignored paths:
 deployments/<env>/deployment-summary.md
 deployments/<env>/test-report.md
 deployments/<env>/e2e-report.json
+deployments/<env>/evidence-capsule.md
+deployments/<env>/evidence-capsule.json
 ```
+
+Use the detailed reports for local diagnosis. The evidence capsules omit messages and environment-specific identifiers, but still review them before sharing.
 
 Start with machine-readable diagnostics:
 
@@ -96,6 +100,7 @@ Start with machine-readable diagnostics:
 
 - `FAIL` means the required behavior for the selected mode did not complete.
 - `SKIP` is acceptable only when the selected mode explicitly does not require that path, such as Fabric checks in `mcp-only`.
+- `evidence-capsule.json` is the machine-readable safe-field view. Use `e2e-report.json` when the omitted diagnostic messages are needed locally.
 - For `byo-fabric`, missing Fabric IDs should fail during configuration resolution, before deployment starts.
 - For `full`, missing Fabric IDs are acceptable only if the greenfield Fabric provisioning step produced generated IDs.
 - Separate MCP and Fabric checks prove both live paths. A combined KB check passes with recognized live evidence from one or both because the Knowledge Base planner chooses which attached source to call for each query.

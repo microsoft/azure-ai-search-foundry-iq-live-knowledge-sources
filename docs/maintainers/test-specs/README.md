@@ -20,8 +20,12 @@ Every live full-run should write ignored evidence:
 ```text
 deployments/<env>/test-report.md
 deployments/<env>/e2e-report.json
+deployments/<env>/evidence-capsule.md
+deployments/<env>/evidence-capsule.json
 deployments/<env>/deployment-summary.md
 ```
+
+The first two files are detailed local evidence. The capsules are allowlist-sanitized human and machine views; review them before sharing and never substitute them for source-specific live assertions.
 
 Fabric-only runs may also write:
 

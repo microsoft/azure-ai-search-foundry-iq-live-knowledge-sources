@@ -17,7 +17,7 @@ Platform teams connect a governed Fabric Ontology or remote HTTPS MCP tool, subm
 </figure>
 
 !!! tip "First success from a fresh clone"
-    Run `./liveks try`. It requires Python 3.11 or newer, installs no packages, creates no cloud resources, and prints the answer before the MCP Server and Fabric Ontology evidence trace. This proves the packaged replay contract only.
+    Run `./liveks try --evidence-out .deployment/first-run-evidence.json`. It requires Python 3.11 or newer, installs no packages, creates no cloud resources, and must report `Contract: PASS (4/4 assertions)`. The ignored capsule records revision, fixture digest, source identities, counts, and assertion status without answer or query text. This proves the packaged replay contract only.
 
 The representative path below reuses an existing Fabric workspace and ontology. It proves one source first, then calls the same Knowledge Base through its native MCP endpoint. It does not publish Fabric identifiers, tokens, endpoints, or raw live responses.
 
