@@ -815,10 +815,10 @@ def m6() -> Module:
                 url="<app>.azurestaticapps.net", tabs=apptabs, active=0, settle=2.8)
     apptag = tr("실제 앱 · LIVE APP", "LIVE APP")
     S.real_zoom(m, Ctx(6, TOTAL, lbl_verify()), "assets/real/app-modes.png",
-                explain=tr("세 배포 모드(full · byo-fabric · mcp-only)를 앱에서 바로 고릅니다.",
-                           "Pick the three deploy modes (full · byo-fabric · mcp-only) in the app."),
-                sub=tr("full=제로베이스 · byo-fabric=내 Fabric · mcp-only=빠른 검증",
-                       "full=zero-base · byo-fabric=your Fabric · mcp-only=fast validation"),
+                explain=tr("mcp-only로 첫 live를 증명한 뒤 byo-fabric 또는 full로 확장합니다.",
+                           "Prove the first live path with mcp-only, then expand to byo-fabric or full."),
+                sub=tr("mcp-only=첫 live · byo-fabric=기존 Fabric · full=승인된 greenfield",
+                       "mcp-only=first live · byo-fabric=existing Fabric · full=approved greenfield"),
                 tag=apptag, settle=3.0)
     S.real_zoom(m, Ctx(6, TOTAL, lbl_verify()), "assets/real/app-mcp-answer.png",
                 explain=tr("MCP Live: 답변과 함께 'Source Trace' 배지가 어떤 소스가 답했는지 보여줍니다.",

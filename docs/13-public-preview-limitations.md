@@ -13,6 +13,8 @@ Return to [Overview](00-overview.md) to choose a repository path, or continue wi
 
 This sample uses Azure AI Search Knowledge Source APIs in `2026-05-01-preview`.
 
+LiveKS and the direct postprovision path reject other versions before cloud calls because the current MCP Server, Fabric Ontology, message-input, answer-synthesis, and reasoning payloads are a single preview contract. Azure AI Search `2026-04-01` stable remains valid for its generally available source kinds and minimal, extractive retrieval; this accelerator does not implement that separate lane. See [API Compatibility](14-api-compatibility.md).
+
 Treat these as preview-sensitive:
 
 - request and response schemas,

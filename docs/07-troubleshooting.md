@@ -40,7 +40,7 @@ Start with machine-readable diagnostics:
 
 ## Knowledge Source Creation Fails
 
-- Confirm `SEARCH_API_VERSION` is `2026-05-01-preview` or later when required by the preview.
+- Confirm `SEARCH_API_VERSION` is exactly the pinned `2026-05-01-preview`; other versions fail closed for the current payloads.
 - Confirm the source kind is supported in your search service region.
 - Confirm API key or RBAC permissions are valid.
 - Confirm GUID fields are valid GUIDs.

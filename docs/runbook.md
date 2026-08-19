@@ -2,6 +2,8 @@
 
 This is the shortest supported sequence from a fresh clone to verified cleanup.
 
+To skip workstation tool installation, open [Codespaces First Live](15-codespaces-first-live.md). Its container runs only replay, bootstrap, profile listing, and offline doctor; the guarded lifecycle below remains manual.
+
 ## 0. Know What To Configure
 
 The canonical input is an ignored `.liveks/<environment>.yaml` ledger. It is not a dotenv file and it is not `azd env`; LiveKS generates the deployment projection after validation.

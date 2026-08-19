@@ -9,17 +9,13 @@ Classic retrieval samples often begin by indexing content. This repo shows anoth
 
 ## What This Repo Is
 
-```text
-Reusable sample accelerator
-  -> deployment modes
-  -> REST samples
-  -> notebooks
-  -> demo app
-  -> offline replay
-  -> reviewer evidence and safe-claim guidance
-```
+| Stage | Outcome |
+| --- | --- |
+| Evaluator | Inspect the packaged response and evidence contract without cloud access. |
+| Azure implementer | Deploy and prove the `mcp-only` live path. |
+| Fabric implementer | Add governed ontology grounding after the Azure path works. |
 
-The repo is designed for field demos, customer workshops, private product review, blog preparation, and official-sample readiness work. It is not a production reference architecture.
+It is a reusable accelerator, not a production reference architecture. Human onboarding uses these three stages; coding-agent rules live separately in `AGENTS.md`.
 
 ## The Two Knowledge Source Patterns
 
@@ -50,6 +46,7 @@ Use this map when you are reviewing the repo or deciding what to read next.
 | --- | --- |
 | Understand the architecture | [Architecture](01-architecture.md) |
 | Pick the right path | [Choose a Pattern](02-choose-a-pattern.md) |
+| Avoid local tool installation | [Codespaces First Live](15-codespaces-first-live.md) |
 | Learn MCP Server KS | [MCP Server Knowledge Source](03-mcp-server-ks.md) |
 | Learn Fabric Ontology KS | [Fabric Ontology Knowledge Source](04-fabric-ontology-ks.md) |
 | Understand combined routing | [Combined Knowledge Base Routing](05-combined-kb-routing.md) |
@@ -60,6 +57,7 @@ Use this map when you are reviewing the repo or deciding what to read next.
 | Deploy the app and resources | [One-Command Demo Deployment](10-one-command-deployment.md) |
 | Connect existing Fabric assets | [Fabric Live BYO Validation](11-fabric-live-byo-validation.md) |
 | Avoid unsafe preview claims | [Public Preview Limitations and Caveats](13-public-preview-limitations.md) |
+| Compare stable and preview APIs | [API Compatibility](14-api-compatibility.md) |
 | Run a short demo | [Guided Live Demo Walkthrough](16-demo-walkthrough.md) |
 | Answer common setup questions | [FAQ](19-faq.md) |
 
@@ -85,7 +83,7 @@ The final answer alone is not enough. Good evidence shows which source was selec
    ./liveks try
    ```
 
-2. Read the outcome journey in [Live Knowledge Sources Manual](index.md).
+2. Use [Codespaces First Live](15-codespaces-first-live.md) when you want the checked-in toolchain, or continue locally.
 3. Use [Choose a Pattern](02-choose-a-pattern.md) to pick a path, and keep [FAQ](19-faq.md) open for mode, auth, offline replay, and endpoint questions.
 4. Run `./liveks bootstrap`, then `doctor` and `plan` before any live deployment.
 5. Start with `mcp-only`, open the deployed demo app, and inspect source trace evidence.

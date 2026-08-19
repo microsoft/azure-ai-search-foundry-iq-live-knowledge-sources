@@ -1,0 +1,65 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="760" viewBox="0 0 1600 760" role="img" aria-labelledby="title desc">
+  <title id="title">Sanitized MCP-only live validation evidence</title>
+  <desc id="desc">A source-backed summary of a controlled live run showing HTTP 200, MCP Server activity or reference evidence, the expected Knowledge Source and tool identities, and successful cleanup. Endpoints, tenant identifiers, queries, answers, raw responses, and credentials are not retained.</desc>
+
+  <rect width="1600" height="760" fill="#F7F9FC"/>
+  <text x="64" y="62" font-family="Segoe UI, Arial, sans-serif" font-size="17" font-weight="700" fill="#116B4A">SANITIZED EVIDENCE CAPTURE</text>
+  <text x="64" y="116" font-family="Segoe UI, Arial, sans-serif" font-size="42" font-weight="700" fill="#111827">The first live path returns source evidence, not just an answer.</text>
+  <text x="66" y="158" font-family="Segoe UI, Arial, sans-serif" font-size="20" fill="#475569">Controlled mcp-only E2E | Azure AI Search 2026-05-01-preview | raw content and identifiers removed</text>
+
+  <rect x="64" y="204" width="930" height="450" rx="8" fill="#0E1B2A" stroke="#28445F" stroke-width="2"/>
+  <rect x="64" y="204" width="930" height="56" rx="8" fill="#172A3D"/>
+  <rect x="64" y="248" width="930" height="12" fill="#172A3D"/>
+  <text x="92" y="239" font-family="Consolas, monospace" font-size="17" font-weight="700" fill="#D9E7F5">liveks verify --env &lt;redacted&gt; --format json</text>
+
+  <text x="94" y="312" font-family="Consolas, monospace" font-size="25" font-weight="700" fill="#72E09A">LiveKS verify: PASS</text>
+
+  <rect x="92" y="346" width="84" height="30" rx="5" fill="#154D32"/>
+  <text x="108" y="367" font-family="Consolas, monospace" font-size="15" font-weight="700" fill="#C6F6D5">PASS</text>
+  <text x="198" y="368" font-family="Consolas, monospace" font-size="17" fill="#E6EEF7">app-status</text>
+  <text x="480" y="368" font-family="Consolas, monospace" font-size="17" fill="#AFC6DB">HTTP 200</text>
+
+  <rect x="92" y="398" width="84" height="30" rx="5" fill="#154D32"/>
+  <text x="108" y="419" font-family="Consolas, monospace" font-size="15" font-weight="700" fill="#C6F6D5">PASS</text>
+  <text x="198" y="420" font-family="Consolas, monospace" font-size="17" fill="#E6EEF7">mcp-retrieve</text>
+  <text x="480" y="420" font-family="Consolas, monospace" font-size="17" fill="#AFC6DB">mcpServer evidence returned</text>
+
+  <rect x="92" y="450" width="84" height="30" rx="5" fill="#154D32"/>
+  <text x="108" y="471" font-family="Consolas, monospace" font-size="15" font-weight="700" fill="#C6F6D5">PASS</text>
+  <text x="198" y="472" font-family="Consolas, monospace" font-size="17" fill="#E6EEF7">knowledge-source</text>
+  <text x="480" y="472" font-family="Consolas, monospace" font-size="17" fill="#AFC6DB">microsoft-learn-mcp-ks</text>
+
+  <rect x="92" y="502" width="84" height="30" rx="5" fill="#154D32"/>
+  <text x="108" y="523" font-family="Consolas, monospace" font-size="15" font-weight="700" fill="#C6F6D5">PASS</text>
+  <text x="198" y="524" font-family="Consolas, monospace" font-size="17" fill="#E6EEF7">tool</text>
+  <text x="480" y="524" font-family="Consolas, monospace" font-size="17" fill="#AFC6DB">microsoft_docs_search</text>
+
+  <rect x="92" y="554" width="84" height="30" rx="5" fill="#154D32"/>
+  <text x="108" y="575" font-family="Consolas, monospace" font-size="15" font-weight="700" fill="#C6F6D5">PASS</text>
+  <text x="198" y="576" font-family="Consolas, monospace" font-size="17" fill="#E6EEF7">cleanup</text>
+  <text x="480" y="576" font-family="Consolas, monospace" font-size="17" fill="#AFC6DB">generated resource group absent</text>
+
+  <text x="94" y="624" font-family="Consolas, monospace" font-size="15" fill="#7895B0">answer: not retained | query: not retained | endpoint: not retained</text>
+
+  <rect x="1030" y="204" width="506" height="450" rx="8" fill="#FFFFFF" stroke="#B8C4CE" stroke-width="2"/>
+  <rect x="1030" y="204" width="506" height="8" fill="#17805C"/>
+  <rect x="1062" y="238" width="126" height="42" rx="6" fill="#DFF6E9" stroke="#68C78A"/>
+  <text x="1096" y="266" font-family="Segoe UI, Arial, sans-serif" font-size="18" font-weight="700" fill="#116B3A">LIVE</text>
+  <text x="1062" y="326" font-family="Segoe UI, Arial, sans-serif" font-size="28" font-weight="700" fill="#111827">Trace evidence</text>
+
+  <rect x="1062" y="354" width="206" height="106" rx="8" fill="#EFF6FF" stroke="#A7C7E7"/>
+  <text x="1086" y="397" font-family="Segoe UI, Arial, sans-serif" font-size="34" font-weight="700" fill="#0F548C">4</text>
+  <text x="1086" y="430" font-family="Segoe UI, Arial, sans-serif" font-size="16" font-weight="700" fill="#475569">activity types</text>
+
+  <rect x="1298" y="354" width="206" height="106" rx="8" fill="#E7F7F0" stroke="#79B8A4"/>
+  <text x="1322" y="397" font-family="Segoe UI, Arial, sans-serif" font-size="34" font-weight="700" fill="#116B4A">2</text>
+  <text x="1322" y="430" font-family="Segoe UI, Arial, sans-serif" font-size="16" font-weight="700" fill="#475569">MCP references</text>
+
+  <text x="1062" y="506" font-family="Segoe UI, Arial, sans-serif" font-size="17" font-weight="700" fill="#111827">Public proof keeps only:</text>
+  <text x="1062" y="541" font-family="Segoe UI, Arial, sans-serif" font-size="16" fill="#475569">source kind and expected identities</text>
+  <text x="1062" y="571" font-family="Segoe UI, Arial, sans-serif" font-size="16" fill="#475569">status, counts, API version, cleanup</text>
+  <text x="1062" y="601" font-family="Segoe UI, Arial, sans-serif" font-size="16" fill="#475569">no endpoint, tenant ID, token, or content</text>
+
+  <rect x="64" y="684" width="1472" height="40" rx="6" fill="#E8F3FC"/>
+  <text x="88" y="710" font-family="Segoe UI, Arial, sans-serif" font-size="16" font-weight="700" fill="#0F548C">Source-backed artifact: samples/evidence/mcp-only-live-proof.sample.json | A static image alone is never the acceptance test.</text>
+</svg>

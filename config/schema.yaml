@@ -45,7 +45,8 @@ fields:
     values: [F1, B1, S1]
     azd: AZURE_APP_SERVICE_SKU
   search.api_version:
-    type: string
+    type: enum
+    values: [2026-05-01-preview]
     azd: AZURE_SEARCH_API_VERSION
   search.sku:
     type: enum

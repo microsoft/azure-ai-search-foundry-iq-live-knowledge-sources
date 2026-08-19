@@ -25,6 +25,8 @@ https://learn.microsoft.com/api/mcp
 
 Use `mcp-only` for the smallest end-to-end live deployment. It uses the public Microsoft Learn MCP endpoint, so no Fabric workspace or ontology is required. The sequence below moves from local payload evidence to live source evidence; `up` is the first command that mutates cloud state.
 
+Use [Codespaces First Live](15-codespaces-first-live.md) when you want the supported Python, Node.js, Azure CLI, Bicep, and Azure Developer CLI versions preinstalled. Container creation does not authenticate or provision.
+
 Before a live run, review [Public Preview Limitations and Caveats](13-public-preview-limitations.md) alongside the official manual.
 
 ### 1. Replay And Inspect The Payload

@@ -95,7 +95,7 @@ Run the same tabs once before the audience joins. Confirm:
 | --- | --- |
 | **Overview**, **MCP Live**, **Fabric**, **Combined Trace**, **Deployment** tabs | Change the visible section but do not run a query. |
 | **Run MCP**, **Check Fabric**, or **View trace** on an Overview mode card | Opens the matching tab and immediately runs its packaged query. |
-| Top-right **Run combined retrieve** | Opens Combined Trace and immediately runs the combined query. |
+| Top-right **Inspect MCP replay** or **Run MCP live** | Opens the MCP view and runs the fixture or live query that matches the current runtime boundary. |
 | **Run retrieve** inside a source tab | Runs that tab's packaged query when you choose. |
 | **Re-check** in Deployment | Refreshes Search reachability and runtime status. |
 | Answer mode badge | Distinguishes `live` from `offline` or `offline-replay`. |
@@ -312,7 +312,7 @@ Use `--accept-fabric-capacity` for `full`.
 
 | What you see | Meaning | Presenter action |
 | --- | --- | --- |
-| Top pill says `offline replay ready` | The managed API is unavailable, or this is GitHub Pages. | Use replay only and label it as replay. |
+| Top pill says `REPLAY - no Azure call` | The managed API is unavailable, or this is GitHub Pages. | Use replay only and label it as replay. |
 | Top pill says `<mode> unreachable` | App settings exist but Search did not answer the status check. | Open Deployment, select Re-check, then use the last verified replay if necessary. |
 | MCP answer is offline | Search configuration or the live MCP retrieve failed. | Show the error/notice, then use replay and the last `verify` result. |
 | Fabric answer is offline and asks for authorization | The delegated token is missing or expired. | Acquire a fresh raw Search token, paste it in Fabric, and rerun. |

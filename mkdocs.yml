@@ -54,6 +54,7 @@ markdown_extensions:
 nav:
   - Start Here:
       - Home: index.md
+      - Codespaces First Live: 15-codespaces-first-live.md
       - Runbook: runbook.md
       - Knowledge Base MCP Client: 22-knowledge-base-mcp.md
       - LiveKS CLI: 20-liveks-cli.md
@@ -77,6 +78,7 @@ nav:
       - External Tenant Login: external-tenant-login.md
       - Repo Boundaries: 12-repo-boundaries.md
       - Preview Limitations: 13-public-preview-limitations.md
+      - API Compatibility: 14-api-compatibility.md
       - FAQ: 19-faq.md
   - Samples:
       - REST Requests: samples/rest.md

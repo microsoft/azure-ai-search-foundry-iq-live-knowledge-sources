@@ -230,11 +230,13 @@ p {
 .badge.live {
   color: var(--green);
   border-color: rgba(23, 133, 95, 0.35);
+  background: var(--green-soft);
 }
 
 .badge.offline {
   color: var(--amber);
   border-color: rgba(182, 107, 0, 0.35);
+  background: var(--amber-soft);
 }
 
 .tabs {
@@ -433,6 +435,37 @@ p {
   margin: 18px 0 20px;
 }
 
+.journey-pipeline {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.evidence-boundary,
+.proof-boundary {
+  border: 1px solid rgba(169, 97, 0, 0.34);
+  border-radius: 6px;
+  padding: 10px 12px;
+  background: var(--amber-soft);
+  color: #7a4400;
+  font-size: 13px;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.evidence-boundary {
+  margin-top: 16px;
+}
+
+.evidence-boundary.is-live,
+.proof-boundary.is-live {
+  border-color: rgba(23, 133, 95, 0.38);
+  background: var(--green-soft);
+  color: var(--green);
+}
+
+.proof-boundary {
+  margin: 14px 0;
+}
+
 .trace-pipeline div {
   position: relative;
   min-height: 92px;
@@ -495,7 +528,8 @@ p {
 }
 
 .mode-card:hover,
-.mode-card.is-current {
+.mode-card.is-current,
+.mode-card.is-next {
   transform: translateY(-2px);
   box-shadow: 0 14px 32px rgba(16, 35, 66, 0.12);
 }
@@ -503,6 +537,16 @@ p {
 .mode-card.is-current {
   border-color: rgba(16, 95, 206, 0.34);
   background: linear-gradient(180deg, #ffffff, #f5f9ff);
+}
+
+.mode-card.is-next {
+  border-color: rgba(16, 95, 206, 0.34);
+  background: linear-gradient(180deg, #ffffff, #f3f8ff);
+}
+
+.mode-card.is-next span::after {
+  content: " | NEXT";
+  color: var(--blue);
 }
 
 .mode-card strong,
@@ -529,7 +573,7 @@ p {
 }
 
 .mode-full {
-  border-top-color: var(--blue);
+  border-top-color: var(--amber);
 }
 
 .mode-byo {
@@ -537,7 +581,7 @@ p {
 }
 
 .mode-mcp {
-  border-top-color: var(--amber);
+  border-top-color: var(--blue);
 }
 
 .readiness-panel,

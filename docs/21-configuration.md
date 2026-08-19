@@ -111,6 +111,8 @@ The final redacted result and the source of each value are written to `.liveks/<
 
 `azd env` is a deployment projection, not the authored source of truth. `up` selects or creates the named `azd` environment and writes resolved non-secret values immediately before preview and provisioning.
 
+`search.api_version` is a fail-closed enum pinned to `2026-05-01-preview`. The current source kinds and full retrieval behavior are not compatible with the `2026-04-01` stable contract. See [API Compatibility](14-api-compatibility.md).
+
 ## Legacy Dotenv Migration
 
 Existing ignored dotenv files can be imported without shell evaluation:
