@@ -39,6 +39,20 @@ class LiveKsConfigTests(unittest.TestCase):
             with self.assertRaisesRegex(ConfigError, "Unknown configuration fields"):
                 resolve_config(profile=None, environment=None, config_path=path)
 
+    def test_stable_api_version_fails_before_provisioning(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            path = Path(temp_dir) / "config.yaml"
+            path.write_text(
+                "version: 2\n"
+                "profile: mcp-only\n"
+                "environment: unit-stable\n"
+                "search:\n"
+                "  api_version: '2026-04-01'\n",
+                encoding="utf-8",
+            )
+            with self.assertRaisesRegex(ConfigError, "2026-05-01-preview"):
+                resolve_config(profile=None, environment=None, config_path=path)
+
     def test_secret_must_be_environment_reference(self):
         with tempfile.TemporaryDirectory() as temp_dir:
             path = Path(temp_dir) / "config.yaml"

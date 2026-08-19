@@ -1,6 +1,6 @@
 # Foundry IQ Live Knowledge Sources Accelerator
 
-> Platform teams connect a governed Fabric Ontology or remote HTTPS MCP tool, submit a natural-language question to a Foundry IQ Knowledge Base, and receive a grounded result with source evidence that can also be consumed through MCP.
+> Go from clone to a proved live Azure AI Search MCP Server Knowledge Source, then extend the same guarded lifecycle to a governed Fabric Ontology.
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Validate](https://github.com/microsoft/azure-ai-search-foundry-iq-live-knowledge-sources/actions/workflows/validate.yml/badge.svg)](https://github.com/microsoft/azure-ai-search-foundry-iq-live-knowledge-sources/actions/workflows/validate.yml)
@@ -8,19 +8,29 @@
 ![Python](https://img.shields.io/badge/Python-3.11%2B-blue)
 ![Node.js](https://img.shields.io/badge/Node.js-22%2B-green)
 
-[Read the execution manual](https://microsoft.github.io/azure-ai-search-foundry-iq-live-knowledge-sources/) | [Open the trace demo](https://microsoft.github.io/azure-ai-search-foundry-iq-live-knowledge-sources/demo/?demo=combined) | [Watch the KO/EN walkthrough](https://github.com/microsoft/azure-ai-search-foundry-iq-live-knowledge-sources/releases/tag/walkthrough-v1)
+[![Open in GitHub Codespaces](https://github.com/codespaces/badge.svg)](https://codespaces.new/microsoft/azure-ai-search-foundry-iq-live-knowledge-sources)
+
+[Execution manual](https://microsoft.github.io/azure-ai-search-foundry-iq-live-knowledge-sources/) | [First live in Codespaces](docs/15-codespaces-first-live.md) | [Offline trace demo](https://microsoft.github.io/azure-ai-search-foundry-iq-live-knowledge-sources/demo/?demo=combined) | [KO/EN walkthrough](https://github.com/microsoft/azure-ai-search-foundry-iq-live-knowledge-sources/releases/tag/walkthrough-v1)
 
 <p align="center">
   <img
     src="assets/clone-to-grounded-proof.svg"
-    alt="From clone to grounded proof: replay locally, choose a live profile, check with doctor and plan, deploy after confirmation, prove source evidence, and clean up generated resources."
+    alt="Three stages from clone to proof: a 30-second offline replay, the MCP-only first live Azure path, and advanced Fabric expansion."
     width="1600"
   />
 </p>
 
-This public accelerator is designed for managed-organization evaluation, field demos, and implementation review. Start with a local proof, move to the smallest live profile that fits the tenant, and finish with source evidence plus cleanup evidence. It is not a production reference architecture.
+This accelerator is for three successive jobs:
 
-## First Success: No Cloud Required
+| You are here | Finish this | Path |
+| --- | --- | --- |
+| **Evaluator** | Inspect the answer, activity, references, and source identities without cloud access. | `./liveks try` |
+| **Azure implementer** | Deploy and prove one live MCP Server KS without Fabric. | `mcp-only` |
+| **Fabric implementer** | Add an existing or greenfield ontology and prove both source paths. | `byo-fabric` or `full` |
+
+The repository is a reusable accelerator, not a production reference architecture. Coding-agent behavior is specified separately in [AGENTS.md](AGENTS.md); human onboarding stays focused on the three outcomes above.
+
+## 30-Second Replay
 
 From a fresh clone, inspect the complete answer-and-evidence contract before installing packages or configuring Azure:
 
@@ -30,9 +40,90 @@ cd azure-ai-search-foundry-iq-live-knowledge-sources
 ./liveks try --evidence-out .deployment/first-run-evidence.json
 ```
 
-Python 3.11 or newer is the only requirement for this first pass. Require `Contract: PASS (4/4 assertions)`: the known synthetic fact, both required activity types, both required reference types, and both Knowledge Source names must be present. The ignored evidence capsule records the repository revision, runtime, fixture digest, source counts, and assertion statuses without the answer, query, raw response, or credentials.
+Python 3.11 or newer is the only requirement. Require `Contract: PASS (4/4 assertions)`: the known synthetic fact, both required activity types, both required reference types, and both Knowledge Source names must be present.
 
-The pull-request `Validate` workflow executes this same entry point and retains the capsule as the `first-success-evidence` artifact. This creates no cloud resources and proves the packaged response contract only, not a live source call.
+> **REPLAY - NO AZURE CALL:** this command proves the checked-in response contract only. It does not prove that Azure AI Search, MCP Server KS, or Fabric ran live.
+
+The ignored capsule records repository revision, runtime, fixture digest, source counts, and assertion status without query, answer, raw response, or credentials. Pull-request validation runs the same command and retains the capsule as a short-lived workflow artifact.
+
+## First Actual Live: MCP-Only
+
+Use the checked-in Codespaces environment to avoid installing Python, Node.js, Azure CLI, Bicep, and Azure Developer CLI yourself. Container creation runs only replay, dependency bootstrap, profile listing, and offline doctor; it never signs in or creates cloud resources.
+
+[Open the guarded Codespaces procedure](docs/15-codespaces-first-live.md).
+
+For a local clone, bootstrap and initialize the same profile:
+
+```bash
+./liveks bootstrap
+./liveks init --profile mcp-only --env liveks-mcp
+```
+
+Then sign in and inspect readiness before provisioning:
+
+```bash
+az login --tenant <tenant-guid>
+azd auth login
+./liveks doctor --env liveks-mcp
+./liveks plan --env liveks-mcp
+```
+
+`plan` is non-provisioning. Review its tool, authentication, resource, duration, and cost checks. Only then run:
+
+```bash
+./liveks up --env liveks-mcp
+```
+
+`up` first runs an ARM preview and requires the exact confirmation `create liveks-mcp`. It provisions Azure AI Search, Azure OpenAI, hosting, the public Microsoft Learn MCP Server KS, and an MCP-only Knowledge Base, then runs verification. This is one-command provisioning **after readiness passes**, not an unreviewed installer.
+
+Typical duration is 10-20 minutes, subject to subscription, region, and model availability. No Fabric workspace, ontology, capacity, or delegated Fabric token is required.
+
+### Prove It Is Live
+
+```bash
+./liveks verify --env liveks-mcp --format json
+./liveks mcp \
+  --env liveks-mcp \
+  --query "What must be configured for an Azure AI Search MCP Server knowledge source?" \
+  --expect-term "Azure AI Search"
+```
+
+Require all of these, not just a plausible answer:
+
+- `app-status=pass`,
+- `mcp-retrieve=pass` backed by `mcpServer` activity or references,
+- Knowledge Source `microsoft-learn-mcp-ks`,
+- tool `microsoft_docs_search`,
+- native MCP `tools-list`, `tools-call`, and `grounding-content` passes.
+
+<p align="center">
+  <img
+    src="assets/mcp-only-live-proof.png"
+    alt="Sanitized evidence from a controlled live MCP-only validation: app HTTP 200, MCP Server activity or references, expected source and tool identities, and cleanup pass."
+    width="1600"
+  />
+</p>
+
+This visual is derived from a controlled live E2E run. The auditable, identifier-free record is [mcp-only-live-proof.sample.json](samples/evidence/mcp-only-live-proof.sample.json). It retains source type, expected identities, counts, API version, pass status, and cleanup outcome; it excludes endpoints, tenant identifiers, query, answer, raw response, and credentials. A static image alone is not an acceptance test.
+
+## Expand To Fabric
+
+Move to Fabric only when the first live route is understood and the tenant is ready:
+
+| Profile | Use when | Authored input | Ownership result |
+| --- | --- | --- | --- |
+| `byo-fabric` | A governed workspace and ontology already exist. | `fabric.workspace_id` and `fabric.ontology_id` in ignored YAML. | Generated Azure assets are deleted; existing Fabric assets are preserved. |
+| `full` | An approved greenfield demo must create the sample stack. | Fabric quota plus `--accept-fabric-capacity`. | Generated Azure and Fabric assets are ownership-checked and deleted. |
+
+```bash
+./liveks init --profile byo-fabric --env liveks-byo
+# Add the existing Fabric IDs to .liveks/liveks-byo.yaml.
+./liveks doctor --env liveks-byo
+./liveks plan --env liveks-byo
+./liveks up --env liveks-byo
+```
+
+BYO Fabric typically takes 10-25 minutes after its IDs and delegated authorization are ready. `full` commonly takes 30-60 minutes and creates a billable Fabric F2 capacity. Read [Fabric BYO validation](docs/11-fabric-live-byo-validation.md) or [Fabric prerequisites](docs/fabric-ontology-prerequisites.md) before using either path.
 
 ## Components At A Glance
 
@@ -41,7 +132,7 @@ The pull-request `Validate` workflow executes this same entry point and retains 
 | **MCP Server Knowledge Source** | Calls an allowed tool on a remote HTTPS MCP server during Knowledge Base retrieval. | `mcpServer` activity or references and the invoked tool name. |
 | **Fabric Ontology Knowledge Source** | Grounds a business question in governed Fabric entities and relationships. | `fabricOntology` activity or references plus Fabric source data. |
 | **Foundry IQ Knowledge Base** | Plans retrieval across attached sources and produces one grounded result. | Answer content, `activity`, `references`, and `sourceData`. |
-| **Native Knowledge Base MCP endpoint** | Exposes `knowledge_base_retrieve` to MCP-compatible clients. | `tools/list`, `tools/call`, and a known-fact match when source grounding is claimed. |
+| **Native Knowledge Base MCP endpoint** | Exposes `knowledge_base_retrieve` to MCP-compatible clients. | `tools/list`, `tools/call`, and a known-fact match. |
 | **LiveKS CLI** | Validates, plans, deploys, verifies, invokes MCP, and cleans up. | Stable status envelopes and nonzero failures. |
 
 There are two distinct MCP directions:
@@ -51,69 +142,46 @@ Northbound: MCP client -> Knowledge Base MCP endpoint -> Foundry IQ -> Knowledge
 Southbound: Foundry IQ -> MCP Server Knowledge Source -> remote HTTPS MCP tool
 ```
 
-The representative managed-organization scenario uses the northbound client path with a native Fabric Ontology Knowledge Source. Fabric is not routed through the external MCP Server KS.
+The Fabric path uses a native Fabric Ontology Knowledge Source. It is not routed through the external MCP Server KS.
 
-## Run One Live Knowledge Source
-
-Use `byo-fabric` when the organization already owns a Fabric workspace and ontology:
-
-```bash
-git clone --depth 1 https://github.com/microsoft/azure-ai-search-foundry-iq-live-knowledge-sources.git
-cd azure-ai-search-foundry-iq-live-knowledge-sources
-./liveks bootstrap
-./liveks init --profile byo-fabric --env liveks-byo
-```
-
-Edit the ignored `.liveks/liveks-byo.yaml` ledger and add the existing identifiers:
-
-```yaml
-version: 2
-profile: byo-fabric
-environment: liveks-byo
-azure:
-  location: eastus
-fabric:
-  workspace_id: 11111111-1111-1111-1111-111111111111
-  ontology_id: 22222222-2222-2222-2222-222222222222
-```
-
-Then inspect before provisioning and deploy only after reviewing the resource and cost list:
-
-```bash
-az login --tenant <tenant-guid>
-azd auth login
-./liveks doctor --env liveks-byo
-./liveks plan --env liveks-byo
-./liveks up --env liveks-byo
-```
-
-`plan` is non-provisioning. `up` displays the Azure preview and requires `create liveks-byo`. Postprovision creates a Fabric-only Knowledge Base for isolated source validation and a combined Knowledge Base for planner-routing tests. Cleanup later deletes generated Azure resources and preserves the existing Fabric workspace and ontology.
-
-No existing ontology? Use `mcp-only` for the fastest live path. Use `full` only with explicit approval because it creates a billable Fabric F2 capacity.
-
-## Confirm Foundry IQ Grounding
+## Confirm Grounding
 
 Do not treat a successful deployment message or final answer as routing proof:
 
 ```bash
-./liveks verify --env liveks-byo --format json
+./liveks verify --env <environment> --format json
 ```
 
-For the checked-in synthetic Airline Ops contract, the verifier asks:
+The verifier checks each source independently before combined planner routing:
+
+| Profile | Required source proof |
+| --- | --- |
+| `mcp-only` | `mcpServer` activity or references from the MCP-only Knowledge Base. |
+| `byo-fabric` | MCP evidence plus `fabricOntology` evidence from the Fabric-only Knowledge Base. |
+| `full` | Both source checks, generated Fabric readiness, app status, and ownership evidence. |
+
+For the checked-in synthetic Airline Ops contract, Fabric validation asks:
 
 ```text
 Which airlines have the highest customer-care exposure this month?
 ```
 
-Require a live `fabric-retrieve` pass backed by `fabricOntology` activity or references. The sample ontology should rank Alpine Air first and return Fabric answer and raw grounding fields; another BYO ontology must use a question and expected fact from its own domain.
+The sample ontology should rank Alpine Air first and return Fabric activity or references. Another BYO ontology must use a known question and non-sensitive expected fact from its own domain.
 
-The verifier writes sanitized status and evidence summaries under ignored `deployments/<environment>/`. Raw responses, tokens, endpoints, and tenant-specific identifiers must stay out of git.
+Sanitized reports stay under ignored `deployments/<environment>/`. Raw responses, tokens, endpoints, and tenant-specific identifiers must stay out of git. Follow [Post-Deployment Tests](docs/08-test-queries.md) for the trace-level pass/fail contract.
 
-Follow [Post-Deployment Tests](docs/08-test-queries.md) for the exact trace-level pass/fail contract.
+## Call The Knowledge Base Through MCP
 
-## Call It Through MCP
+After REST evidence proves the source independently, invoke the same single-source Knowledge Base through its native MCP endpoint:
 
-After REST evidence proves the Knowledge Source independently, invoke the same Fabric-only Knowledge Base as an MCP server:
+```bash
+./liveks mcp \
+  --env liveks-mcp \
+  --query "What must be configured for an Azure AI Search MCP Server knowledge source?" \
+  --expect-term "Azure AI Search"
+```
+
+For the checked-in Airline Ops Fabric contract:
 
 ```bash
 ./liveks mcp \
@@ -131,54 +199,46 @@ LiveKS mcp: PASS
 [PASS] grounding-content: MCP content matched 1/1 expected term(s).
 ```
 
-Use `Alpine Air` only when the connected ontology implements the checked-in synthetic contract. For another BYO ontology, use a non-sensitive fact that a known-answer question must return. Omitting `--expect-term` proves the MCP protocol surface only and produces a grounding warning.
+Omitting `--expect-term` proves the MCP protocol surface only and leaves grounding at warning. The sample default reads a Search admin key transiently through Azure CLI and never prints or persists it. Organization-managed identities with **Search Index Data Reader** can use `--auth bearer`.
 
-The default sample path reads a Search admin key transiently through Azure CLI and never prints or persists it. Organization-managed identities with **Search Index Data Reader** can use `--auth bearer`.
+Read [Call the Knowledge Base Through MCP](docs/22-knowledge-base-mcp.md) for authentication, delegated Fabric authorization, and controlled failure handling.
 
-For a controlled Fabric authorization failure:
+## Configuration And Compatibility
 
-```bash
-./liveks mcp --env liveks-byo --omit-source-authorization --expect-failure
-```
+`.liveks/<environment>.yaml` is the canonical human-authored ledger. `azd env` is generated deployment state. Secret fields use `{env: VARIABLE_NAME}` references; raw values never belong in YAML.
 
-The command normalizes external failure text and stores no raw MCP content. The current MCP result returns `result.content[]`, not the retrieve API's separate `activity` and `references`; the acceptance proof is therefore the pair of source-specific `verify` evidence and an `mcp` known-fact match.
-
-Read [Call the Knowledge Base Through MCP](docs/22-knowledge-base-mcp.md) for authentication, evidence, and failure handling.
-
-## Configuration And Known Limitations
-
-| Profile | Use when | Required configuration |
+| Profile | Cloud mutation | Required configuration |
 | --- | --- | --- |
-| `offline` | Learn the response and evidence contract without cloud resources. | None |
-| `mcp-only` | Validate one live MCP Server KS without Fabric. | Azure sign-in; profile defaults are otherwise runnable. |
-| `byo-fabric` | Connect an existing Fabric workspace and ontology. | `fabric.workspace_id` and `fabric.ontology_id`. |
-| `full` | Rehearse a greenfield Fabric and Azure deployment. | Fabric quota and `--accept-fabric-capacity`. |
+| `offline` | None | None |
+| `mcp-only` | Generated Azure resources | Azure sign-in; profile defaults are otherwise runnable |
+| `byo-fabric` | Generated Azure resources only | Existing Fabric workspace and ontology IDs |
+| `full` | Generated Azure and Fabric resources | Fabric quota and explicit capacity acceptance |
 
-`.liveks/<environment>.yaml` is the canonical human-authored ledger. `azd env` is generated deployment state, and dotenv files are compatibility inputs for REST and notebook users. Secret fields use `{env: VARIABLE_NAME}` references; raw values never belong in YAML.
+The live profiles are pinned to `2026-05-01-preview`. LiveKS rejects `2026-04-01` stable because MCP Server KS, Fabric Ontology KS, message input, answer synthesis, and configurable reasoning are preview-dependent in this implementation. The stable API remains valid for its generally available sources and minimal, extractive retrieval; this repository does not yet implement that separate lane.
 
-The Azure AI Search API is pinned to `2026-05-01-preview`. Preview behavior has no production SLA and can change. Microsoft Learn is the source of truth for the current API, authentication, MCP response, and Fabric requirements.
+Read the [stable vs preview compatibility matrix](docs/14-api-compatibility.md).
 
 Important boundaries:
 
 - Fabric live retrieve requires a raw end-user Search token in `x-ms-query-source-authorization`, without a `Bearer` prefix.
 - MCP Server KS requires a reachable remote HTTPS endpoint; local stdio servers cannot be attached directly.
-- The native MCP result alone does not identify source activity in separate arrays; use retrieve evidence first and a known-fact match before claiming grounded MCP content.
-- The current `knowledge_base_retrieve` MCP tool accepts one `queries` array and cannot carry retrieve-only `knowledgeSourceParams`, including `alwaysQuerySource`.
+- The native MCP result does not expose separate retrieve `activity` and `references`; prove source execution through REST first.
 - Browser code never receives Search admin keys or Azure OpenAI keys.
+- Telemetry is disabled by default.
 - Do not commit customer data, tenant IDs, workspace or ontology IDs, keys, tokens, raw live responses, or private screenshots.
 
 See [Configuration](docs/21-configuration.md), [Security and Governance](docs/06-security-governance.md), [Troubleshooting](docs/07-troubleshooting.md), and [Public Preview Limitations](docs/13-public-preview-limitations.md).
 
 ## Inspect The Offline Trace
 
-After the first pass, expand the checked-in trace or isolate the MCP replay without an Azure subscription, tenant, Fabric workspace, or key:
+Expand the checked-in response without an Azure subscription, tenant, Fabric workspace, or key:
 
 ```bash
 ./liveks try --details
 ./liveks try --sample mcp --details
 ```
 
-The answer is printed first, followed by MCP Server KS and Fabric Ontology KS evidence. This is offline replay only; it does not prove that a live source ran.
+The answer is printed first, followed by MCP Server KS and Fabric Ontology KS evidence. This is replay only.
 
 ![Retrieve trace contract](assets/trace-contract.gif)
 
@@ -187,12 +247,10 @@ The answer is printed first, followed by MCP Server KS and Fabric Ontology KS ev
 Before cleanup, open the App URL in `deployments/<environment>/deployment-summary.md` and complete the [Guided Live Demo](docs/16-demo-walkthrough.md).
 
 ```bash
-./liveks down --env liveks-byo
+./liveks down --env <environment>
 ```
 
-Require `resource-group-absent`. A `full` run that generated Fabric capacity must also report `fabric-capacity-absent`, plus either `fabric-capacity-resource-group-absent` for a generated group or `fabric-capacity-resource-group-preserved` for a pre-existing group.
-
-A Fabric-only rehearsal must run `scripts/fabric-e2e-test.sh --cleanup` and end with `fabric_release=PASS`. Create mode proves the generated workspace and capacity are absent, and separately proves that the capacity group was deleted or preserved according to its ownership record. BYO mode proves the generated workspace is absent while preserving the existing capacity.
+Require `resource-group-absent=pass`. A `full` run that generated Fabric capacity must also report `fabric-capacity-absent`, plus either `fabric-capacity-resource-group-absent` for a generated group or `fabric-capacity-resource-group-preserved` for a pre-existing group.
 
 For a controlled end-to-end rehearsal:
 
@@ -220,12 +278,13 @@ The Airline Ops data is synthetic supporting material, not the main product surf
 ## Repository Map
 
 ```text
+.devcontainer/         Reproducible Codespaces and local Dev Container setup
 liveks, liveks.ps1     Cross-platform lifecycle entry points
 config/, profiles/    Canonical schema and executable profile defaults
 src/liveks/            Configuration, planning, deploy, verify, MCP, and cleanup CLI
 infra/                 Bicep for Azure AI Search, Azure OpenAI, Storage, and hosting
 static-app/            Pages replay UI and Azure Static Web Apps managed API
-samples/               REST, Python, responses, synthetic data, and ontology contract
+samples/               REST, Python, responses, synthetic data, evidence, and ontology contract
 notebooks/             Guided MCP and Fabric walkthroughs
 docs/                  Execution manual, concepts, troubleshooting, and operations
 ```
@@ -239,16 +298,16 @@ bash scripts/validate-local.sh
 git diff --check
 ```
 
-The gate checks configuration and CLI contracts, notebooks, links, sample and repository hygiene, secrets, the Pages demo build, Windows launcher behavior, and Bicep.
+The gate checks configuration and CLI contracts, safe dev container behavior, notebooks, links, sample and repository hygiene, secrets, the Pages demo build, Windows launcher behavior, and Bicep.
 
 ## Official Microsoft Manuals
 
-- [Agentic retrieval overview](https://learn.microsoft.com/en-us/azure/search/search-agentic-retrieval-concept)
-- [What is a Knowledge Source?](https://learn.microsoft.com/en-us/azure/search/agentic-knowledge-source-overview)
-- [Create an MCP Server knowledge source](https://learn.microsoft.com/en-us/azure/search/agentic-knowledge-source-how-to-mcp-server)
-- [Create a Fabric Ontology knowledge source](https://learn.microsoft.com/en-us/azure/search/agentic-knowledge-source-how-to-fabric-ontology)
-- [Create a Knowledge Base](https://learn.microsoft.com/en-us/azure/search/agentic-retrieval-how-to-create-knowledge-base)
-- [Query a Knowledge Base using retrieve or MCP](https://learn.microsoft.com/en-us/azure/search/agentic-retrieval-how-to-retrieve)
-- [Microsoft Fabric Ontology overview](https://learn.microsoft.com/en-us/fabric/iq/ontology/overview)
+- [Agentic retrieval overview](https://learn.microsoft.com/azure/search/search-agentic-retrieval-concept)
+- [What is a Knowledge Source?](https://learn.microsoft.com/azure/search/agentic-knowledge-source-overview)
+- [Create an MCP Server knowledge source](https://learn.microsoft.com/azure/search/agentic-knowledge-source-how-to-mcp-server)
+- [Create a Fabric Ontology knowledge source](https://learn.microsoft.com/azure/search/agentic-knowledge-source-how-to-fabric-ontology)
+- [Create a Knowledge Base](https://learn.microsoft.com/azure/search/agentic-retrieval-how-to-create-knowledge-base)
+- [Query a Knowledge Base using retrieve or MCP](https://learn.microsoft.com/azure/search/agentic-retrieval-how-to-retrieve)
+- [Microsoft Fabric Ontology overview](https://learn.microsoft.com/fabric/iq/ontology/overview)
 
 Issues and PRs are welcome. Read [CONTRIBUTING.md](CONTRIBUTING.md), [SECURITY.md](SECURITY.md), and [SUPPORT.md](SUPPORT.md). This project is licensed under the [MIT License](LICENSE).

@@ -16,7 +16,7 @@ Options:
 
 This script performs local, non-deploying validation:
 - shell syntax
-- LiveKS CLI dependencies and profile schema
+- LiveKS CLI dependencies, profile schema, and safe dev container contract
 - documented first-success execution contract
 - Python compile
 - Python contract tests
@@ -76,7 +76,7 @@ fi
 
 cd "$(git rev-parse --show-toplevel)"
 
-TOTAL=16
+TOTAL=17
 CURRENT=0
 FAILED=false
 SKIPPED=0
@@ -139,6 +139,8 @@ run_required "Shell syntax" \
     scripts/destroy.sh \
     scripts/postprovision.sh \
     scripts/deploy-static-webapp-api.sh \
+    .devcontainer/post-create.sh \
+    .devcontainer/welcome.sh \
     scripts/no-secret-scan.sh \
     scripts/fabric-e2e-test.sh \
     scripts/maintainers/create-review-packet.sh \
@@ -149,6 +151,9 @@ run_required "Shell syntax" \
 run_required "LiveKS CLI profiles" \
   bash -c 'PYTHONPATH=src python3 -m liveks.cli profiles --format json >/dev/null && PYTHONPATH=src python3 scripts/generate_env_examples.py --check >/dev/null && bash -n .env.sample env/*.env.example'
 
+run_required "Dev container contract" \
+  python3 scripts/check-devcontainer.py
+
 run_required "Python compile" \
   python3 -m py_compile \
     scripts/check-doc-links.py \
@@ -157,6 +162,7 @@ run_required "Python compile" \
     scripts/fabric-destroy.py \
     scripts/check-sample-hygiene.py \
     scripts/check-repo-size.py \
+    scripts/check-devcontainer.py \
     scripts/ensure_azd_defaults.py \
     scripts/azd_postprovision.py \
     scripts/deploy_static_webapp_api.py \

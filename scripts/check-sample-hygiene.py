@@ -9,6 +9,7 @@ tenant values.
 
 from __future__ import annotations
 
+import json
 import re
 import subprocess
 import sys
@@ -26,6 +27,14 @@ REQUIRED_FILES = (
     "azure.yaml",
     ".github/PULL_REQUEST_TEMPLATE.md",
     ".github/workflows/validate.yml",
+    ".devcontainer/devcontainer.json",
+    ".devcontainer/Dockerfile",
+    ".devcontainer/post-create.sh",
+    ".devcontainer/welcome.sh",
+    ".devcontainer/devcontainer-lock.json",
+    "samples/evidence/mcp-only-live-proof.sample.json",
+    "assets/mcp-only-live-proof.png",
+    "docs/assets/mcp-only-live-proof.png",
 )
 
 REQUIRED_GITIGNORE_PATTERNS = (
@@ -80,6 +89,7 @@ ZERO_GUID_KEYS = (
 )
 
 EXPECTED_DEPLOYMENT_MODES = {"mcp-only", "byo-fabric", "full"}
+LIVE_PROOF_PATH = Path("samples/evidence/mcp-only-live-proof.sample.json")
 
 
 def git_ls_files() -> list[str]:
@@ -110,6 +120,45 @@ def is_placeholder(value: str) -> bool:
 
 def is_zero_guid(value: str) -> bool:
     return bool(re.fullmatch(r"0{8}-0{4}-0{4}-0{4}-0{11}[0-9a-fA-F]", value))
+
+
+def validate_live_proof(failures: list[str]) -> None:
+    if not LIVE_PROOF_PATH.exists():
+        return
+    try:
+        proof = json.loads(LIVE_PROOF_PATH.read_text(encoding="utf-8"))
+    except json.JSONDecodeError as error:
+        failures.append(f"{LIVE_PROOF_PATH} is not valid JSON: {error}")
+        return
+
+    expected = {
+        "evidenceType": "sanitized-live-validation",
+        "profile": "mcp-only",
+        "searchApiVersion": "2026-05-01-preview",
+        "result": "pass",
+    }
+    for key, value in expected.items():
+        if proof.get(key) != value:
+            failures.append(f"{LIVE_PROOF_PATH} {key} must be {value!r}")
+
+    checks = {item.get("name"): item for item in proof.get("checks", []) if isinstance(item, dict)}
+    for name in ("app-status", "mcp-retrieve", "knowledge-source", "tool", "cleanup"):
+        if checks.get(name, {}).get("status") != "pass":
+            failures.append(f"{LIVE_PROOF_PATH} missing sanitized pass check: {name}")
+
+    redaction = proof.get("redaction", {})
+    if not redaction or any(value is not False for value in redaction.values()):
+        failures.append(f"{LIVE_PROOF_PATH} must explicitly retain no raw content or identifiers")
+
+    serialized = json.dumps(proof, sort_keys=True)
+    forbidden_patterns = (
+        r"https?://",
+        r"[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}",
+        r"\.search\.windows\.net",
+        r"\.azurestaticapps\.net",
+    )
+    if any(re.search(pattern, serialized) for pattern in forbidden_patterns):
+        failures.append(f"{LIVE_PROOF_PATH} contains a URL or tenant-shaped identifier")
 
 
 def main() -> int:
@@ -169,6 +218,8 @@ def main() -> int:
             failures.append(".env.sample RUN_LIVE_CALLS must default to false")
         if env.get("NEXT_TELEMETRY_DISABLED") != "1":
             failures.append(".env.sample NEXT_TELEMETRY_DISABLED must default to 1")
+
+    validate_live_proof(failures)
 
     if failures:
         print("Sample hygiene check: FAIL", file=sys.stderr)

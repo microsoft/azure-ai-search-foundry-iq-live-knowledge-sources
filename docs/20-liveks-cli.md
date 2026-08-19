@@ -142,8 +142,9 @@ Legacy `--mode`, `--env-name`, `--location`, `--fabric-location`, and `--env-fil
 | Tool | Minimum | Validated v2 baseline |
 | --- | --- | --- |
 | Python | 3.11 | 3.11 and 3.14 |
-| Azure Developer CLI | 1.27.0 | 1.27.0 |
+| Azure Developer CLI | 1.27.0 | 1.28.0 |
 | Azure CLI | Required | 2.86.0 |
+| Bicep CLI | Required for live plans | 0.44.1 |
 | Node.js | 22 | 22 |
 | npm | Bundled with Node.js | Node 22 distribution |
 

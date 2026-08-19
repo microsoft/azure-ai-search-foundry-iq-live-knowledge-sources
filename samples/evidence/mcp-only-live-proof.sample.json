@@ -1,0 +1,55 @@
+{
+  "schemaVersion": 1,
+  "evidenceType": "sanitized-live-validation",
+  "observedAt": "2026-06-24T16:16:28Z",
+  "profile": "mcp-only",
+  "searchApiVersion": "2026-05-01-preview",
+  "result": "pass",
+  "checks": [
+    {
+      "name": "app-status",
+      "status": "pass",
+      "detail": "HTTP 200"
+    },
+    {
+      "name": "mcp-retrieve",
+      "status": "pass",
+      "detail": "mcpServer activity or reference evidence returned"
+    },
+    {
+      "name": "knowledge-source",
+      "status": "pass",
+      "detail": "microsoft-learn-mcp-ks"
+    },
+    {
+      "name": "tool",
+      "status": "pass",
+      "detail": "microsoft_docs_search"
+    },
+    {
+      "name": "cleanup",
+      "status": "pass",
+      "detail": "Generated Azure resource group absent"
+    }
+  ],
+  "trace": {
+    "activityTypes": [
+      "modelQueryPlanning",
+      "mcpServer",
+      "modelAnswerSynthesis",
+      "agenticReasoning"
+    ],
+    "referenceTypes": [
+      "mcpServer"
+    ],
+    "referenceCount": 2
+  },
+  "redaction": {
+    "answerRetained": false,
+    "queryRetained": false,
+    "rawResponseRetained": false,
+    "endpointRetained": false,
+    "tenantIdentifiersRetained": false,
+    "credentialsRetained": false
+  }
+}

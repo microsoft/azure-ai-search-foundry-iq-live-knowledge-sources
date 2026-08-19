@@ -32,6 +32,7 @@ REPO_ROOT = Path(__file__).resolve().parents[1]
 SRC_ROOT = REPO_ROOT / "src"
 sys.path.insert(0, str(SRC_ROOT))
 VALID_DEPLOYMENT_MODES = {"byo-fabric", "mcp-only", "full"}
+SUPPORTED_SEARCH_API_VERSION = "2026-05-01-preview"
 
 from ks_factory import create_fabric_ontology_knowledge_source, create_knowledge_base, create_mcp_server_knowledge_source
 from ks_factory.diagnostics import summarize_activity, summarize_references
@@ -339,6 +340,13 @@ def validate_mode_settings(settings: dict[str, str]) -> None:
 
     if mode == "byo-fabric" and not fabric_configured(settings):
         raise SystemExit("DEPLOYMENT_MODE=byo-fabric requires FABRIC_WORKSPACE_ID and FABRIC_ONTOLOGY_ID.")
+
+    api_version = settings.get("AZURE_SEARCH_API_VERSION", SUPPORTED_SEARCH_API_VERSION)
+    if api_version != SUPPORTED_SEARCH_API_VERSION:
+        raise SystemExit(
+            f"AZURE_SEARCH_API_VERSION must be {SUPPORTED_SEARCH_API_VERSION} for the MCP Server and "
+            "Fabric Ontology payloads in this accelerator."
+        )
 
 
 def main() -> None:

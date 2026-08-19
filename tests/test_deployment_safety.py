@@ -36,6 +36,15 @@ def load_fabric_destroy_module():
     return module
 
 
+def load_postprovision_module():
+    path = ROOT / "scripts/postprovision.py"
+    spec = importlib.util.spec_from_file_location("postprovision_for_tests", path)
+    module = importlib.util.module_from_spec(spec)
+    assert spec and spec.loader
+    spec.loader.exec_module(module)
+    return module
+
+
 class FakeHttpResponse:
     status = 200
     headers = {}
@@ -52,6 +61,15 @@ class FakeHttpResponse:
 
 
 class FabricProvisionSafetyTests(unittest.TestCase):
+    def test_postprovision_rejects_incompatible_search_api_before_calls(self):
+        module = load_postprovision_module()
+        settings = {
+            "DEPLOYMENT_MODE": "mcp-only",
+            "AZURE_SEARCH_API_VERSION": "2026-04-01",
+        }
+        with self.assertRaisesRegex(SystemExit, "2026-05-01-preview"):
+            module.validate_mode_settings(settings)
+
     def test_request_json_retries_transient_429(self):
         module = load_fabric_provision_module()
         http_error = urllib.error.HTTPError("https://example.test", 429, "Too Many Requests", {}, None)

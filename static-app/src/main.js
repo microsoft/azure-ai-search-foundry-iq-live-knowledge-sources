@@ -54,9 +54,10 @@ function sourceClass(type) {
 function sourceBadges(data) {
   const activity = Array.isArray(data?.activity) ? data.activity : [];
   const uniqueTypes = [...new Set(activity.map((item) => item?.type).filter(Boolean))];
+  const suffix = data?.mode === 'live' ? '' : ' fixture';
   return uniqueTypes.length
     ? uniqueTypes
-        .map((type) => `<span class="source-badge ${sourceClass(type)}">${escapeHtml(sourceName(type))}</span>`)
+        .map((type) => `<span class="source-badge ${sourceClass(type)}">${escapeHtml(sourceName(type) + suffix)}</span>`)
         .join('')
     : '<span class="source-badge source-generic">No source activity</span>';
 }
@@ -64,12 +65,13 @@ function sourceBadges(data) {
 function traceSummary(data) {
   const activity = Array.isArray(data?.activity) ? data.activity : [];
   const references = Array.isArray(data?.references) ? data.references : [];
+  const live = data?.mode === 'live';
 
   return `
     <article class="panel trace-summary">
       <div>
         <h3>Source Trace</h3>
-        <p>The retrieve response identifies every grounding path and its returned evidence.</p>
+        <p>${live ? 'The live retrieve response identifies the grounding path and returned evidence.' : 'Fixture activity explains the schema; it does not prove source execution.'}</p>
       </div>
       <div class="source-badges">${sourceBadges(data)}</div>
       <div class="trace-metrics">
@@ -119,7 +121,7 @@ function statusClass(status) {
 
 function statusText(status) {
   const deploymentMode = status.deploymentMode || 'mcp-only';
-  if (status.replayMode) return 'offline replay ready';
+  if (status.replayMode) return 'REPLAY - no Azure call';
   if (status.reachabilityStatus === 'live' || status.reachable) return `${deploymentMode} live`;
   if (status.reachabilityStatus === 'unreachable') return `${deploymentMode} unreachable`;
   return `${deploymentMode} offline-ready`;
@@ -130,29 +132,29 @@ function renderReadiness() {
   const replayMode = Boolean(state.status.replayMode);
   const readiness = [
     {
-      label: 'Deployment mode',
+      label: replayMode ? 'Next live profile' : 'Deployment mode',
       ready: true,
       value: state.status.deploymentMode || 'mcp-only',
     },
     {
       label: 'Search endpoint',
-      ready: Boolean(state.status.searchEndpoint || replayMode),
-      value: state.status.searchEndpoint || (replayMode ? 'canonical response fixtures' : 'not configured'),
+      ready: Boolean(state.status.searchEndpoint),
+      value: state.status.searchEndpoint || (replayMode ? 'not used by replay' : 'not configured'),
     },
     {
-      label: 'Search key',
-      ready: Boolean(state.status.hasSearchKey || replayMode),
-      value: state.status.hasSearchKey ? 'serverless API configured' : replayMode ? 'not required for replay' : 'not configured',
+      label: 'Search authentication',
+      ready: Boolean(state.status.hasSearchKey),
+      value: state.status.hasSearchKey ? 'serverless API configured' : replayMode ? 'not used by replay' : 'not configured',
     },
     {
-      label: 'MCP KS',
+      label: replayMode ? 'Expected MCP identity' : 'MCP KS',
       ready: Boolean(state.status.mcpKnowledgeSourceName),
       value: state.status.mcpKnowledgeSourceName || 'not configured',
     },
     {
       label: 'Fabric live token',
       ready: Boolean(state.status.hasFabricToken || fabricTokenInput?.value),
-      value: state.status.hasFabricToken ? 'server-side configured' : fabricTokenInput?.value ? 'transient token entered' : 'offline replay',
+      value: state.status.hasFabricToken ? 'server-side configured' : fabricTokenInput?.value ? 'transient token entered' : replayMode ? 'not used by replay' : 'not configured',
     },
     {
       label: 'App mode',
@@ -168,12 +170,35 @@ function renderReadiness() {
   const pillText = $('#status-pill-text');
   if (pillText) pillText.textContent = statusText(state.status);
 
+  const live = state.status.reachabilityStatus === 'live' || state.status.reachable;
+  const boundary = $('#evidence-boundary');
+  if (boundary) {
+    boundary.classList.toggle('is-live', live);
+    boundary.textContent = live
+      ? `LIVE ENDPOINT - ${state.status.deploymentMode || 'mcp-only'} source evidence can be verified`
+      : 'REPLAY - NO AZURE CALL - fixture evidence only';
+  }
+
+  const journeyAction = $('#primary-journey-action');
+  if (journeyAction) journeyAction.textContent = live ? 'Run MCP live' : 'Inspect MCP replay';
+  const mcpTab = $('#mcp-tab');
+  if (mcpTab) mcpTab.textContent = live ? 'MCP Live' : 'MCP Replay';
+  const mcpHeading = $('#mcp-heading');
+  if (mcpHeading) mcpHeading.textContent = live ? 'MCP Live' : 'MCP Replay';
+  const mcpDescription = $('#mcp-description');
+  if (mcpDescription) {
+    mcpDescription.textContent = live
+      ? 'Calls the Microsoft Learn MCP Server Knowledge Source through Azure AI Search Knowledge Base retrieve.'
+      : 'Inspects the canonical MCP fixture. No Azure or remote MCP call is made.';
+  }
+
   const checked = $('#status-checked');
   if (checked) checked.textContent = state.status.checkedAt ? `Last checked ${state.status.checkedAt}.` : 'Not checked yet.';
 
   const deploymentMode = state.status.deploymentMode || 'mcp-only';
   document.querySelectorAll('[data-mode-card]').forEach((card) => {
-    card.classList.toggle('is-current', card.dataset.modeCard === deploymentMode);
+    card.classList.toggle('is-current', !replayMode && card.dataset.modeCard === deploymentMode);
+    card.classList.toggle('is-next', replayMode && card.dataset.modeCard === 'mcp-only');
   });
 
   const readinessTarget = $('#readiness');
@@ -220,13 +245,16 @@ function activateTab(tabName) {
 function renderTrace(target, data, query) {
   const resultTarget = $(target);
   if (!resultTarget) return;
+  const live = data?.mode === 'live';
+  const boundaryLabel = live ? 'LIVE SOURCE EVIDENCE' : 'REPLAY - NO AZURE CALL';
 
   resultTarget.innerHTML = `
     <article class="panel reveal">
       <div class="trace-header">
         <h3>Answer</h3>
-        <span class="${data?.mode === 'live' ? 'badge live' : 'badge offline'}">${escapeHtml(data?.mode || 'not run')}</span>
+        <span class="${live ? 'badge live' : 'badge offline'}">${escapeHtml(live ? 'LIVE' : 'REPLAY')}</span>
       </div>
+      <p class="proof-boundary ${live ? 'is-live' : ''}">${boundaryLabel}</p>
       <p class="answer">${escapeHtml(answerText(data))}</p>
       <div class="source-badges answer-sources">${sourceBadges(data)}</div>
       ${data?.reason ? `<p class="notice">${escapeHtml(data.reason)}</p>` : ''}

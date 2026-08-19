@@ -6,6 +6,9 @@ All notable changes to this accelerator are documented here.
 
 ### Added
 
+- A Codespaces and Dev Container first-live path with pinned Python, Node.js, Azure CLI, Bicep, and Azure Developer CLI tooling, plus a validation rule that prevents automatic cloud mutation during container creation.
+- A source-backed, identifier-free MCP-only live evidence sample and visual that distinguish a controlled live E2E pass from the canonical offline replay.
+- A stable-versus-preview API compatibility matrix covering source kinds, retrieve inputs, reasoning behavior, authentication, source authorization, and supported profiles.
 - Executable offline first-success assertions and revision-bound evidence capsules for the documented `liveks try` path, plus allowlist-sanitized JSON and Markdown capsules for live E2E runs.
 - Pull-request retention of the exact no-cloud first-success capsule as a short-lived `first-success-evidence` Actions artifact.
 - Fabric capacity and dedicated resource-group ownership journaling, environment tags, and cleanup tests for partial provisioning, failed capacity creation, shared resource groups, missing summaries, and pre-existing capacities.
@@ -27,6 +30,8 @@ All notable changes to this accelerator are documented here.
 
 ### Changed
 
+- README, manual home, and trace demo now lead with `30-second replay -> mcp-only first live -> Fabric expansion`; replay status and fixture badges explicitly say that no Azure call occurred.
+- `search.api_version` and direct postprovision validation now fail closed on anything except the repository's tested `2026-05-01-preview` contract.
 - Local and Windows validation now execute the documented first-success command; a damaged known-answer, activity, reference, or source-identity fixture fails the same entry point shown to users.
 - The MCP Server guide now uses one payload-to-cleanup execution contract that distinguishes representative JSON, the resolved deployment dry-run, live retrieve evidence, and native Knowledge Base MCP content proof.
 - Full create mode now rejects an existing capacity unless the same environment summary or exact tagged Bicep output proves ownership, records ARM ownership before readiness polling, and redacts administrator and generated IDs from provisioning settings output.

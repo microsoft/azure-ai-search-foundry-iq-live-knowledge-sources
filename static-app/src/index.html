@@ -4,7 +4,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Foundry IQ Live Knowledge Sources</title>
-    <link rel="stylesheet" href="./styles.css?v=3" />
+    <link rel="stylesheet" href="./styles.css?v=4" />
   </head>
   <body>
     <main class="shell">
@@ -28,20 +28,20 @@
         <div>
           <p class="eyebrow">Azure AI Search + Foundry IQ</p>
           <h1>Foundry IQ Live Knowledge Sources</h1>
-          <p class="lede">One retrieve call, multiple live grounding paths, inspectable evidence.</p>
+          <p class="lede">Replay the contract now, prove MCP live first, then add Fabric when the tenant is ready.</p>
         </div>
         <div class="topbar-actions">
           <div id="status-pill" class="status-pill">
             <span class="status-dot" aria-hidden="true"></span>
             <span id="status-pill-text">Loading</span>
           </div>
-          <button class="ghost-button" data-open-tab="combined" type="button">Run combined retrieve</button>
+          <button id="primary-journey-action" class="ghost-button" data-open-tab="mcp" type="button">Inspect MCP replay</button>
         </div>
       </section>
 
       <nav class="tabs" aria-label="Demo sections">
         <button class="tab active" data-tab="overview">Overview</button>
-        <button class="tab" data-tab="mcp">MCP Live</button>
+        <button id="mcp-tab" class="tab" data-tab="mcp">MCP Replay</button>
         <button class="tab" data-tab="fabric">Fabric</button>
         <button class="tab" data-tab="combined">Combined Trace</button>
         <button class="tab" data-tab="deployment">Deployment</button>
@@ -51,46 +51,43 @@
         <article class="panel command-panel">
           <div class="section-heading">
             <div>
-              <h2>One question, several Knowledge Sources, one answer</h2>
-              <p>Run the canonical replay immediately or connect the same interface to a live deployment.</p>
+              <h2>Replay now. Prove MCP live. Add Fabric when ready.</h2>
+              <p>The interface stays the same, but replay and live deployment have different evidence boundaries.</p>
             </div>
           </div>
-          <div class="trace-pipeline" aria-label="Knowledge Base retrieve pipeline">
+          <div id="evidence-boundary" class="evidence-boundary">Checking response boundary...</div>
+          <div class="trace-pipeline journey-pipeline" aria-label="First success journey">
             <div>
-              <strong>Question</strong>
-              <span>Business or implementation prompt</span>
+              <strong>30-second replay</strong>
+              <span>Inspect fixtures with no Azure call</span>
             </div>
             <div>
-              <strong>Knowledge Base</strong>
-              <span>Routes with source hints</span>
+              <strong>First live: MCP-only</strong>
+              <span>Doctor, plan, confirm, deploy, verify</span>
             </div>
             <div>
-              <strong>Live Sources</strong>
-              <span>MCP + Fabric Ontology</span>
-            </div>
-            <div>
-              <strong>Trace</strong>
-              <span>activity, references, sourceData</span>
+              <strong>Fabric expansion</strong>
+              <span>Reuse an ontology or approve greenfield F2</span>
             </div>
           </div>
           <div class="mode-grid">
-            <div class="mode-card mode-full" data-mode-card="full">
-              <strong>full</strong>
-              <span>Zero-base path</span>
-              <p>Creates Fabric sample assets, then deploys Azure AI Search, both KS paths, KBs, and the app.</p>
-              <button class="mini-action" data-open-tab="combined" type="button">View trace</button>
+            <div class="mode-card mode-mcp" data-mode-card="mcp-only">
+              <strong>mcp-only</strong>
+              <span>First actual live</span>
+              <p>Proves Microsoft Learn MCP Server KS without a Fabric workspace, ontology, capacity, or token.</p>
+              <button class="mini-action" data-open-tab="mcp" type="button">Inspect MCP</button>
             </div>
             <div class="mode-card mode-byo" data-mode-card="byo-fabric">
               <strong>byo-fabric</strong>
-              <span>Existing Fabric path</span>
-              <p>Uses your Fabric workspace and ontology, then creates the Foundry IQ side and combined KB.</p>
-              <button class="mini-action" data-open-tab="fabric" type="button">Check Fabric</button>
+              <span>Governed expansion</span>
+              <p>Connects an existing workspace and ontology while keeping those Fabric assets outside cleanup ownership.</p>
+              <button class="mini-action" data-open-tab="fabric" type="button">Inspect Fabric</button>
             </div>
-            <div class="mode-card mode-mcp" data-mode-card="mcp-only">
-              <strong>mcp-only</strong>
-              <span>Fast validation path</span>
-              <p>Validates Microsoft Learn MCP Server KS without Fabric tenant setup.</p>
-              <button class="mini-action" data-open-tab="mcp" type="button">Run MCP</button>
+            <div class="mode-card mode-full" data-mode-card="full">
+              <strong>full</strong>
+              <span>Approved greenfield</span>
+              <p>Creates the synthetic Fabric stack and both source paths after explicit billable-capacity acceptance.</p>
+              <button class="mini-action" data-open-tab="combined" type="button">Inspect combined</button>
             </div>
           </div>
         </article>
@@ -100,18 +97,17 @@
             <div id="readiness" class="readiness-list"></div>
           </article>
           <article class="panel evidence-panel">
-            <h2>Semantic JOIN</h2>
+            <h2>Live Acceptance Boundary</h2>
             <div class="flow">
-              <div>MCP Server KS</div>
+              <div>live status</div>
               <span>+</span>
-              <div>Fabric Ontology KS</div>
-              <span>→</span>
-              <div>Knowledge Base trace</div>
+              <div>source activity</div>
+              <span>+</span>
+              <div>expected identity</div>
             </div>
             <p>
-              MCP runs live against Microsoft Learn after deployment. If Fabric workspace and ontology IDs were provided
-              before deployment, the combined Knowledge Base includes Fabric; live Fabric retrieve still needs an
-              end-user Search token for source authorization.
+              A fluent answer is not enough. Require a live badge plus matching activity or references and the expected
+              Knowledge Source or tool identity. Replay can explain this contract, but cannot satisfy it.
             </p>
           </article>
         </div>
@@ -120,8 +116,8 @@
       <section id="mcp" class="view">
         <article class="panel hero-panel">
           <div>
-            <h2>MCP Live</h2>
-            <p>Calls the Microsoft Learn MCP Server Knowledge Source through Azure AI Search Knowledge Base retrieve.</p>
+            <h2 id="mcp-heading">MCP Replay</h2>
+            <p id="mcp-description">Inspects the canonical MCP fixture. No Azure or remote MCP call is made.</p>
           </div>
           <button class="primary" data-run="mcp">Run retrieve</button>
         </article>
@@ -177,6 +173,6 @@
         </div>
       </section>
     </main>
-    <script type="module" src="./main.js?v=2"></script>
+    <script type="module" src="./main.js?v=3"></script>
   </body>
 </html>

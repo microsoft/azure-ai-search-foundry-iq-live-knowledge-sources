@@ -1,5 +1,9 @@
 # One-Command Deployment
 
+`liveks up` is one lifecycle command only **after** `doctor` and `plan` pass. It does not bypass ARM preview, cost context, exact confirmation, source verification, or cleanup ownership.
+
+For the shortest reproducible environment setup, start with [Codespaces First Live](15-codespaces-first-live.md).
+
 After an environment is initialized and planned, `liveks up` is the single command that previews, confirms, provisions, deploys, and verifies the accelerator.
 
 ## Prerequisites
