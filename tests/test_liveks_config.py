@@ -17,7 +17,10 @@ from liveks.runtime import CommandResult  # noqa: E402
 
 class LiveKsConfigTests(unittest.TestCase):
     def test_profiles_are_ordered_and_include_full(self):
-        self.assertEqual(available_profiles(), ["offline", "search-index", "mcp-only", "byo-fabric", "full"])
+        self.assertEqual(
+            available_profiles(),
+            ["offline", "search-index", "mcp-search-index", "mcp-only", "byo-fabric", "full"],
+        )
 
     def test_mcp_profile_resolves_to_azd_values(self):
         config = resolve_config(profile="mcp-only", environment="unit-mcp")
@@ -202,6 +205,59 @@ class FakeRunner:
 
 
 class LiveKsPlanSafetyTests(unittest.TestCase):
+    def test_generic_cleanup_accepts_legacy_active_lock_without_authored_digest(self):
+        config = resolve_config(profile="full", environment="unit-legacy-cleanup")
+        legacy_lock = {
+            "schemaVersion": 2,
+            "status": "deployed",
+            "profile": config.profile,
+            "environment": config.environment,
+            "configDigest": "runtime-derived-digest",
+            "ownership": config.ownership(),
+        }
+        with mock.patch.object(cli, "_load_lock", return_value=legacy_lock):
+            lock, error = cli._generic_cleanup_lock(config)
+
+        self.assertIs(lock, legacy_lock)
+        self.assertIsNone(error)
+
+    def test_incomplete_cleanup_preserves_new_lock_safety_metadata(self):
+        metadata = cli._preserved_cleanup_metadata(
+            {
+                "authoredConfigDigest": "authored-digest",
+                "resourceGroupPreexisting": False,
+                "unrelated": "omit",
+            }
+        )
+
+        self.assertEqual(
+            metadata,
+            {
+                "authoredConfigDigest": "authored-digest",
+                "resourceGroupPreexisting": False,
+            },
+        )
+
+    def test_plan_rejects_active_foreign_profile_lock_without_managed_objects(self):
+        config = resolve_config(profile="mcp-only", environment="unit-active-lock")
+        foreign_lock = {
+            "schemaVersion": 2,
+            "status": "deployed",
+            "profile": "full",
+            "environment": config.environment,
+            "configDigest": "different",
+            "ownership": {"azure": "create", "fabricCapacity": "create"},
+        }
+        with (
+            mock.patch.object(cli, "_load_lock", return_value=foreign_lock),
+            mock.patch.object(cli, "doctor_report") as doctor_mock,
+        ):
+            report = cli.plan_report(config, operation_locked=True)
+
+        self.assertEqual(report["status"], "fail")
+        self.assertEqual(report["checks"][0]["name"], "environment-lock")
+        doctor_mock.assert_not_called()
+
     def test_plan_never_calls_mutating_cloud_commands(self):
         config = resolve_config(profile="mcp-only", environment="unit-plan")
         FakeRunner.instances = []
@@ -262,6 +318,89 @@ class LiveKsPlanSafetyTests(unittest.TestCase):
         self.assertLess(preview, provision)
         self.assertLess(provision, deployment)
         self.assertLess(deployment, restored)
+
+    def test_e2e_holds_one_operation_lock_across_up_and_cleanup(self):
+        config = resolve_config(profile="mcp-only", environment="unit-e2e-lock")
+        events = []
+
+        class RecordingLock:
+            def __init__(self, path):
+                self.path = path
+
+            def __enter__(self):
+                events.append("lock-enter")
+                return self
+
+            def __exit__(self, exc_type, exc_value, traceback):
+                events.append("lock-exit")
+
+        def fake_up(*args, **kwargs):
+            self.assertTrue(kwargs["operation_locked"])
+            events.append("up")
+            return {"status": "pass", "checks": [], "artifacts": []}
+
+        def fake_down(*args, **kwargs):
+            self.assertTrue(kwargs["operation_locked"])
+            events.append("down")
+            return {"status": "pass", "checks": [], "artifacts": []}
+
+        with (
+            mock.patch.object(cli, "_resolve_from_args", return_value=config),
+            mock.patch.object(cli, "EnvironmentOperationLock", RecordingLock),
+            mock.patch.object(cli, "up_report", side_effect=fake_up),
+            mock.patch.object(cli, "down_report", side_effect=fake_down),
+            mock.patch.object(cli, "write_e2e_reports"),
+            mock.patch("sys.stdout"),
+        ):
+            result = cli.main(
+                [
+                    "e2e",
+                    "--env",
+                    "unit-e2e-lock",
+                    "--cleanup",
+                    "--yes",
+                    "--format",
+                    "json",
+                ]
+            )
+
+        self.assertEqual(result, 0)
+        self.assertEqual(events, ["lock-enter", "up", "down", "lock-exit"])
+
+    def test_e2e_skips_cleanup_when_up_rejects_foreign_ownership(self):
+        config = resolve_config(profile="mcp-only", environment="unit-e2e-foreign")
+        rejected_up = {
+            "status": "fail",
+            "checks": [
+                {
+                    "name": "environment-lock",
+                    "status": "fail",
+                    "message": "foreign active ledger",
+                }
+            ],
+            "artifacts": [],
+        }
+        with (
+            mock.patch.object(cli, "_resolve_from_args", return_value=config),
+            mock.patch.object(cli, "up_report", return_value=rejected_up),
+            mock.patch.object(cli, "down_report") as down_mock,
+            mock.patch.object(cli, "write_e2e_reports"),
+            mock.patch("sys.stdout"),
+        ):
+            result = cli.main(
+                [
+                    "e2e",
+                    "--env",
+                    "unit-e2e-foreign",
+                    "--cleanup",
+                    "--yes",
+                    "--format",
+                    "json",
+                ]
+            )
+
+        self.assertEqual(result, 1)
+        down_mock.assert_not_called()
 
 
 if __name__ == "__main__":

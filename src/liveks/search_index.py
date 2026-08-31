@@ -40,17 +40,24 @@ def request(
     method: str,
     path: str,
     body: dict[str, Any] | None = None,
+    api_version: str | None = None,
+    headers: dict[str, str] | None = None,
     attempts: int = 1,
     timeout: int = 120,
 ) -> tuple[int, Any]:
     endpoint = str(config.get("search.endpoint")).rstrip("/")
-    api_version = quote(str(config.get("search.api_version")), safe="")
+    resolved_api_version = str(api_version or config.get("search.api_version"))
+    if not resolved_api_version:
+        raise ValueError("An explicit Azure AI Search API version is required.")
+    encoded_api_version = quote(resolved_api_version, safe="")
+    request_headers = dict(headers or {})
+    request_headers["Authorization"] = f"Bearer {token}"
     try:
         return http_json(
-            f"{endpoint}{path}?api-version={api_version}",
+            f"{endpoint}{path}?api-version={encoded_api_version}",
             method=method,
             body=body,
-            headers={"Authorization": f"Bearer {token}"},
+            headers=request_headers,
             attempts=attempts,
             delay_seconds=2,
             timeout=timeout,
@@ -161,3 +168,26 @@ def response_text(payload: Any) -> str:
             if isinstance(item, dict) and item.get("type") == "text":
                 blocks.append(str(item.get("text", "")))
     return "\n".join(blocks)
+
+
+def reference_source_data_text(payload: Any, source_type: str) -> str:
+    """Flatten sourceData strings for references produced by one source type."""
+    if not isinstance(payload, dict):
+        return ""
+
+    values: list[str] = []
+
+    def collect(value: Any) -> None:
+        if isinstance(value, str):
+            values.append(value)
+        elif isinstance(value, dict):
+            for nested in value.values():
+                collect(nested)
+        elif isinstance(value, list):
+            for nested in value:
+                collect(nested)
+
+    for reference in payload.get("references", []):
+        if isinstance(reference, dict) and reference.get("type") == source_type:
+            collect(reference.get("sourceData"))
+    return "\n".join(values)

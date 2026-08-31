@@ -30,6 +30,7 @@ body:
       label: Deployment mode
       options:
         - search-index
+        - mcp-search-index
         - mcp-only
         - byo-fabric
         - full

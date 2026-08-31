@@ -1,0 +1,53 @@
+schema_version: 2
+profile: mcp-search-index
+kind: deployment
+purpose: Combine an existing agentic-ready Search index with an MCP Server Knowledge Source in one preview Knowledge Base.
+default: false
+required_tools: [python3, az]
+estimated_duration: 5-15 minutes
+cost: Existing Azure AI Search retrieval, Azure OpenAI model usage, and the remote MCP service can incur charges.
+defaults:
+  deployment:
+    mode: mcp-search-index
+  search:
+    index_api_version: '2026-04-01'
+    preview_api_version: 2026-05-01-preview
+    endpoint: ''
+    index_name: ''
+    semantic_configuration_name: ''
+    search_fields: []
+    source_data_fields: []
+    index_knowledge_source_name: ''
+    mcp_knowledge_source_name: ''
+    combined_knowledge_base_name: ''
+  mcp:
+    server_url: https://learn.microsoft.com/api/mcp
+    tool_name: microsoft_docs_search
+  openai:
+    endpoint: ''
+    deployment_name: ''
+    model_name: ''
+  fabric:
+    mode: skip
+  runtime:
+    telemetry_disabled: true
+    run_live_calls: false
+required:
+  - search.endpoint
+  - search.index_name
+  - search.semantic_configuration_name
+  - openai.endpoint
+  - openai.deployment_name
+  - openai.model_name
+resources:
+  - Existing Azure AI Search service (reused)
+  - Existing Azure AI Search index (reused)
+  - Existing Azure OpenAI deployment (reused)
+  - Search Index Knowledge Source (generated with 2026-04-01)
+  - MCP Server Knowledge Source (generated with 2026-05-01-preview)
+  - Combined Knowledge Base (generated with 2026-05-01-preview)
+success_criteria:
+  - The existing index passes the read-only agentic-readiness checks.
+  - Search Index and MCP Server sources pass independent preview retrieve calls before the combined query.
+  - Combined routing is reported only from activity, references, or sourceData.
+cleanup: Delete the lock-proved combined Knowledge Base, MCP Server Knowledge Source, and Search Index Knowledge Source in dependency order; preserve the Search service, index, and Azure OpenAI deployment.

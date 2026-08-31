@@ -1,6 +1,6 @@
 # Foundry IQ Live Knowledge Sources
 
-Wrap and prove an existing Azure AI Search index with the stable API, then extend the same guarded lifecycle to preview MCP Server and governed Fabric Ontology sources.
+Wrap and prove an existing Azure AI Search index with the stable API, compose it with preview MCP Server retrieval, then extend the same guarded lifecycle to governed Fabric Ontology sources.
 
 [Start the stable live path](23-search-index-ks.md){ .md-button .md-button--primary }
 [Inspect the no-cloud replay](09-offline-replay.md){ .md-button }
@@ -22,6 +22,7 @@ Wrap and prove an existing Azure AI Search index with the stable API, then exten
 | --- | --- | --- |
 | **Evaluator** | Inspect the packaged answer and trace contract with no cloud access. | `./liveks try` |
 | **Search implementer** | Prove an existing agentic-ready index through the GA data plane. | [Stable Search Index KS](23-search-index-ks.md) |
+| **Knowledge composer** | Combine that existing index with Microsoft Learn MCP without provisioning a new service. | [MCP + Search Index KB](24-mcp-search-index-kb.md) |
 | **Azure implementer** | Prove Microsoft Learn MCP runs live through the preview Foundry IQ path. | [Codespaces First Live](15-codespaces-first-live.md) |
 | **Fabric implementer** | Add governed entities and relationships after the Azure path works. | [Fabric Live BYO Validation](11-fabric-live-byo-validation.md) |
 
@@ -55,6 +56,20 @@ az login --use-device-code --tenant <tenant-guid>
 This generally available `2026-04-01` lane creates only a Search Index KS and minimal extractive Knowledge Base. The Search service and index remain reused assets, and cleanup must finish with `search-index-preserved=pass`.
 
 [Follow the stable execution contract](23-search-index-ks.md){ .md-button .md-button--primary }
+
+## Compose Existing Search With MCP
+
+```bash
+./liveks init --profile mcp-search-index --env liveks-combined
+# Fill existing Search index and Azure OpenAI deployment values.
+./liveks doctor --env liveks-combined
+./liveks plan --env liveks-combined
+./liveks up --env liveks-combined --query "<index question>" --expect-term "<known term>"
+```
+
+The Search Index KS remains on GA `2026-04-01`. MCP Server KS, the combined KB, and the three ordered retrieve calls use `2026-05-01-preview`. Independent `searchIndex` and `mcpServer` evidence must pass before combined routing evidence is reported. The Search service, index, and Azure OpenAI deployment remain reused assets.
+
+[Follow the two-source execution contract](24-mcp-search-index-kb.md){ .md-button .md-button--primary }
 
 ## First Preview Live: MCP-Only
 
@@ -138,7 +153,7 @@ Fabric Ontology is a native Knowledge Source and is not routed through the exter
 
 The ignored `.liveks/<environment>.yaml` file is the authoring ledger. `azd env` is generated state. Secrets are environment references, never raw YAML values.
 
-`search-index` is pinned to generally available `2026-04-01`, `intents`, and minimal extractive retrieval. `mcp-only`, `byo-fabric`, and `full` are pinned to `2026-05-01-preview` because their source kinds and full retrieval behavior are preview-dependent. Cross-lane API overrides fail closed.
+`search-index` is pinned to generally available `2026-04-01`, `intents`, and minimal extractive retrieval. `mcp-search-index` pins Search Index KS separately to `2026-04-01` and all MCP/KB/retrieve operations to `2026-05-01-preview`. `mcp-only`, `byo-fabric`, and `full` remain preview-only. Cross-lane API overrides fail closed.
 
 [Compare stable and preview support](14-api-compatibility.md){ .md-button }
 
@@ -148,7 +163,7 @@ The ignored `.liveks/<environment>.yaml` file is the authoring ledger. `azd env`
 ./liveks down --env <environment>
 ```
 
-For `search-index`, require `search-index-preserved=pass`. For preview deployment profiles, require `resource-group-absent=pass`. For `full`, also require the capacity and its generated or preserved resource-group outcome. A deletion request without an absence check is incomplete.
+For `search-index` and `mcp-search-index`, require `search-index-preserved=pass`. For provisioned preview profiles, require `resource-group-absent=pass`. For `full`, also require the capacity and its generated or preserved resource-group outcome. A deletion request without an absence check is incomplete.
 
 ## Manual Map
 
@@ -156,6 +171,7 @@ For `search-index`, require `search-index-preserved=pass`. For preview deploymen
 | --- | --- |
 | Shortest complete sequence | [Execution Runbook](runbook.md) |
 | Stable existing-index path | [Stable Search Index KS](23-search-index-ks.md) |
+| Existing-index plus MCP composition | [MCP + Search Index KB](24-mcp-search-index-kb.md) |
 | Every first-live Codespaces step | [Codespaces First Live](15-codespaces-first-live.md) |
 | MCP payload and source contract | [MCP Server Knowledge Source](03-mcp-server-ks.md) |
 | Fabric source contract | [Fabric Ontology Knowledge Source](04-fabric-ontology-ks.md) |

@@ -38,7 +38,7 @@ PowerShell equivalents replace `./liveks` with `./liveks.ps1`.
 
 `doctor` can issue read-only Azure CLI calls for live profiles. In `byo-fabric`, it also acquires a transient Fabric API token and confirms that the configured workspace and ontology are readable. The token is not serialized. `plan` writes local build and lock artifacts under ignored directories, but it does not run `azd env set`, `azd up`, or Fabric provisioning.
 
-For `search-index`, `doctor` reads the existing index definition with an Azure AI Search bearer token. `plan` checks stable payloads and generated-name collisions without Bicep, `azd`, npm, `PUT`, or `DELETE`.
+For `search-index` and `mcp-search-index`, `doctor` reads the existing index definition with an Azure AI Search bearer token. Their plans check payloads and generated-name collisions without Bicep, `azd`, npm, `PUT`, or `DELETE`. The combined profile uses GA GETs for the Search Index KS name and preview GETs for the MCP KS and KB names.
 
 ## Standard Run
 
@@ -66,6 +66,19 @@ Preview MCP Server lane:
 ./liveks down --env liveks-mcp
 ```
 
+Existing Search index plus preview MCP lane:
+
+```bash
+./liveks init --profile mcp-search-index --env liveks-combined
+# Fill existing Search and Azure OpenAI deployment values.
+./liveks doctor --env liveks-combined
+./liveks plan --env liveks-combined
+./liveks up --env liveks-combined --query "<index question>" --expect-term "<known term>"
+./liveks verify --env liveks-combined --query "<index question>" --expect-term "<known term>"
+./liveks mcp --env liveks-combined --auth bearer
+./liveks down --env liveks-combined
+```
+
 Live commands require an environment name or a YAML path. When `--config` is omitted, LiveKS looks for `.liveks/<environment>.yaml`.
 
 Use JSON output when cleanup evidence will be reviewed:
@@ -74,9 +87,11 @@ Use JSON output when cleanup evidence will be reviewed:
 ./liveks down --env liveks-full --yes --format json
 ```
 
-Every preview deployment profile must report `resource-group-absent=pass`. The data-plane-only `search-index` profile instead requires `search-index-preserved=pass`. A `full` run that created capacity must additionally report `fabric-capacity-absent=pass`. It must also report `fabric-capacity-resource-group-absent=pass` when the same run created that dedicated group, or `fabric-capacity-resource-group-preserved=pass` when the group predated the run. A missing summary or unresolved ownership produces partial cleanup instead of a deletion claim.
+Every provisioned preview profile must report `resource-group-absent=pass`. The data-plane-only `search-index` and `mcp-search-index` profiles instead require `search-index-preserved=pass`. A `full` run that created capacity must additionally report `fabric-capacity-absent=pass`. It must also report `fabric-capacity-resource-group-absent=pass` when the same run created that dedicated group, or `fabric-capacity-resource-group-preserved=pass` when the group predated the run. A missing summary or unresolved ownership produces partial cleanup instead of a deletion claim.
 
 For `byo-fabric` and `full`, `mcp` attaches delegated source authorization by default. It records text-block and expected-term counts but never persists the endpoint, query, response content, key, or token. A call without `--expect-term` can pass protocol checks but reports `grounding-content=warn`; use a known non-sensitive fact for source-content acceptance. See [Call the Knowledge Base Through MCP](22-knowledge-base-mcp.md).
+
+For `mcp-search-index`, native MCP uses the configured preview combined KB and requires `--auth bearer`. Source routing must already be proved by the ordered REST retrieve checks because native MCP output has a different response envelope.
 
 ## Confirmation Rules
 
@@ -106,6 +121,8 @@ Choose exactly one cleanup behavior:
 ./liveks e2e --env liveks-mcp --cleanup --yes
 ./liveks e2e --env liveks-mcp --keep-resources --yes
 ```
+
+The combined data-plane profile accepts `--query`, repeatable `--expect-term`, `--mcp-query`, and `--combined-query`. It creates only three lock-owned Search data-plane objects and cleans them up before requiring that the BYO index is still readable.
 
 Use `--keep-resources` only while debugging. Release evidence should include successful cleanup.
 

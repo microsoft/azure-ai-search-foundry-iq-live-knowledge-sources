@@ -30,19 +30,51 @@ from .config import (
     write_user_config,
 )
 from .evidence import generated_at, repository_revision, runtime_summary, sha256_file, write_json
-from .runtime import CommandRunner, http_json, http_mcp_json, parse_azd_values, parse_version
+from .mcp_search_index import (
+    build_payloads as build_mcp_search_index_payloads,
+    redacted_payloads as redact_mcp_search_index_payloads,
+)
+from .runtime import (
+    CommandRunner,
+    EnvironmentOperationLock,
+    http_json,
+    http_mcp_json,
+    parse_azd_values,
+    parse_version,
+)
 from .search_index import (
     acquire_bearer_token as acquire_search_bearer_token,
     build_payloads as build_search_index_payloads,
     inspect_index,
     object_path as search_object_path,
+    reference_source_data_text,
     request as search_index_request,
     response_text as search_index_response_text,
 )
 
 
 ROOT = Path(__file__).resolve().parents[2]
-LIVE_PROFILES = {"search-index", "mcp-only", "byo-fabric", "full"}
+LIVE_PROFILES = {"search-index", "mcp-search-index", "mcp-only", "byo-fabric", "full"}
+DIRECT_SEARCH_PROFILES = {"search-index", "mcp-search-index"}
+MCP_SEARCH_INDEX_MANAGED_KEYS = {
+    "searchIndexKnowledgeSource",
+    "mcpKnowledgeSource",
+    "combinedKnowledgeBase",
+}
+ACTIVE_OWNERSHIP_STATUSES = {
+    "deployment-in-progress",
+    "deployed",
+    "verification-failed",
+    "deployment-failed",
+    "cleanup-incomplete",
+}
+SAFE_REPLANNABLE_STATUSES = {
+    "planned",
+    "plan-failed",
+    "confirmation-required",
+    "cleaned",
+    "destroyed",
+}
 GENERATED_FABRIC_AZD_KEYS = (
     "FABRIC_CAPACITY_ID",
     "FABRIC_CAPACITY_ARM_ID",
@@ -89,6 +121,10 @@ def _display_path(path: Path) -> str:
         return str(path.relative_to(ROOT))
     except ValueError:
         return str(path)
+
+
+def _operation_lock_path(config: ResolvedConfig) -> Path:
+    return ROOT / ".liveks" / f"{config.environment}.operation.lock"
 
 
 def _markdown_cell(value: Any) -> str:
@@ -171,6 +207,14 @@ def _write_e2e_evidence_capsule(
                 "existingIndexOwnership": "reuse",
             }
             if config.profile == "search-index"
+            else {
+                "searchIndexKnowledgeSource": "2026-04-01-stable",
+                "mcpServerKnowledgeSource": "2026-05-01-preview",
+                "knowledgeBase": "2026-05-01-preview",
+                "existingIndexOwnership": "reuse",
+                "liveGrounding": "protected-integration",
+            }
+            if config.profile == "mcp-search-index"
             else {
                 "mcpServerKnowledgeSourceTransport": "remote-https",
                 "knowledgeBaseMcpTransport": "stateless-json-rpc-http",
@@ -287,7 +331,11 @@ def _command_version(command: list[str], config: ResolvedConfig) -> tuple[int, s
     return result.returncode, result.stdout.strip()
 
 
-def _search_index_doctor_checks(config: ResolvedConfig) -> list[dict[str, Any]]:
+def _search_index_doctor_checks(
+    config: ResolvedConfig,
+    *,
+    api_version: str | None = None,
+) -> list[dict[str, Any]]:
     checks: list[dict[str, Any]] = []
     if not shutil.which("az"):
         return checks
@@ -326,6 +374,7 @@ def _search_index_doctor_checks(config: ResolvedConfig) -> list[dict[str, Any]]:
             token,
             method="GET",
             path=search_object_path("indexes", str(config.get("search.index_name"))),
+            api_version=api_version,
             timeout=30,
         )
     except Exception:
@@ -368,8 +417,25 @@ def doctor_report(config: ResolvedConfig, *, cloud: bool = True) -> dict[str, An
         ready = code == 0 and parse_version(output) >= (22, 0, 0)
         checks.append(_check("node-version", "pass" if ready else "fail", f"{output} (requires 22+)"))
 
-    if config.profile == "search-index" and cloud:
-        checks.extend(_search_index_doctor_checks(config))
+    if config.profile in DIRECT_SEARCH_PROFILES and cloud:
+        checks.extend(
+            _search_index_doctor_checks(
+                config,
+                api_version=(
+                    str(config.get("search.index_api_version"))
+                    if config.profile == "mcp-search-index"
+                    else None
+                ),
+            )
+        )
+        if config.profile == "mcp-search-index":
+            checks.append(
+                _check(
+                    "openai-runtime-access",
+                    "unknown",
+                    "Search managed identity access to the reused Azure OpenAI deployment is proved only by live retrieve.",
+                )
+            )
     elif config.profile in LIVE_PROFILES and cloud:
         runner = CommandRunner(root=ROOT, env=config.child_env(), quiet=True)
         account = runner.run(["az", "account", "show", "-o", "json"])
@@ -452,30 +518,290 @@ def doctor_report(config: ResolvedConfig, *, cloud: bool = True) -> dict[str, An
     )
 
 
-def _search_index_lock_state(config: ResolvedConfig) -> tuple[dict[str, str], bool, str]:
+def _search_index_lock_state(
+    config: ResolvedConfig,
+) -> tuple[dict[str, str], dict[str, str], bool, str]:
     try:
         lock = _load_lock(config.environment)
     except ConfigError as error:
-        return {}, False, f"invalid environment lock: {error}"
+        return {}, {}, False, f"invalid environment lock: {error}"
     if lock is None:
-        return {}, True, "environment lock is not present"
+        return {}, {}, True, "environment lock is not present"
 
-    managed = lock.get("managedObjects")
-    managed_objects = {
-        str(key): str(value)
-        for key, value in managed.items()
-        if isinstance(managed, dict) and key in {"knowledgeSource", "knowledgeBase"} and value
-    } if isinstance(managed, dict) else {}
     matches = (
         lock.get("profile") == config.profile
         and lock.get("environment") == config.environment
         and lock.get("configDigest") == config.config_digest
     )
-    return managed_objects, matches, "matching environment lock" if matches else "environment lock does not match the resolved configuration"
+    managed = lock.get("managedObjects")
+    all_managed = (
+        {str(key): str(value) for key, value in managed.items() if value}
+        if isinstance(managed, dict)
+        else {}
+    )
+    managed_objects = {
+        str(key): str(value)
+        for key, value in managed.items()
+        if isinstance(managed, dict) and key in {"knowledgeSource", "knowledgeBase"} and value
+    } if isinstance(managed, dict) else {}
+    managed_etags = lock.get("managedObjectEtags")
+    all_etags = (
+        {str(key): str(value) for key, value in managed_etags.items() if value}
+        if isinstance(managed_etags, dict)
+        else {}
+    )
+    etags = (
+        {
+            str(key): str(value)
+            for key, value in managed_etags.items()
+            if key in {"knowledgeSource", "knowledgeBase"} and value
+        }
+        if isinstance(managed_etags, dict)
+        else {}
+    )
+    if not matches and all_managed:
+        return all_managed, all_etags, False, "environment lock does not match the resolved configuration"
+    return (
+        managed_objects,
+        etags,
+        matches,
+        "matching environment lock" if matches else "environment lock does not match the resolved configuration",
+    )
+
+
+def _mcp_search_index_lock_state(
+    config: ResolvedConfig,
+) -> tuple[dict[str, str], dict[str, str], bool, str]:
+    try:
+        lock = _load_lock(config.environment)
+    except ConfigError as error:
+        return {}, {}, False, f"invalid environment lock: {error}"
+    if lock is None:
+        return {}, {}, True, "environment lock is not present"
+
+    matches = (
+        lock.get("profile") == config.profile
+        and lock.get("environment") == config.environment
+        and lock.get("configDigest") == config.config_digest
+    )
+    managed = lock.get("managedObjects")
+    all_managed = (
+        {str(key): str(value) for key, value in managed.items() if value}
+        if isinstance(managed, dict)
+        else {}
+    )
+    managed_objects = (
+        {
+            str(key): str(value)
+            for key, value in managed.items()
+            if key in MCP_SEARCH_INDEX_MANAGED_KEYS and value
+        }
+        if isinstance(managed, dict)
+        else {}
+    )
+    managed_etags = lock.get("managedObjectEtags")
+    all_etags = (
+        {str(key): str(value) for key, value in managed_etags.items() if value}
+        if isinstance(managed_etags, dict)
+        else {}
+    )
+    etags = (
+        {
+            str(key): str(value)
+            for key, value in managed_etags.items()
+            if key in MCP_SEARCH_INDEX_MANAGED_KEYS and value
+        }
+        if isinstance(managed_etags, dict)
+        else {}
+    )
+    if not matches and all_managed:
+        return all_managed, all_etags, False, "environment lock does not match the resolved configuration"
+    return (
+        managed_objects,
+        etags,
+        matches,
+        "matching environment lock" if matches else "environment lock does not match the resolved configuration",
+    )
+
+
+def _search_object_etag(payload: Any) -> str:
+    if not isinstance(payload, dict):
+        return ""
+    return str(payload.get("@odata.etag") or payload.get("etag") or "")
+
+
+def _environment_lock_conflict(config: ResolvedConfig) -> str | None:
+    try:
+        lock = _load_lock(config.environment)
+    except ConfigError as error:
+        return f"Invalid environment lock must be restored before planning: {error}"
+    if lock is None:
+        return None
+
+    matches = (
+        lock.get("profile") == config.profile
+        and lock.get("environment") == config.environment
+        and lock.get("configDigest") == config.config_digest
+    )
+    managed = lock.get("managedObjects")
+    has_managed_objects = isinstance(managed, dict) and any(managed.values())
+    status = str(lock.get("status") or "")
+    if matches and config.profile in DIRECT_SEARCH_PROFILES:
+        return None
+    if has_managed_objects or status not in SAFE_REPLANNABLE_STATUSES:
+        return (
+            "An active or unrecognized environment lock must be cleaned up with its original "
+            "profile and configuration before planning."
+        )
+    if matches:
+        return None
+    return None
+
+
+def _generic_cleanup_lock(config: ResolvedConfig) -> tuple[dict[str, Any] | None, str | None]:
+    try:
+        lock = _load_lock(config.environment)
+    except ConfigError as error:
+        return None, f"Invalid environment lock: {error}"
+    if lock is None:
+        return None, None
+    if lock.get("profile") != config.profile or lock.get("environment") != config.environment:
+        return None, "Environment lock profile or environment does not match the requested cleanup."
+    authored_digest = str(lock.get("authoredConfigDigest") or "")
+    if authored_digest:
+        accepted_digests = {
+            str(value)
+            for value in (lock.get("configDigest"), authored_digest)
+            if value
+        }
+        if config.config_digest not in accepted_digests:
+            return None, "Environment lock configuration digest does not match the requested cleanup."
+    status = str(lock.get("status") or "")
+    if status and status not in ACTIVE_OWNERSHIP_STATUSES:
+        return None, "Environment lock does not record an active or partial deployment to clean up."
+    return lock, None
+
+
+def _failed_up_started_mutation(config: ResolvedConfig) -> bool:
+    lock, error = _generic_cleanup_lock(config)
+    if config.profile in DIRECT_SEARCH_PROFILES:
+        try:
+            direct_lock = _load_lock(config.environment)
+        except ConfigError:
+            return False
+        return bool(
+            direct_lock
+            and direct_lock.get("profile") == config.profile
+            and direct_lock.get("environment") == config.environment
+            and direct_lock.get("configDigest") == config.config_digest
+            and str(direct_lock.get("status") or "") in ACTIVE_OWNERSHIP_STATUSES
+        )
+    return (
+        lock is not None
+        and error is None
+        and str(lock.get("status") or "") in ACTIVE_OWNERSHIP_STATUSES
+    )
+
+
+def _preserved_cleanup_metadata(lock: dict[str, Any] | None) -> dict[str, Any]:
+    if not isinstance(lock, dict):
+        return {}
+    return {
+        key: lock[key]
+        for key in ("authoredConfigDigest", "resourceGroupPreexisting")
+        if key in lock
+    }
+
+
+def _payload_is_subset(expected: Any, actual: Any) -> bool:
+    if isinstance(expected, dict):
+        return isinstance(actual, dict) and all(
+            key in actual and _payload_is_subset(value, actual[key])
+            for key, value in expected.items()
+        )
+    if isinstance(expected, list):
+        return (
+            isinstance(actual, list)
+            and len(expected) == len(actual)
+            and all(_payload_is_subset(left, right) for left, right in zip(expected, actual))
+        )
+    return expected == actual
+
+
+def _mcp_search_index_contracts(config: ResolvedConfig) -> list[dict[str, str]]:
+    stable = str(config.get("search.index_api_version"))
+    preview = str(config.get("search.preview_api_version"))
+    return [
+        {
+            "kind": "searchIndex",
+            "name": str(config.get("search.index_name")),
+            "apiVersion": stable,
+            "ownership": "reuse",
+        },
+        {
+            "kind": "searchIndexKnowledgeSource",
+            "name": str(config.get("search.index_knowledge_source_name")),
+            "apiVersion": stable,
+            "ownership": "create",
+        },
+        {
+            "kind": "mcpServerKnowledgeSource",
+            "name": str(config.get("search.mcp_knowledge_source_name")),
+            "apiVersion": preview,
+            "ownership": "create",
+        },
+        {
+            "kind": "knowledgeBase",
+            "name": str(config.get("search.combined_knowledge_base_name")),
+            "apiVersion": preview,
+            "ownership": "create",
+        },
+        {
+            "kind": "azureOpenAI",
+            "name": str(config.get("openai.deployment_name")),
+            "apiVersion": "external-existing-deployment",
+            "ownership": "reuse",
+        },
+    ]
+
+
+def _mcp_search_index_cleanup_order(config: ResolvedConfig) -> list[dict[str, str]]:
+    return [
+        {
+            "action": "delete",
+            "kind": "knowledgeBase",
+            "name": str(config.get("search.combined_knowledge_base_name")),
+            "apiVersion": str(config.get("search.preview_api_version")),
+        },
+        {
+            "action": "delete",
+            "kind": "mcpServerKnowledgeSource",
+            "name": str(config.get("search.mcp_knowledge_source_name")),
+            "apiVersion": str(config.get("search.preview_api_version")),
+        },
+        {
+            "action": "delete",
+            "kind": "searchIndexKnowledgeSource",
+            "name": str(config.get("search.index_knowledge_source_name")),
+            "apiVersion": str(config.get("search.index_api_version")),
+        },
+        {
+            "action": "preserve",
+            "kind": "searchIndex",
+            "name": str(config.get("search.index_name")),
+            "apiVersion": str(config.get("search.index_api_version")),
+        },
+        {
+            "action": "preserve",
+            "kind": "azureOpenAI",
+            "name": str(config.get("openai.deployment_name")),
+            "apiVersion": "external-existing-deployment",
+        },
+    ]
 
 
 def _search_index_plan_report(config: ResolvedConfig, checks: list[dict[str, Any]]) -> dict[str, Any]:
-    managed, lock_matches, lock_message = _search_index_lock_state(config)
+    managed, managed_etags, lock_matches, lock_message = _search_index_lock_state(config)
     if managed and not lock_matches:
         checks.append(
             _check(
@@ -527,22 +853,28 @@ def _search_index_plan_report(config: ResolvedConfig, checks: list[dict[str, Any
             "knowledgeBase": ("knowledgebases", str(config.get("search.index_knowledge_base_name"))),
         }
         for label, (kind, name) in names.items():
-            status_code, _ = search_index_request(
+            status_code, existing = search_index_request(
                 config,
                 token,
                 method="GET",
                 path=search_object_path(kind, name),
                 timeout=30,
             )
-            collision = status_code == 200 and managed.get(label) != name
-            ready = status_code == 404 or (status_code == 200 and not collision)
+            remote_etag = _search_object_etag(existing)
+            owned = (
+                managed.get(label) == name
+                and bool(managed_etags.get(label))
+                and managed_etags.get(label) == remote_etag
+            )
+            collision = status_code == 200 and not owned
+            ready = status_code == 404 or (status_code == 200 and owned)
             checks.append(
                 _check(
                     f"{label}-name",
                     "pass" if ready else "fail",
                     "Name is available."
                     if status_code == 404
-                    else "Existing object is owned by this environment."
+                    else "Existing object and ETag are owned by this environment."
                     if ready
                     else "An existing unowned object uses this name; choose another environment or explicit name.",
                 )
@@ -572,6 +904,7 @@ def _search_index_plan_report(config: ResolvedConfig, checks: list[dict[str, Any
             "estimatedDuration": config.manifest.get("estimated_duration"),
             "cost": config.manifest.get("cost"),
             "managedObjects": managed,
+            "managedObjectEtags": managed_etags,
         },
     )
     return envelope(
@@ -589,13 +922,211 @@ def _search_index_plan_report(config: ResolvedConfig, checks: list[dict[str, Any
     )
 
 
+def _mcp_search_index_plan_report(config: ResolvedConfig, checks: list[dict[str, Any]]) -> dict[str, Any]:
+    managed, managed_etags, lock_matches, lock_message = _mcp_search_index_lock_state(config)
+    contracts = _mcp_search_index_contracts(config)
+    cleanup_order = _mcp_search_index_cleanup_order(config)
+    if managed and not lock_matches:
+        checks.append(
+            _check(
+                "environment-lock",
+                "fail",
+                "A different configuration owns generated Search objects; restore its ledger and clean it up first.",
+            )
+        )
+        return envelope(
+            "plan",
+            "fail",
+            profile=config.profile,
+            environment=config.environment,
+            checks=checks,
+            resources=config.manifest.get("resources", []),
+            contracts=contracts,
+            cleanupOrder=cleanup_order,
+            nextActions=["Restore the original environment ledger and run liveks down."],
+        )
+    checks.append(_check("environment-lock", "pass", lock_message))
+
+    payloads = build_mcp_search_index_payloads(
+        config,
+        index_query="Inspect the existing index.",
+        mcp_query="Find current Azure AI Search Knowledge Base guidance.",
+        combined_query="Use indexed domain evidence and current Microsoft Learn implementation guidance.",
+    )
+    knowledge_base = payloads["knowledgeBase"]
+    source_names = {
+        str(item.get("name"))
+        for item in knowledge_base.get("knowledgeSources", [])
+        if isinstance(item, dict) and item.get("name")
+    }
+    retrieve = payloads["retrieve"]
+    payload_ready = (
+        payloads["searchIndexKnowledgeSource"].get("kind") == "searchIndex"
+        and payloads["mcpKnowledgeSource"].get("kind") == "mcpServer"
+        and source_names
+        == {
+            str(config.get("search.index_knowledge_source_name")),
+            str(config.get("search.mcp_knowledge_source_name")),
+        }
+        and bool(knowledge_base.get("models"))
+        and knowledge_base.get("outputMode") == "answerSynthesis"
+        and knowledge_base.get("retrievalReasoningEffort") == {"kind": "low"}
+        and all("messages" in request and "intents" not in request for request in retrieve.values())
+        and retrieve["searchIndex"]["knowledgeSourceParams"][0]["kind"] == "searchIndex"
+        and retrieve["mcp"]["knowledgeSourceParams"][0]["kind"] == "mcpServer"
+    )
+    checks.append(
+        _check(
+            "version-separated-payload-contract",
+            "pass" if payload_ready else "fail",
+            "GA Search Index KS and preview MCP/KB/retrieve request shapes remain separate."
+            if payload_ready
+            else "The combined profile payloads mix or omit required stable and preview properties.",
+        )
+    )
+
+    runner = CommandRunner(root=ROOT, env=config.child_env(), quiet=True)
+    try:
+        token = acquire_search_bearer_token(runner)
+        objects = [
+            (
+                "searchIndexKnowledgeSource",
+                "knowledgesources",
+                str(config.get("search.index_knowledge_source_name")),
+                str(config.get("search.index_api_version")),
+            ),
+            (
+                "mcpKnowledgeSource",
+                "knowledgesources",
+                str(config.get("search.mcp_knowledge_source_name")),
+                str(config.get("search.preview_api_version")),
+            ),
+            (
+                "combinedKnowledgeBase",
+                "knowledgebases",
+                str(config.get("search.combined_knowledge_base_name")),
+                str(config.get("search.preview_api_version")),
+            ),
+        ]
+        for label, kind, name, api_version in objects:
+            status_code, existing = search_index_request(
+                config,
+                token,
+                method="GET",
+                path=search_object_path(kind, name),
+                api_version=api_version,
+                timeout=30,
+            )
+            remote_etag = _search_object_etag(existing)
+            owned = (
+                managed.get(label) == name
+                and bool(managed_etags.get(label))
+                and managed_etags.get(label) == remote_etag
+            )
+            collision = status_code == 200 and not owned
+            ready = status_code == 404 or (status_code == 200 and owned)
+            checks.append(
+                _check(
+                    f"{label}-name",
+                    "pass" if ready else "fail",
+                    "Name is available."
+                    if status_code == 404
+                    else "Existing object and ETag are owned by this environment."
+                    if ready
+                    else "An existing unowned object uses this name; choose another explicit name.",
+                )
+            )
+    except Exception:
+        checks.append(
+            _check(
+                "search-object-collision-check",
+                "fail",
+                "Existing Search object names could not be checked with their pinned API versions.",
+            )
+        )
+
+    output_dir = ROOT / ".deployment" / config.environment
+    output_dir.mkdir(parents=True, exist_ok=True)
+    payload_path = output_dir / "mcp-search-index-plan.json"
+    write_json(
+        payload_path,
+        {
+            "schemaVersion": 1,
+            "contracts": contracts,
+            "payloads": redact_mcp_search_index_payloads(payloads),
+            "ownership": config.ownership(),
+            "cleanupOrder": cleanup_order,
+        },
+    )
+    status = "fail" if any(check["status"] == "fail" for check in checks) else "warn" if any(check["status"] in {"warn", "unknown"} for check in checks) else "pass"
+    lock = write_lock(
+        config,
+        status="planned" if status != "fail" else "plan-failed",
+        extra={
+            "checks": checks,
+            "resources": config.manifest.get("resources", []),
+            "estimatedDuration": config.manifest.get("estimated_duration"),
+            "cost": config.manifest.get("cost"),
+            "managedObjects": managed,
+            "managedObjectEtags": managed_etags,
+            "contracts": contracts,
+            "cleanupOrder": cleanup_order,
+        },
+    )
+    return envelope(
+        "plan",
+        status,
+        profile=config.profile,
+        environment=config.environment,
+        checks=checks,
+        resources=config.manifest.get("resources", []),
+        cost=config.manifest.get("cost"),
+        estimatedDuration=config.manifest.get("estimated_duration"),
+        ownership=config.ownership(),
+        contracts=contracts,
+        cleanupOrder=cleanup_order,
+        artifacts=[_display_path(lock), _display_path(payload_path)],
+        nextActions=[f"Run ./liveks up --env {config.environment}" if status != "fail" else "Fix plan failures before creating Search objects"],
+    )
+
+
 def plan_report(
     config: ResolvedConfig,
     *,
     quiet: bool = True,
     skip_app_build: bool = False,
     skip_dry_run: bool = False,
+    operation_locked: bool = False,
 ) -> dict[str, Any]:
+    if not operation_locked:
+        try:
+            with EnvironmentOperationLock(_operation_lock_path(config)):
+                return plan_report(
+                    config,
+                    quiet=quiet,
+                    skip_app_build=skip_app_build,
+                    skip_dry_run=skip_dry_run,
+                    operation_locked=True,
+                )
+        except RuntimeError as error:
+            return envelope(
+                "plan",
+                "fail",
+                profile=config.profile,
+                environment=config.environment,
+                checks=[_check("operation-lock", "fail", str(error))],
+            )
+    lock_conflict = _environment_lock_conflict(config)
+    if lock_conflict:
+        return envelope(
+            "plan",
+            "fail",
+            profile=config.profile,
+            environment=config.environment,
+            checks=[_check("environment-lock", "fail", lock_conflict)],
+            resources=config.manifest.get("resources", []),
+            nextActions=["Restore the original ledger and run liveks down before reusing this environment name."],
+        )
     doctor = doctor_report(config, cloud=config.profile in LIVE_PROFILES)
     checks = list(doctor["checks"])
     if doctor["status"] == "fail":
@@ -607,6 +1138,8 @@ def plan_report(
 
     if config.profile == "search-index":
         return _search_index_plan_report(config, checks)
+    if config.profile == "mcp-search-index":
+        return _mcp_search_index_plan_report(config, checks)
 
     output_dir = ROOT / ".deployment" / config.environment
     output_dir.mkdir(parents=True, exist_ok=True)
@@ -692,12 +1225,20 @@ def _search_index_up_report(
     query: str | None,
     expected_terms: list[str] | None,
 ) -> dict[str, Any]:
-    plan = plan_report(config, quiet=True)
+    if any(not str(term).strip() for term in expected_terms or []):
+        return envelope(
+            "up",
+            "fail",
+            profile=config.profile,
+            environment=config.environment,
+            checks=[_check("runtime-input", "fail", "Expected terms must not be empty.")],
+        )
+    plan = plan_report(config, quiet=True, operation_locked=True)
     if plan["status"] == "fail":
         return {**plan, "command": "up"}
 
     checks = list(plan.get("checks", []))
-    managed, lock_matches, _ = _search_index_lock_state(config)
+    managed, managed_etags, lock_matches, _ = _search_index_lock_state(config)
     if not lock_matches:
         return envelope(
             "up",
@@ -726,32 +1267,113 @@ def _search_index_up_report(
             ),
         ]
         for label, kind, name, body in objects:
-            existing_code, _ = search_index_request(
+            existing_code, existing = search_index_request(
                 config,
                 token,
                 method="GET",
                 path=search_object_path(kind, name),
                 timeout=30,
             )
-            if existing_code == 200 and managed.get(label) != name:
-                raise RuntimeError(f"Refusing to overwrite an unowned {label}.")
+            if existing_code == 200:
+                remote_etag = _search_object_etag(existing)
+                if (
+                    managed.get(label) != name
+                    or not managed_etags.get(label)
+                    or managed_etags.get(label) != remote_etag
+                ):
+                    raise RuntimeError(f"Refusing to overwrite an unowned or changed {label}.")
+                if not _payload_is_subset(body, existing):
+                    raise RuntimeError(f"Owned {label} definition changed; run down before recreating it.")
+                checks.append(_check(f"create-{label}", "pass", f"Owned {label} is already ready."))
+                continue
+            condition_headers = {
+                "If-None-Match": "*",
+                "Prefer": "return=representation",
+            }
             if existing_code not in {200, 404}:
                 raise RuntimeError(f"Unable to check the target {label} name (HTTP {existing_code}).")
-            status_code, _ = search_index_request(
-                config,
-                token,
-                method="PUT",
-                path=search_object_path(kind, name),
-                body=body,
-            )
+            was_new = existing_code == 404
+            if was_new:
+                managed_etags.pop(label, None)
+                managed[label] = name
+                write_lock(
+                    config,
+                    status="deployment-in-progress",
+                    extra={
+                        "checks": checks,
+                        "managedObjects": managed,
+                        "managedObjectEtags": managed_etags,
+                    },
+                )
+            created: Any = {}
+            try:
+                status_code, created = search_index_request(
+                    config,
+                    token,
+                    method="PUT",
+                    path=search_object_path(kind, name),
+                    body=body,
+                    headers=condition_headers,
+                )
+            except Exception:
+                status_code = 0
+            reconciled = False
+            if status_code == 0 or status_code >= 500:
+                reconcile_code, reconciled_object = search_index_request(
+                    config,
+                    token,
+                    method="GET",
+                    path=search_object_path(kind, name),
+                    timeout=30,
+                )
+                if reconcile_code == 200 and _payload_is_subset(body, reconciled_object):
+                    status_code = 200
+                    created = reconciled_object
+                    reconciled = True
             if status_code not in {200, 201}:
+                if was_new and status_code not in {0} and status_code < 500:
+                    managed.pop(label, None)
                 raise RuntimeError(f"Creating {label} failed (HTTP {status_code}).")
             managed[label] = name
-            checks.append(_check(f"create-{label}", "pass", f"Generated {label} is ready."))
+            etag = _search_object_etag(created)
+            if not etag:
+                reconcile_code, reconciled_object = search_index_request(
+                    config,
+                    token,
+                    method="GET",
+                    path=search_object_path(kind, name),
+                    timeout=30,
+                )
+                if reconcile_code == 200 and _payload_is_subset(body, reconciled_object):
+                    etag = _search_object_etag(reconciled_object)
+            if not etag:
+                write_lock(
+                    config,
+                    status="deployment-in-progress",
+                    extra={
+                        "checks": checks,
+                        "managedObjects": managed,
+                        "managedObjectEtags": managed_etags,
+                    },
+                )
+                raise RuntimeError(f"Generated {label} is present but its ETag could not be recorded safely.")
+            managed_etags[label] = etag
+            checks.append(
+                _check(
+                    f"create-{label}",
+                    "pass",
+                    f"Generated {label} is ready"
+                    + (" after reconciling an ambiguous response." if reconciled else "."),
+                )
+            )
             write_lock(
                 config,
                 status="deployment-in-progress",
-                extra={"checks": checks, "managedObjects": managed},
+                extra={
+                    "checks": checks,
+                    "managedObjects": managed,
+                    "managedObjectEtags": managed_etags,
+                },
             )
 
         verified = verify_report(
@@ -765,7 +1387,11 @@ def _search_index_up_report(
         lock = write_lock(
             config,
             status="deployed" if status == "pass" else "verification-failed",
-            extra={"checks": checks, "managedObjects": managed},
+            extra={
+                "checks": checks,
+                "managedObjects": managed,
+                "managedObjectEtags": managed_etags,
+            },
         )
         return envelope(
             "up",
@@ -790,7 +1416,260 @@ def _search_index_up_report(
         lock = write_lock(
             config,
             status="deployment-failed",
-            extra={"checks": checks, "managedObjects": managed, "error": str(error)},
+            extra={
+                "checks": checks,
+                "managedObjects": managed,
+                "managedObjectEtags": managed_etags,
+                "error": str(error),
+            },
+        )
+        return envelope(
+            "up",
+            "fail",
+            profile=config.profile,
+            environment=config.environment,
+            checks=checks + [_check("deployment", "fail", str(error))],
+            ownership=config.ownership(),
+            artifacts=[_display_path(lock)],
+            nextActions=[f"Run ./liveks down --env {config.environment} --yes to remove only recorded generated objects"],
+        )
+
+
+def _mcp_search_index_up_report(
+    config: ResolvedConfig,
+    *,
+    yes: bool,
+    quiet: bool,
+    query: str | None,
+    expected_terms: list[str] | None,
+    mcp_query: str | None,
+    combined_query: str | None,
+) -> dict[str, Any]:
+    if any(not str(term).strip() for term in expected_terms or []):
+        return envelope(
+            "up",
+            "fail",
+            profile=config.profile,
+            environment=config.environment,
+            checks=[_check("runtime-input", "fail", "Expected terms must not be empty.")],
+        )
+    plan = plan_report(config, quiet=True, operation_locked=True)
+    if plan["status"] == "fail":
+        return {**plan, "command": "up"}
+
+    checks = list(plan.get("checks", []))
+    managed, managed_etags, lock_matches, _ = _mcp_search_index_lock_state(config)
+    if not lock_matches:
+        return envelope(
+            "up",
+            "fail",
+            profile=config.profile,
+            environment=config.environment,
+            checks=checks + [_check("environment-lock", "fail", "The planned lock no longer matches the resolved configuration.")],
+        )
+
+    effective_index_query = query or "What information is available in the existing search index?"
+    effective_mcp_query = mcp_query or "What must be configured for an Azure AI Search MCP Server knowledge source?"
+    effective_combined_query = combined_query or (
+        "Use the existing index for domain evidence and Microsoft Learn for guidance on validating Knowledge Base retrieval."
+    )
+    payloads = build_mcp_search_index_payloads(
+        config,
+        index_query=effective_index_query,
+        mcp_query=effective_mcp_query,
+        combined_query=effective_combined_query,
+    )
+    runner = CommandRunner(root=ROOT, env=config.child_env(), quiet=quiet)
+    try:
+        _confirm_up(config, yes=yes, accept_fabric_capacity=False, creates_capacity=False)
+        token = acquire_search_bearer_token(runner)
+        objects = [
+            (
+                "searchIndexKnowledgeSource",
+                "knowledgesources",
+                str(config.get("search.index_knowledge_source_name")),
+                str(config.get("search.index_api_version")),
+                payloads["searchIndexKnowledgeSource"],
+            ),
+            (
+                "mcpKnowledgeSource",
+                "knowledgesources",
+                str(config.get("search.mcp_knowledge_source_name")),
+                str(config.get("search.preview_api_version")),
+                payloads["mcpKnowledgeSource"],
+            ),
+            (
+                "combinedKnowledgeBase",
+                "knowledgebases",
+                str(config.get("search.combined_knowledge_base_name")),
+                str(config.get("search.preview_api_version")),
+                payloads["knowledgeBase"],
+            ),
+        ]
+        for label, kind, name, api_version, body in objects:
+            existing_code, existing = search_index_request(
+                config,
+                token,
+                method="GET",
+                path=search_object_path(kind, name),
+                api_version=api_version,
+                timeout=30,
+            )
+            if existing_code == 200:
+                remote_etag = _search_object_etag(existing)
+                if (
+                    managed.get(label) != name
+                    or not managed_etags.get(label)
+                    or managed_etags.get(label) != remote_etag
+                ):
+                    raise RuntimeError(f"Refusing to overwrite an unowned or changed {label}.")
+                if not _payload_is_subset(body, existing):
+                    raise RuntimeError(f"Owned {label} definition changed; run down before recreating it.")
+                checks.append(_check(f"create-{label}", "pass", f"Owned {label} is already ready."))
+                continue
+            condition_headers = {
+                "If-None-Match": "*",
+                "Prefer": "return=representation",
+            }
+            if existing_code not in {200, 404}:
+                raise RuntimeError(f"Unable to check the target {label} name (HTTP {existing_code}).")
+            was_new = existing_code == 404
+            if was_new:
+                managed_etags.pop(label, None)
+                managed[label] = name
+                write_lock(
+                    config,
+                    status="deployment-in-progress",
+                    extra={
+                        "checks": checks,
+                        "managedObjects": managed,
+                        "managedObjectEtags": managed_etags,
+                    },
+                )
+            created: Any = {}
+            try:
+                status_code, created = search_index_request(
+                    config,
+                    token,
+                    method="PUT",
+                    path=search_object_path(kind, name),
+                    api_version=api_version,
+                    body=body,
+                    headers=condition_headers,
+                )
+            except Exception:
+                status_code = 0
+            reconciled = False
+            if status_code == 0 or status_code >= 500:
+                reconcile_code, reconciled_object = search_index_request(
+                    config,
+                    token,
+                    method="GET",
+                    path=search_object_path(kind, name),
+                    api_version=api_version,
+                    timeout=30,
+                )
+                if reconcile_code == 200 and _payload_is_subset(body, reconciled_object):
+                    status_code = 200
+                    created = reconciled_object
+                    reconciled = True
+            if status_code not in {200, 201}:
+                if was_new and status_code not in {0} and status_code < 500:
+                    managed.pop(label, None)
+                raise RuntimeError(f"Creating {label} failed (HTTP {status_code}).")
+            managed[label] = name
+            etag = _search_object_etag(created)
+            if not etag:
+                reconcile_code, reconciled_object = search_index_request(
+                    config,
+                    token,
+                    method="GET",
+                    path=search_object_path(kind, name),
+                    api_version=api_version,
+                    timeout=30,
+                )
+                if reconcile_code == 200 and _payload_is_subset(body, reconciled_object):
+                    etag = _search_object_etag(reconciled_object)
+            if not etag:
+                write_lock(
+                    config,
+                    status="deployment-in-progress",
+                    extra={
+                        "checks": checks,
+                        "managedObjects": managed,
+                        "managedObjectEtags": managed_etags,
+                    },
+                )
+                raise RuntimeError(f"Generated {label} is present but its ETag could not be recorded safely.")
+            managed_etags[label] = etag
+            checks.append(
+                _check(
+                    f"create-{label}",
+                    "pass",
+                    f"Generated {label} is ready"
+                    + (" after reconciling an ambiguous response." if reconciled else "."),
+                )
+            )
+            write_lock(
+                config,
+                status="deployment-in-progress",
+                extra={
+                    "checks": checks,
+                    "managedObjects": managed,
+                    "managedObjectEtags": managed_etags,
+                },
+            )
+
+        verified = verify_report(
+            config,
+            quiet=True,
+            query=effective_index_query,
+            expected_terms=expected_terms,
+            mcp_query=effective_mcp_query,
+            combined_query=effective_combined_query,
+        )
+        checks.extend(verified.get("checks", []))
+        status = "pass" if verified.get("status") == "pass" else "fail"
+        lock = write_lock(
+            config,
+            status="deployed" if status == "pass" else "verification-failed",
+            extra={
+                "checks": checks,
+                "managedObjects": managed,
+                "managedObjectEtags": managed_etags,
+            },
+        )
+        return envelope(
+            "up",
+            status,
+            profile=config.profile,
+            environment=config.environment,
+            checks=checks,
+            ownership=config.ownership(),
+            contracts=_mcp_search_index_contracts(config),
+            cleanupOrder=_mcp_search_index_cleanup_order(config),
+            artifacts=[_display_path(lock)],
+            nextActions=[f"Run ./liveks down --env {config.environment} when finished"],
+        )
+    except PermissionError as error:
+        return envelope(
+            "up",
+            "confirmation-required",
+            profile=config.profile,
+            environment=config.environment,
+            checks=checks + [_check("confirmation", "fail", str(error))],
+            nextActions=["Review the plan and provide confirmation."],
+        )
+    except Exception as error:
+        lock = write_lock(
+            config,
+            status="deployment-failed",
+            extra={
+                "checks": checks,
+                "managedObjects": managed,
+                "managedObjectEtags": managed_etags,
+                "error": str(error),
+            },
         )
         return envelope(
             "up",
@@ -815,7 +1694,35 @@ def up_report(
     postprovision_only: bool = False,
     query: str | None = None,
     expected_terms: list[str] | None = None,
+    mcp_query: str | None = None,
+    combined_query: str | None = None,
+    operation_locked: bool = False,
 ) -> dict[str, Any]:
+    if not operation_locked:
+        try:
+            with EnvironmentOperationLock(_operation_lock_path(config)):
+                return up_report(
+                    config,
+                    yes=yes,
+                    accept_fabric_capacity=accept_fabric_capacity,
+                    quiet=quiet,
+                    skip_app_build=skip_app_build,
+                    skip_dry_run=skip_dry_run,
+                    postprovision_only=postprovision_only,
+                    query=query,
+                    expected_terms=expected_terms,
+                    mcp_query=mcp_query,
+                    combined_query=combined_query,
+                    operation_locked=True,
+                )
+        except RuntimeError as error:
+            return envelope(
+                "up",
+                "fail",
+                profile=config.profile,
+                environment=config.environment,
+                checks=[_check("operation-lock", "fail", str(error))],
+            )
     if config.profile == "search-index":
         return _search_index_up_report(
             config,
@@ -824,23 +1731,55 @@ def up_report(
             query=query,
             expected_terms=expected_terms,
         )
-    plan = plan_report(config, quiet=True, skip_app_build=skip_app_build, skip_dry_run=skip_dry_run)
+    if config.profile == "mcp-search-index":
+        return _mcp_search_index_up_report(
+            config,
+            yes=yes,
+            quiet=quiet,
+            query=query,
+            expected_terms=expected_terms,
+            mcp_query=mcp_query,
+            combined_query=combined_query,
+        )
+    plan = plan_report(
+        config,
+        quiet=True,
+        skip_app_build=skip_app_build,
+        skip_dry_run=skip_dry_run,
+        operation_locked=True,
+    )
     if plan["status"] == "fail":
         return {**plan, "command": "up"}
     runner = CommandRunner(root=ROOT, env=config.child_env(), quiet=quiet)
     checks = list(plan.get("checks", []))
     restore_capacity_mode = False
     resource_group_preexisting: bool | None = None
+    authored_config_digest = config.config_digest
+    mutation_started = False
     try:
         _ensure_azd_environment(config, runner, reset_generated_fabric=config.profile == "full" and not postprovision_only)
         if postprovision_only:
             _confirm_up(config, yes=yes, accept_fabric_capacity=accept_fabric_capacity, creates_capacity=False)
+            mutation_started = True
+            write_lock(
+                config,
+                status="deployment-in-progress",
+                extra={
+                    "checks": checks,
+                    "authoredConfigDigest": authored_config_digest,
+                    "resourceGroupPreexisting": resource_group_preexisting,
+                },
+            )
             postprovision = runner.run([sys.executable, "scripts/postprovision.py"], check=True)
             checks.append(_check("postprovision", "pass", postprovision.stdout.splitlines()[-1] if postprovision.stdout else "completed"))
             verified = verify_report(config, quiet=True)
             checks.extend(verified.get("checks", []))
             status = verified["status"]
-            lock = write_lock(config, status="deployed" if status == "pass" else "verification-failed", extra={"checks": checks})
+            lock = write_lock(
+                config,
+                status="deployed" if status == "pass" else "verification-failed",
+                extra={"checks": checks, "authoredConfigDigest": authored_config_digest},
+            )
             return envelope("up", status, profile=config.profile, environment=config.environment, checks=checks, ownership=config.ownership(), artifacts=[_display_path(lock)], nextActions=[f"Run ./liveks down --env {config.environment} when finished"])
         resource_group_probe = runner.run(["az", "group", "exists", "--name", str(config.get("azure.resource_group"))])
         if resource_group_probe.returncode == 0:
@@ -859,6 +1798,16 @@ def up_report(
         if preview.returncode != 0:
             raise RuntimeError("azd provision preview failed")
         _confirm_up(config, yes=yes, accept_fabric_capacity=accept_fabric_capacity)
+        mutation_started = True
+        write_lock(
+            config,
+            status="deployment-in-progress",
+            extra={
+                "checks": checks,
+                "authoredConfigDigest": authored_config_digest,
+                "resourceGroupPreexisting": resource_group_preexisting,
+            },
+        )
         if config.profile == "full":
             fabric = runner.run([sys.executable, "scripts/fabric-provision.py", "--env-name", config.environment], check=True)
             checks.append(_check("fabric-preprovision", "pass", fabric.stdout.splitlines()[-1] if fabric.stdout else "completed"))
@@ -870,21 +1819,35 @@ def up_report(
         lock = write_lock(
             config,
             status="deployed" if status == "pass" else "verification-failed",
-            extra={"checks": checks, "resourceGroupPreexisting": resource_group_preexisting},
+            extra={
+                "checks": checks,
+                "authoredConfigDigest": authored_config_digest,
+                "resourceGroupPreexisting": resource_group_preexisting,
+            },
         )
         return envelope("up", status, profile=config.profile, environment=config.environment, checks=checks, ownership=config.ownership(), artifacts=[_display_path(lock)], nextActions=[f"Run ./liveks down --env {config.environment} when finished"])
     except PermissionError as error:
         write_lock(
             config,
             status="confirmation-required",
-            extra={"error": str(error), "checks": checks, "resourceGroupPreexisting": resource_group_preexisting},
+            extra={
+                "error": str(error),
+                "checks": checks,
+                "authoredConfigDigest": authored_config_digest,
+                "resourceGroupPreexisting": resource_group_preexisting,
+            },
         )
         return envelope("up", "confirmation-required", profile=config.profile, environment=config.environment, checks=checks + [_check("confirmation", "fail", str(error))], nextActions=["Review the plan and provide the required confirmation flag"])
     except Exception as error:
         write_lock(
             config,
-            status="deployment-failed",
-            extra={"error": str(error), "checks": checks, "resourceGroupPreexisting": resource_group_preexisting},
+            status="deployment-failed" if mutation_started else "plan-failed",
+            extra={
+                "error": str(error),
+                "checks": checks,
+                "authoredConfigDigest": authored_config_digest,
+                "resourceGroupPreexisting": resource_group_preexisting,
+            },
         )
         return envelope("up", "fail", profile=config.profile, environment=config.environment, checks=checks + [_check("deployment", "fail", str(error))], nextActions=[f"Run ./liveks down --env {config.environment} --yes to remove partial resources"])
     finally:
@@ -959,6 +1922,14 @@ def mcp_report(
     knowledge_base: str | None = None,
     persist: bool = True,
 ) -> dict[str, Any]:
+    if any(not str(term).strip() for term in expected_terms or []):
+        return envelope(
+            "mcp",
+            "fail",
+            profile=config.profile,
+            environment=config.environment,
+            checks=[_check("runtime-input", "fail", "Expected terms must not be empty.")],
+        )
     checks: list[dict[str, Any]] = []
     if config.profile == "offline":
         report = envelope(
@@ -990,29 +1961,37 @@ def mcp_report(
         return report
 
     runner = CommandRunner(root=ROOT, env=config.child_env(), quiet=True)
-    selected = runner.run(["azd", "env", "select", config.environment, "--no-prompt"])
-    if selected.returncode != 0:
-        report = envelope(
-            "mcp",
-            "fail",
-            profile=config.profile,
-            environment=config.environment,
-            checks=[_check("azd-environment", "fail", "The deployment environment was not found.")],
-        )
-        if persist:
-            _persist_mcp_report(config, report)
-        return report
+    direct_combined = config.profile == "mcp-search-index"
+    if direct_combined:
+        search_endpoint = str(config.get("search.endpoint")).rstrip("/")
+        search_service = ""
+        resource_group = ""
+        api_version = str(config.get("search.preview_api_version"))
+        kb_name = knowledge_base or str(config.get("search.combined_knowledge_base_name"))
+    else:
+        selected = runner.run(["azd", "env", "select", config.environment, "--no-prompt"])
+        if selected.returncode != 0:
+            report = envelope(
+                "mcp",
+                "fail",
+                profile=config.profile,
+                environment=config.environment,
+                checks=[_check("azd-environment", "fail", "The deployment environment was not found.")],
+            )
+            if persist:
+                _persist_mcp_report(config, report)
+            return report
 
-    env_result = runner.run(["azd", "env", "get-values"])
-    azd_values = parse_azd_values(env_result.stdout)
-    search_endpoint = azd_values.get("AZURE_SEARCH_ENDPOINT", "").rstrip("/")
-    search_service = azd_values.get("AZURE_SEARCH_SERVICE_NAME", "")
-    resource_group = azd_values.get("AZURE_RESOURCE_GROUP", str(config.get("azure.resource_group", "")))
-    api_version = azd_values.get("AZURE_SEARCH_API_VERSION", str(config.get("search.api_version")))
-    kb_name = knowledge_base or azd_values.get(
-        "FABRIC_ONLY_KNOWLEDGE_BASE_NAME" if config.profile in {"byo-fabric", "full"} else "MCP_ONLY_KNOWLEDGE_BASE_NAME",
-        str(config.get("search.fabric_knowledge_base_name" if config.profile in {"byo-fabric", "full"} else "search.mcp_knowledge_base_name")),
-    )
+        env_result = runner.run(["azd", "env", "get-values"])
+        azd_values = parse_azd_values(env_result.stdout)
+        search_endpoint = azd_values.get("AZURE_SEARCH_ENDPOINT", "").rstrip("/")
+        search_service = azd_values.get("AZURE_SEARCH_SERVICE_NAME", "")
+        resource_group = azd_values.get("AZURE_RESOURCE_GROUP", str(config.get("azure.resource_group", "")))
+        api_version = azd_values.get("AZURE_SEARCH_API_VERSION", str(config.get("search.api_version")))
+        kb_name = knowledge_base or azd_values.get(
+            "FABRIC_ONLY_KNOWLEDGE_BASE_NAME" if config.profile in {"byo-fabric", "full"} else "MCP_ONLY_KNOWLEDGE_BASE_NAME",
+            str(config.get("search.fabric_knowledge_base_name" if config.profile in {"byo-fabric", "full"} else "search.mcp_knowledge_base_name")),
+        )
     if not all((search_endpoint, api_version, kb_name)):
         report = envelope(
             "mcp",
@@ -1038,6 +2017,18 @@ def mcp_report(
             headers["Authorization"] = f"Bearer {service_credential}"
             checks.append(_check("mcp-auth", "pass", "Using a transient Azure AI Search bearer token."))
     else:
+        if direct_combined:
+            checks.append(
+                _check(
+                    "mcp-auth",
+                    "fail",
+                    "The mcp-search-index profile reuses a BYO Search service; call liveks mcp with --auth bearer.",
+                )
+            )
+            report = envelope("mcp", "fail", profile=config.profile, environment=config.environment, checks=checks)
+            if persist:
+                _persist_mcp_report(config, report)
+            return report
         key_result = runner.run(
             [
                 "az",
@@ -1327,13 +2318,314 @@ def _search_index_verify_report(
     return report
 
 
+def _mcp_search_index_retrieve_failure(status_code: int, source: str) -> str:
+    if status_code in {401, 403}:
+        return (
+            f"{source} retrieve was unauthorized (HTTP {status_code}); verify Search data permissions and "
+            "the Search managed identity's Azure OpenAI role."
+        )
+    if status_code == 402:
+        return f"{source} retrieve requires an enabled Azure AI Search knowledge retrieval billing plan (HTTP 402)."
+    if status_code == 206:
+        return f"{source} retrieve returned partial content (HTTP 206); inspect protected activity errors locally."
+    if status_code == 502:
+        return f"{source} retrieve failed because every selected source, or one required source, failed (HTTP 502)."
+    return f"{source} retrieve did not return required source evidence (HTTP {status_code or 'unavailable'})."
+
+
+def _mcp_search_index_verify_report(
+    config: ResolvedConfig,
+    *,
+    quiet: bool,
+    query: str | None,
+    expected_terms: list[str] | None,
+    mcp_query: str | None,
+    combined_query: str | None,
+) -> dict[str, Any]:
+    if any(not str(term).strip() for term in expected_terms or []):
+        return envelope(
+            "verify",
+            "fail",
+            profile=config.profile,
+            environment=config.environment,
+            checks=[_check("runtime-input", "fail", "Expected terms must not be empty.")],
+        )
+    checks: list[dict[str, Any]] = []
+    runner = CommandRunner(root=ROOT, env=config.child_env(), quiet=quiet)
+    try:
+        token = acquire_search_bearer_token(runner)
+    except Exception:
+        return envelope(
+            "verify",
+            "fail",
+            profile=config.profile,
+            environment=config.environment,
+            checks=[_check("search-auth", "fail", "Unable to acquire a transient Azure AI Search bearer token.")],
+        )
+
+    stable = str(config.get("search.index_api_version"))
+    preview = str(config.get("search.preview_api_version"))
+    object_contracts = [
+        ("search-index", "indexes", str(config.get("search.index_name")), stable),
+        (
+            "search-index-knowledge-source",
+            "knowledgesources",
+            str(config.get("search.index_knowledge_source_name")),
+            stable,
+        ),
+        (
+            "mcp-knowledge-source",
+            "knowledgesources",
+            str(config.get("search.mcp_knowledge_source_name")),
+            preview,
+        ),
+        (
+            "combined-knowledge-base",
+            "knowledgebases",
+            str(config.get("search.combined_knowledge_base_name")),
+            preview,
+        ),
+    ]
+    objects: dict[str, Any] = {}
+    for label, kind, name, api_version in object_contracts:
+        try:
+            status_code, payload = search_index_request(
+                config,
+                token,
+                method="GET",
+                path=search_object_path(kind, name),
+                api_version=api_version,
+                timeout=30,
+            )
+        except Exception:
+            status_code, payload = 0, {}
+        objects[label] = payload
+        checks.append(
+            _check(
+                label,
+                "pass" if status_code == 200 else "fail",
+                f"Object is readable through {api_version}."
+                if status_code == 200
+                else f"Object read failed through {api_version} (HTTP {status_code or 'unavailable'}).",
+            )
+        )
+
+    index_source = objects.get("search-index-knowledge-source")
+    index_parameters = index_source.get("searchIndexParameters", {}) if isinstance(index_source, dict) else {}
+    index_source_matches = (
+        isinstance(index_source, dict)
+        and index_source.get("kind") == "searchIndex"
+        and index_parameters.get("searchIndexName") == config.get("search.index_name")
+        and index_parameters.get("semanticConfigurationName") == config.get("search.semantic_configuration_name")
+    )
+    checks.append(
+        _check(
+            "search-index-source-contract",
+            "pass" if index_source_matches else "fail",
+            "GA Search Index KS references the configured existing index and semantic configuration."
+            if index_source_matches
+            else "Search Index KS does not match the pinned GA contract.",
+        )
+    )
+
+    mcp_source = objects.get("mcp-knowledge-source")
+    mcp_parameters = mcp_source.get("mcpServerParameters", {}) if isinstance(mcp_source, dict) else {}
+    tools = mcp_parameters.get("tools", []) if isinstance(mcp_parameters, dict) else []
+    mcp_source_matches = (
+        isinstance(mcp_source, dict)
+        and mcp_source.get("kind") == "mcpServer"
+        and mcp_parameters.get("serverURL") == config.get("mcp.server_url")
+        and any(isinstance(tool, dict) and tool.get("name") == config.get("mcp.tool_name") for tool in tools)
+    )
+    checks.append(
+        _check(
+            "mcp-source-contract",
+            "pass" if mcp_source_matches else "fail",
+            "Preview MCP Server KS references the configured HTTPS server and allowed tool."
+            if mcp_source_matches
+            else "MCP Server KS does not match the pinned preview contract.",
+        )
+    )
+
+    knowledge_base = objects.get("combined-knowledge-base")
+    knowledge_source_names = (
+        {
+            str(item.get("name"))
+            for item in knowledge_base.get("knowledgeSources", [])
+            if isinstance(item, dict) and item.get("name")
+        }
+        if isinstance(knowledge_base, dict)
+        else set()
+    )
+    models = knowledge_base.get("models", []) if isinstance(knowledge_base, dict) else []
+    model_parameters = (
+        models[0].get("azureOpenAIParameters", {})
+        if models and isinstance(models[0], dict)
+        else {}
+    )
+    knowledge_base_matches = (
+        knowledge_source_names
+        == {
+            str(config.get("search.index_knowledge_source_name")),
+            str(config.get("search.mcp_knowledge_source_name")),
+        }
+        and knowledge_base.get("outputMode") == "answerSynthesis"
+        and knowledge_base.get("retrievalReasoningEffort") == {"kind": "low"}
+        and model_parameters.get("resourceUri") == config.get("openai.endpoint")
+        and model_parameters.get("deploymentId") == config.get("openai.deployment_name")
+        and model_parameters.get("modelName") == config.get("openai.model_name")
+    ) if isinstance(knowledge_base, dict) else False
+    checks.append(
+        _check(
+            "combined-knowledge-base-contract",
+            "pass" if knowledge_base_matches else "fail",
+            "Preview Knowledge Base references both sources and the reused Azure OpenAI deployment."
+            if knowledge_base_matches
+            else "Combined Knowledge Base does not match the pinned preview source and model contract.",
+        )
+    )
+
+    effective_index_query = query or "What information is available in the existing search index?"
+    effective_mcp_query = mcp_query or "What must be configured for an Azure AI Search MCP Server knowledge source?"
+    effective_combined_query = combined_query or (
+        "Use the existing index for domain evidence and Microsoft Learn for guidance on validating Knowledge Base retrieval."
+    )
+    payloads = build_mcp_search_index_payloads(
+        config,
+        index_query=effective_index_query,
+        mcp_query=effective_mcp_query,
+        combined_query=effective_combined_query,
+    )
+    kb_path = f"{search_object_path('knowledgebases', str(config.get('search.combined_knowledge_base_name')))}/retrieve"
+
+    retrieve_results: dict[str, tuple[int, Any]] = {}
+    for label in ("searchIndex", "mcp"):
+        try:
+            retrieve_results[label] = search_index_request(
+                config,
+                token,
+                method="POST",
+                path=kb_path,
+                api_version=preview,
+                body=payloads["retrieve"][label],
+                attempts=2,
+            )
+        except Exception:
+            retrieve_results[label] = (0, {})
+
+    index_code, index_payload = retrieve_results["searchIndex"]
+    index_ok = index_code == 200 and _response_has_evidence(index_payload, "searchIndex")
+    checks.append(
+        _check(
+            "search-index-retrieve",
+            "pass" if index_ok else "fail",
+            "Independent preview retrieve returned searchIndex activity, references, or sourceData evidence."
+            if index_ok
+            else _mcp_search_index_retrieve_failure(index_code, "Search Index"),
+        )
+    )
+    terms = expected_terms or []
+    index_grounding_ok = True
+    if terms:
+        source_data = reference_source_data_text(index_payload, "searchIndex").casefold()
+        matched = sum(1 for term in terms if term.casefold() in source_data)
+        index_grounding_ok = matched == len(terms)
+        checks.append(
+            _check(
+                "grounding-content",
+                "pass" if index_grounding_ok else "fail",
+                f"Search Index reference sourceData matched {matched}/{len(terms)} expected term(s).",
+                expectedTermCount=len(terms),
+                matchedExpectedTermCount=matched,
+            )
+        )
+
+    mcp_code, mcp_payload = retrieve_results["mcp"]
+    mcp_ok = mcp_code == 200 and _response_has_evidence(mcp_payload, "mcpServer")
+    checks.append(
+        _check(
+            "mcp-retrieve",
+            "pass" if mcp_ok else "fail",
+            "Independent preview retrieve returned mcpServer activity, references, or sourceData evidence."
+            if mcp_ok
+            else _mcp_search_index_retrieve_failure(mcp_code, "MCP Server"),
+        )
+    )
+
+    independent_sources_passed = index_ok and index_grounding_ok and mcp_ok
+    combined_code = 0
+    combined_payload: Any = {}
+    if independent_sources_passed:
+        try:
+            combined_code, combined_payload = search_index_request(
+                config,
+                token,
+                method="POST",
+                path=kb_path,
+                api_version=preview,
+                body=payloads["retrieve"]["combined"],
+                attempts=2,
+            )
+        except Exception:
+            combined_code, combined_payload = 0, {}
+    source_types = (
+        [
+            item
+            for item in _evidence_types(combined_payload)
+            if item in {"searchIndex", "mcpServer"}
+        ]
+        if independent_sources_passed
+        else []
+    )
+    combined_ok = independent_sources_passed and combined_code == 200 and bool(source_types)
+    checks.append(
+        _check(
+            "combined-retrieve",
+            "pass" if combined_ok else "fail",
+            f"Combined routing evidence selected: {', '.join(source_types)}."
+            if combined_ok
+            else "Combined retrieve was not attempted because independent source proof failed."
+            if not independent_sources_passed
+            else _mcp_search_index_retrieve_failure(combined_code, "Combined"),
+            sourceTypes=source_types,
+        )
+    )
+
+    status = "fail" if any(check["status"] == "fail" for check in checks) else "pass"
+    report = envelope(
+        "verify",
+        status,
+        profile=config.profile,
+        environment=config.environment,
+        checks=checks,
+        contracts=_mcp_search_index_contracts(config),
+        nextActions=[f"Run ./liveks down --env {config.environment} when finished"],
+    )
+    report_dir = ROOT / "deployments" / config.environment
+    report_dir.mkdir(parents=True, exist_ok=True)
+    report_path = report_dir / "verify-report.json"
+    report_path.write_text(json.dumps(report, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+    report["artifacts"] = [_display_path(report_path)]
+    return report
+
+
 def verify_report(
     config: ResolvedConfig,
     *,
     quiet: bool = False,
     query: str | None = None,
     expected_terms: list[str] | None = None,
+    mcp_query: str | None = None,
+    combined_query: str | None = None,
 ) -> dict[str, Any]:
+    if any(not str(term).strip() for term in expected_terms or []):
+        return envelope(
+            "verify",
+            "fail",
+            profile=config.profile,
+            environment=config.environment,
+            checks=[_check("runtime-input", "fail", "Expected terms must not be empty.")],
+        )
     if config.profile == "offline":
         result = subprocess.run([sys.executable, "tools/try_offline.py", "--format", "json"], cwd=ROOT, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, check=False)
         return envelope("verify", "pass" if result.returncode == 0 else "fail", profile=config.profile, environment=config.environment, checks=[_check("offline-replay", "pass" if result.returncode == 0 else "fail", "combined trace inspected" if result.returncode == 0 else result.stdout)])
@@ -1343,6 +2635,15 @@ def verify_report(
             quiet=quiet,
             query=query,
             expected_terms=expected_terms,
+        )
+    if config.profile == "mcp-search-index":
+        return _mcp_search_index_verify_report(
+            config,
+            quiet=quiet,
+            query=query,
+            expected_terms=expected_terms,
+            mcp_query=mcp_query,
+            combined_query=combined_query,
         )
 
     runner = CommandRunner(root=ROOT, env=config.child_env(), quiet=quiet)
@@ -1522,7 +2823,7 @@ def _search_index_down_report(config: ResolvedConfig, *, yes: bool, quiet: bool)
                 checks=[_check("confirmation", "fail", "Cleanup cancelled")],
             )
 
-    managed, lock_matches, lock_message = _search_index_lock_state(config)
+    managed, managed_etags, lock_matches, lock_message = _search_index_lock_state(config)
     if not lock_matches or lock_message != "matching environment lock":
         return envelope(
             "down",
@@ -1555,17 +2856,58 @@ def _search_index_down_report(config: ResolvedConfig, *, yes: bool, quiet: bool)
         )
 
     remaining = dict(managed)
+    remaining_etags = dict(managed_etags)
+    expected_payloads = build_search_index_payloads(
+        config,
+        query="cleanup-reconciliation",
+    )
+    expected_objects = {
+        "knowledgeBase": expected_payloads["knowledgeBase"],
+        "knowledgeSource": expected_payloads["knowledgeSource"],
+    }
     for label, kind in (("knowledgeBase", "knowledgebases"), ("knowledgeSource", "knowledgesources")):
         name = managed.get(label)
         if not name:
             checks.append(_check(f"delete-{label}", "pass", "No generated object is recorded."))
             continue
+        etag = managed_etags.get(label, "")
+        if not etag:
+            try:
+                reconcile_code, reconciled_object = search_index_request(
+                    config,
+                    token,
+                    method="GET",
+                    path=search_object_path(kind, name),
+                    timeout=30,
+                )
+            except Exception:
+                reconcile_code, reconciled_object = 0, {}
+            if reconcile_code == 404:
+                checks.append(_check(f"delete-{label}", "pass", "Pending generated object is already absent."))
+                remaining.pop(label, None)
+                remaining_etags.pop(label, None)
+                continue
+            etag = _search_object_etag(reconciled_object)
+            if (
+                reconcile_code != 200
+                or not etag
+                or not _payload_is_subset(expected_objects[label], reconciled_object)
+            ):
+                checks.append(
+                    _check(
+                        f"delete-{label}",
+                        "fail",
+                        "Pending object could not be reconciled to the expected generated definition and was preserved.",
+                    )
+                )
+                continue
         try:
             status_code, _ = search_index_request(
                 config,
                 token,
                 method="DELETE",
                 path=search_object_path(kind, name),
+                headers={"If-Match": etag},
                 timeout=60,
             )
         except Exception:
@@ -1582,6 +2924,7 @@ def _search_index_down_report(config: ResolvedConfig, *, yes: bool, quiet: bool)
         )
         if deleted:
             remaining.pop(label, None)
+            remaining_etags.pop(label, None)
 
     try:
         index_code, _ = search_index_request(
@@ -1607,7 +2950,11 @@ def _search_index_down_report(config: ResolvedConfig, *, yes: bool, quiet: bool)
     lock = write_lock(
         config,
         status="cleaned" if status == "pass" else "cleanup-incomplete",
-        extra={"checks": checks, "managedObjects": remaining},
+        extra={
+            "checks": checks,
+            "managedObjects": remaining,
+            "managedObjectEtags": remaining_etags,
+        },
     )
     return envelope(
         "down",
@@ -1621,10 +2968,237 @@ def _search_index_down_report(config: ResolvedConfig, *, yes: bool, quiet: bool)
     )
 
 
-def down_report(config: ResolvedConfig, *, yes: bool, quiet: bool = False) -> dict[str, Any]:
+def _mcp_search_index_down_report(config: ResolvedConfig, *, yes: bool, quiet: bool) -> dict[str, Any]:
+    if not yes:
+        expected = f"delete {config.environment}"
+        answer = input(f"Type '{expected}' to delete generated resources: ").strip()
+        if answer != expected:
+            return envelope(
+                "down",
+                "confirmation-required",
+                profile=config.profile,
+                environment=config.environment,
+                checks=[_check("confirmation", "fail", "Cleanup cancelled")],
+            )
+
+    managed, managed_etags, lock_matches, lock_message = _mcp_search_index_lock_state(config)
+    if not lock_matches or lock_message != "matching environment lock":
+        return envelope(
+            "down",
+            "cleanup-incomplete",
+            profile=config.profile,
+            environment=config.environment,
+            checks=[
+                _check(
+                    "ownership",
+                    "warn",
+                    "Generated object ownership cannot be proven; all Search, OpenAI, Knowledge Base, and Knowledge Source objects were preserved.",
+                )
+            ],
+            ownership=config.ownership(),
+            nextActions=["Restore the matching environment lock before cleanup."],
+        )
+
+    checks = [_check("ownership", "pass", "Matching configuration and lock prove all generated object names.")]
+    runner = CommandRunner(root=ROOT, env=config.child_env(), quiet=quiet)
+    try:
+        token = acquire_search_bearer_token(runner)
+    except Exception:
+        return envelope(
+            "down",
+            "cleanup-incomplete",
+            profile=config.profile,
+            environment=config.environment,
+            checks=checks + [_check("search-auth", "fail", "Unable to acquire a transient Azure AI Search bearer token.")],
+            ownership=config.ownership(),
+        )
+
+    remaining = dict(managed)
+    remaining_etags = dict(managed_etags)
+    expected_payloads = build_mcp_search_index_payloads(
+        config,
+        index_query="cleanup-reconciliation",
+        mcp_query="cleanup-reconciliation",
+        combined_query="cleanup-reconciliation",
+    )
+    expected_objects = {
+        "combinedKnowledgeBase": expected_payloads["knowledgeBase"],
+        "mcpKnowledgeSource": expected_payloads["mcpKnowledgeSource"],
+        "searchIndexKnowledgeSource": expected_payloads["searchIndexKnowledgeSource"],
+    }
+    delete_contracts = [
+        (
+            "combinedKnowledgeBase",
+            "knowledgebases",
+            str(config.get("search.preview_api_version")),
+        ),
+        (
+            "mcpKnowledgeSource",
+            "knowledgesources",
+            str(config.get("search.preview_api_version")),
+        ),
+        (
+            "searchIndexKnowledgeSource",
+            "knowledgesources",
+            str(config.get("search.index_api_version")),
+        ),
+    ]
+    for label, kind, api_version in delete_contracts:
+        name = managed.get(label)
+        if not name:
+            checks.append(_check(f"delete-{label}", "pass", "No generated object is recorded."))
+            continue
+        etag = managed_etags.get(label, "")
+        if not etag:
+            try:
+                reconcile_code, reconciled_object = search_index_request(
+                    config,
+                    token,
+                    method="GET",
+                    path=search_object_path(kind, name),
+                    api_version=api_version,
+                    timeout=30,
+                )
+            except Exception:
+                reconcile_code, reconciled_object = 0, {}
+            if reconcile_code == 404:
+                checks.append(_check(f"delete-{label}", "pass", "Pending generated object is already absent."))
+                remaining.pop(label, None)
+                remaining_etags.pop(label, None)
+                continue
+            etag = _search_object_etag(reconciled_object)
+            if (
+                reconcile_code != 200
+                or not etag
+                or not _payload_is_subset(expected_objects[label], reconciled_object)
+            ):
+                checks.append(
+                    _check(
+                        f"delete-{label}",
+                        "fail",
+                        "Pending object could not be reconciled to the expected generated definition and was preserved.",
+                    )
+                )
+                continue
+        try:
+            status_code, _ = search_index_request(
+                config,
+                token,
+                method="DELETE",
+                path=search_object_path(kind, name),
+                api_version=api_version,
+                headers={"If-Match": etag},
+                timeout=60,
+            )
+        except Exception:
+            status_code = 0
+        deleted = status_code in {200, 202, 204, 404}
+        checks.append(
+            _check(
+                f"delete-{label}",
+                "pass" if deleted else "fail",
+                f"Generated object is absent through {api_version}."
+                if deleted
+                else f"Generated object deletion failed through {api_version} (HTTP {status_code or 'unavailable'}).",
+            )
+        )
+        if deleted:
+            remaining.pop(label, None)
+            remaining_etags.pop(label, None)
+
+    try:
+        index_code, _ = search_index_request(
+            config,
+            token,
+            method="GET",
+            path=search_object_path("indexes", str(config.get("search.index_name"))),
+            api_version=str(config.get("search.index_api_version")),
+            timeout=30,
+        )
+    except Exception:
+        index_code = 0
+    checks.append(
+        _check(
+            "search-index-preserved",
+            "pass" if index_code == 200 else "fail",
+            "The existing Search index remains readable after cleanup."
+            if index_code == 200
+            else f"The existing Search index could not be confirmed after cleanup (HTTP {index_code or 'unavailable'}).",
+        )
+    )
+    checks.append(
+        _check(
+            "azure-openai-preserved",
+            "pass",
+            "Cleanup issues no delete request for the reused Azure OpenAI deployment.",
+        )
+    )
+
+    status = "pass" if not remaining and all(check["status"] != "fail" for check in checks) else "cleanup-incomplete"
+    lock = write_lock(
+        config,
+        status="cleaned" if status == "pass" else "cleanup-incomplete",
+        extra={
+            "checks": checks,
+            "managedObjects": remaining,
+            "managedObjectEtags": remaining_etags,
+        },
+    )
+    return envelope(
+        "down",
+        status,
+        profile=config.profile,
+        environment=config.environment,
+        checks=checks,
+        ownership=config.ownership(),
+        cleanupOrder=_mcp_search_index_cleanup_order(config),
+        artifacts=[_display_path(lock)],
+        nextActions=[] if status == "pass" else ["Retry cleanup after resolving failed generated-object deletion."],
+    )
+
+
+def down_report(
+    config: ResolvedConfig,
+    *,
+    yes: bool,
+    quiet: bool = False,
+    operation_locked: bool = False,
+) -> dict[str, Any]:
+    if not operation_locked:
+        try:
+            with EnvironmentOperationLock(_operation_lock_path(config)):
+                return down_report(
+                    config,
+                    yes=yes,
+                    quiet=quiet,
+                    operation_locked=True,
+                )
+        except RuntimeError as error:
+            return envelope(
+                "down",
+                "cleanup-incomplete",
+                profile=config.profile,
+                environment=config.environment,
+                checks=[_check("operation-lock", "fail", str(error))],
+            )
     if config.profile == "search-index":
         return _search_index_down_report(config, yes=yes, quiet=quiet)
+    if config.profile == "mcp-search-index":
+        return _mcp_search_index_down_report(config, yes=yes, quiet=quiet)
+    cleanup_lock, cleanup_lock_error = _generic_cleanup_lock(config)
+    if cleanup_lock_error:
+        return envelope(
+            "down",
+            "cleanup-incomplete",
+            profile=config.profile,
+            environment=config.environment,
+            checks=[_check("environment-lock", "fail", cleanup_lock_error)],
+            ownership=config.ownership(),
+            nextActions=["Restore the matching active environment lock before cleanup."],
+        )
     checks: list[dict[str, Any]] = []
+    if cleanup_lock is not None:
+        checks.append(_check("environment-lock", "pass", "Matching environment lock authorizes cleanup."))
     if not yes:
         expected = f"delete {config.environment}"
         answer = input(f"Type '{expected}' to delete generated resources: ").strip()
@@ -1836,7 +3410,14 @@ def down_report(config: ResolvedConfig, *, yes: bool, quiet: bool = False) -> di
     failed = any(check["status"] == "fail" for check in checks)
     warned = any(check["status"] == "warn" for check in checks)
     status = "fail" if failed else "partial" if warned else "pass"
-    write_lock(config, status="destroyed" if status == "pass" else "cleanup-incomplete", extra={"checks": checks})
+    write_lock(
+        config,
+        status="destroyed" if status == "pass" else "cleanup-incomplete",
+        extra={
+            "checks": checks,
+            **_preserved_cleanup_metadata(cleanup_lock),
+        },
+    )
     return envelope("down", status, profile=config.profile, environment=config.environment, checks=checks, nextActions=[] if status == "pass" else ["Inspect the cleanup report and remove only generated residual resources"])
 
 
@@ -1891,7 +3472,11 @@ def build_parser() -> argparse.ArgumentParser:
     try_parser.add_argument("--evidence-out", type=Path)
 
     init_parser = subparsers.add_parser("init", help="Create an ignored YAML environment ledger.")
-    init_parser.add_argument("--profile", choices=["search-index", "mcp-only", "byo-fabric", "full"], required=True)
+    init_parser.add_argument(
+        "--profile",
+        choices=[profile for profile in available_profiles() if profile != "offline"],
+        required=True,
+    )
     init_parser.add_argument("--env", dest="environment", required=True)
     init_parser.add_argument("--config", type=Path)
     init_parser.add_argument("--from-env", type=Path)
@@ -1908,11 +3493,15 @@ def build_parser() -> argparse.ArgumentParser:
     up_parser.add_argument("--skip-app-build", action="store_true", help=argparse.SUPPRESS)
     up_parser.add_argument("--skip-dry-run", action="store_true", help=argparse.SUPPRESS)
     up_parser.add_argument("--postprovision-only", action="store_true", help=argparse.SUPPRESS)
-    up_parser.add_argument("--query", help="Runtime acceptance query for the search-index profile.")
-    up_parser.add_argument("--expect-term", action="append", default=[], help="Expected non-sensitive term for search-index content acceptance; repeatable.")
+    up_parser.add_argument("--query", help="Runtime acceptance query for a direct Search Index source.")
+    up_parser.add_argument("--mcp-query", help="MCP-only retrieve query for the mcp-search-index profile.")
+    up_parser.add_argument("--combined-query", help="Combined retrieve query for the mcp-search-index profile.")
+    up_parser.add_argument("--expect-term", action="append", default=[], help="Expected non-sensitive term in Search Index reference sourceData; repeatable.")
     verify_parser = subparsers.add_parser("verify", help="Verify deployed resources and retrieve evidence.")
     _common_config_args(verify_parser, require_env=False)
     verify_parser.add_argument("--query")
+    verify_parser.add_argument("--mcp-query")
+    verify_parser.add_argument("--combined-query")
     verify_parser.add_argument("--expect-term", action="append", default=[])
     mcp_parser = subparsers.add_parser("mcp", help="Call a deployed Knowledge Base through its MCP endpoint.")
     _common_config_args(mcp_parser, require_env=True)
@@ -1931,8 +3520,10 @@ def build_parser() -> argparse.ArgumentParser:
     e2e_parser.add_argument("--keep-resources", action="store_true")
     e2e_parser.add_argument("--yes", action="store_true")
     e2e_parser.add_argument("--accept-fabric-capacity", action="store_true")
-    e2e_parser.add_argument("--query", help="Runtime acceptance query for the search-index profile.")
-    e2e_parser.add_argument("--expect-term", action="append", default=[], help="Expected non-sensitive term for search-index content acceptance; repeatable.")
+    e2e_parser.add_argument("--query", help="Runtime acceptance query for a direct Search Index source.")
+    e2e_parser.add_argument("--mcp-query", help="MCP-only retrieve query for the mcp-search-index profile.")
+    e2e_parser.add_argument("--combined-query", help="Combined retrieve query for the mcp-search-index profile.")
+    e2e_parser.add_argument("--expect-term", action="append", default=[], help="Expected non-sensitive term in Search Index reference sourceData; repeatable.")
     return parser
 
 
@@ -1947,7 +3538,7 @@ def _init_from_legacy(path: Path, profile: str, environment: str, destination: P
             continue
         if field in {"deployment.mode", "fabric.mode"}:
             continue
-        if profile == "mcp-only" and field.startswith("fabric."):
+        if profile in {"mcp-only", "mcp-search-index"} and field.startswith("fabric."):
             continue
         if profile == "full" and field in {"fabric.workspace_id", "fabric.ontology_id"}:
             continue
@@ -2023,6 +3614,8 @@ def main(argv: list[str] | None = None) -> int:
                 postprovision_only=args.postprovision_only,
                 query=args.query,
                 expected_terms=args.expect_term,
+                mcp_query=args.mcp_query,
+                combined_query=args.combined_query,
             )
         elif args.command == "verify":
             report = verify_report(
@@ -2030,6 +3623,8 @@ def main(argv: list[str] | None = None) -> int:
                 quiet=args.format == "json",
                 query=args.query,
                 expected_terms=args.expect_term,
+                mcp_query=args.mcp_query,
+                combined_query=args.combined_query,
             )
         elif args.command == "mcp":
             report = mcp_report(
@@ -2046,17 +3641,65 @@ def main(argv: list[str] | None = None) -> int:
         elif args.command == "e2e":
             if args.cleanup == args.keep_resources:
                 raise ConfigError("Choose exactly one of --cleanup or --keep-resources.")
-            up = up_report(
-                config,
-                yes=args.yes,
-                accept_fabric_capacity=args.accept_fabric_capacity,
-                quiet=args.format == "json",
-                query=args.query,
-                expected_terms=args.expect_term,
-            )
             cleanup: dict[str, Any] | None = None
-            if args.cleanup:
-                cleanup = down_report(config, yes=True, quiet=args.format == "json")
+            try:
+                with EnvironmentOperationLock(_operation_lock_path(config)):
+                    up = up_report(
+                        config,
+                        yes=args.yes,
+                        accept_fabric_capacity=args.accept_fabric_capacity,
+                        quiet=args.format == "json",
+                        query=args.query,
+                        expected_terms=args.expect_term,
+                        mcp_query=args.mcp_query,
+                        combined_query=args.combined_query,
+                        operation_locked=True,
+                    )
+                    if args.cleanup:
+                        blocked_before_mutation = any(
+                            check.get("status") == "fail"
+                            and check.get("name")
+                            in {
+                                "environment-lock",
+                                "operation-lock",
+                                "runtime-input",
+                                "confirmation",
+                            }
+                            for check in up.get("checks", [])
+                            if isinstance(check, dict)
+                        )
+                        cleanup_authorized = up.get("status") == "pass" or (
+                            not blocked_before_mutation and _failed_up_started_mutation(config)
+                        )
+                        if cleanup_authorized:
+                            cleanup = down_report(
+                                config,
+                                yes=True,
+                                quiet=args.format == "json",
+                                operation_locked=True,
+                            )
+                        else:
+                            cleanup = envelope(
+                                "down",
+                                "skipped",
+                                profile=config.profile,
+                                environment=config.environment,
+                                checks=[
+                                    _check(
+                                        "cleanup-authorization",
+                                        "warn",
+                                        "Cleanup was skipped because this E2E run did not start a mutation.",
+                                    )
+                                ],
+                            )
+            except RuntimeError as error:
+                up = envelope(
+                    "up",
+                    "fail",
+                    profile=config.profile,
+                    environment=config.environment,
+                    checks=[_check("operation-lock", "fail", str(error))],
+                )
             status = "pass" if up["status"] == "pass" and (cleanup is None or cleanup["status"] == "pass") else "fail"
             report = envelope("e2e", status, profile=config.profile, environment=config.environment, phases={"up": up, "down": cleanup}, artifacts=list(dict.fromkeys(up.get("artifacts", []) + (cleanup or {}).get("artifacts", []))))
             write_e2e_reports(config, report, cleanup_requested=args.cleanup)

@@ -31,6 +31,7 @@ body:
       label: Deployment modes involved
       options:
         - label: search-index (stable existing-index path)
+        - label: mcp-search-index (GA Search Index KS + preview MCP/KB)
         - label: mcp-only
         - label: byo-fabric
         - label: full

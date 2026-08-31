@@ -104,7 +104,7 @@ Common failure causes:
 - GraphModel is not loaded or not refreshable yet,
 - delegated source authorization token is missing or expired.
 
-The recommended mitigation is simple: start with `mcp-only`, move to `byo-fabric` when Fabric IDs are known, and use `full` only when quota and auth expectations are clear.
+The recommended mitigation is simple: start with stable `search-index` when an agentic-ready index exists, add `mcp-search-index` only when the reused Azure OpenAI grant is ready, use `mcp-only` when infrastructure must be provisioned, move to `byo-fabric` when Fabric IDs are known, and use `full` only when quota and auth expectations are clear.
 
 ## App And Token Caveats
 

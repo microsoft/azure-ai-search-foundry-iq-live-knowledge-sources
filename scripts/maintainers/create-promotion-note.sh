@@ -210,7 +210,7 @@ I have a private-review candidate for the Azure AI Search Foundry IQ Live Knowle
 Scope:
 - One stable existing-index path: Search Index KS
 - Two public preview Knowledge Source paths: MCP Server KS and Fabric Ontology KS
-- Three preview deployment modes: mcp-only, byo-fabric, full
+- Preview deployment modes plus the mixed-contract mcp-search-index data-plane profile
 - Demo app, notebooks, REST samples, synthetic Airline Ops data, offline replay, validation workflow, and E2E evidence workflow
 
 Current evidence:
@@ -224,7 +224,7 @@ Reviewer asks:
 - Azure AI Search Knowledge Source terminology and REST shape
 - MCP Server KS request/response shape and trace wording
 - Fabric Ontology KS setup and delegated source authorization wording
-- Profile clarity: stable search-index; preview mcp-only, byo-fabric, full
+- Profile clarity: stable search-index; mixed-contract mcp-search-index; preview mcp-only, byo-fabric, full
 - Public-preview caveats and safe claims
 - Security posture for generated outputs and tokens
 

@@ -70,4 +70,4 @@ jobs:
           .\liveks.ps1 bootstrap
           .\liveks.ps1 profiles --format json
           .\liveks.ps1 doctor --profile offline --format json
-          .\.liveks\venv\Scripts\python.exe -m unittest tests.test_liveks_config tests.test_mcp_invocation
+          .\.liveks\venv\Scripts\python.exe -m unittest tests.test_liveks_config tests.test_mcp_invocation tests.test_mcp_search_index_profile
