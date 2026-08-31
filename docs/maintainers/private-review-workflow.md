@@ -158,15 +158,16 @@ Hi team,
 I have a private-review candidate for the Azure AI Search Foundry IQ Live Knowledge Sources sample accelerator.
 
 Scope:
+- One stable existing-index path: Search Index KS
 - Two public preview Knowledge Source paths: MCP Server KS and Fabric Ontology KS
-- Three deployment modes: mcp-only, byo-fabric, full
+- Three preview deployment modes: mcp-only, byo-fabric, full
 - Demo app, notebooks, REST samples, synthetic Airline Ops data, offline replay, and validation workflow
 
 Current evidence:
 - Commit: <commit>
 - Local validation: PASS
 - GitHub Actions Validate: PASS
-- Deployment mode reviewed: <mcp-only | byo-fabric | full>
+- Deployment mode reviewed: <search-index | mcp-only | byo-fabric | full>
 - E2E summary: <PASS / SKIP / not run, with reason>
 
 Reviewer asks:

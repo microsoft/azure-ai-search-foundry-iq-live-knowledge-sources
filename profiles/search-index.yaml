@@ -1,0 +1,39 @@
+schema_version: 2
+profile: search-index
+kind: deployment
+purpose: Wrap an existing Azure AI Search index with the generally available Search Index Knowledge Source contract.
+default: false
+required_tools: [python3, az]
+estimated_duration: 5-10 minutes
+cost: Uses an existing Azure AI Search service and index; retrieval can consume that service's existing billable capacity.
+defaults:
+  deployment:
+    mode: search-index
+  search:
+    api_version: '2026-04-01'
+    endpoint: ''
+    index_name: ''
+    semantic_configuration_name: ''
+    search_fields: []
+    source_data_fields: []
+    index_knowledge_source_name: ''
+    index_knowledge_base_name: ''
+  fabric:
+    mode: skip
+  runtime:
+    telemetry_disabled: true
+    run_live_calls: false
+required:
+  - search.endpoint
+  - search.index_name
+  - search.semantic_configuration_name
+resources:
+  - Existing Azure AI Search service (reused)
+  - Existing Azure AI Search index (reused)
+  - Search Index Knowledge Source (generated)
+  - Minimal extractive Knowledge Base (generated)
+success_criteria:
+  - The existing index and semantic configuration pass the read-only doctor checks.
+  - Stable retrieve returns searchIndex activity or reference evidence.
+  - Cleanup deletes only the generated Knowledge Base and Knowledge Source and proves the existing index remains.
+cleanup: Delete the generated Knowledge Base and Knowledge Source only; preserve the existing Search service and index.

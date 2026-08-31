@@ -29,16 +29,32 @@ PowerShell equivalents replace `./liveks` with `./liveks.ps1`.
 | `try` | None | Print a checked-in answer and evidence trace. |
 | `init` | None | Write an ignored YAML environment ledger. |
 | `doctor` | None | Check tools, versions, sign-in, providers, and required fields. |
-| `plan` | None | Run doctor, build Bicep, dry-run payloads, build the app, and write a redacted lock. |
-| `up` | Yes, after confirmation | Sync the selected `azd` environment, preview ARM changes, provision, deploy, and verify. |
-| `verify` | Read/call only | Check the resource group, app API, and source evidence. |
+| `plan` | None | Validate the selected profile's payload and ownership contract; preview profiles also build Bicep and the app. |
+| `up` | Yes, after confirmation | Create only the selected profile's owned objects, then verify. |
+| `verify` | Read/call only | Check deployed or reused objects and source evidence. |
 | `mcp` | Read/call only | Discover and call `knowledge_base_retrieve` on the deployed Knowledge Base MCP endpoint. |
 | `down` | Yes, after confirmation | Delete only assets owned by the environment. |
 | `e2e` | Yes | Run `up` and either clean up or explicitly retain resources. |
 
 `doctor` can issue read-only Azure CLI calls for live profiles. In `byo-fabric`, it also acquires a transient Fabric API token and confirms that the configured workspace and ontology are readable. The token is not serialized. `plan` writes local build and lock artifacts under ignored directories, but it does not run `azd env set`, `azd up`, or Fabric provisioning.
 
+For `search-index`, `doctor` reads the existing index definition with an Azure AI Search bearer token. `plan` checks stable payloads and generated-name collisions without Bicep, `azd`, npm, `PUT`, or `DELETE`.
+
 ## Standard Run
+
+Existing Search index, generally available lane:
+
+```bash
+./liveks init --profile search-index --env liveks-index
+# Fill the existing Search values in .liveks/liveks-index.yaml.
+./liveks doctor --env liveks-index
+./liveks plan --env liveks-index
+./liveks up --env liveks-index --query "<question>" --expect-term "<known term>"
+./liveks verify --env liveks-index --query "<question>" --expect-term "<known term>"
+./liveks down --env liveks-index
+```
+
+Preview MCP Server lane:
 
 ```bash
 ./liveks init --profile mcp-only --env liveks-mcp
@@ -58,7 +74,7 @@ Use JSON output when cleanup evidence will be reviewed:
 ./liveks down --env liveks-full --yes --format json
 ```
 
-Every live profile must report `resource-group-absent=pass`. A `full` run that created capacity must additionally report `fabric-capacity-absent=pass`. It must also report `fabric-capacity-resource-group-absent=pass` when the same run created that dedicated group, or `fabric-capacity-resource-group-preserved=pass` when the group predated the run. A missing summary or unresolved ownership produces partial cleanup instead of a deletion claim.
+Every preview deployment profile must report `resource-group-absent=pass`. The data-plane-only `search-index` profile instead requires `search-index-preserved=pass`. A `full` run that created capacity must additionally report `fabric-capacity-absent=pass`. It must also report `fabric-capacity-resource-group-absent=pass` when the same run created that dedicated group, or `fabric-capacity-resource-group-preserved=pass` when the group predated the run. A missing summary or unresolved ownership produces partial cleanup instead of a deletion claim.
 
 For `byo-fabric` and `full`, `mcp` attaches delegated source authorization by default. It records text-block and expected-term counts but never persists the endpoint, query, response content, key, or token. A call without `--expect-term` can pass protocol checks but reports `grounding-content=warn`; use a known non-sensitive fact for source-content acceptance. See [Call the Knowledge Base Through MCP](22-knowledge-base-mcp.md).
 

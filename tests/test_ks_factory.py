@@ -7,13 +7,46 @@ REPO_ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(REPO_ROOT / "src"))
 
 from ks_factory import (  # noqa: E402
+    create_extracting_knowledge_base,
     create_fabric_ontology_knowledge_source,
     create_knowledge_base,
     create_mcp_server_knowledge_source,
+    create_search_index_knowledge_source,
 )
 
 
 class KnowledgeSourceFactoryTests(unittest.TestCase):
+    def test_search_index_knowledge_source_payload_shape(self):
+        payload = create_search_index_knowledge_source(
+            name="existing-docs-ks",
+            search_index_name="existing-docs",
+            semantic_configuration_name="default-semantic",
+            search_fields=["content"],
+            source_data_fields=["id", "title"],
+        )
+
+        self.assertEqual(payload["kind"], "searchIndex")
+        self.assertEqual(
+            payload["searchIndexParameters"],
+            {
+                "searchIndexName": "existing-docs",
+                "semanticConfigurationName": "default-semantic",
+                "searchFields": [{"name": "content"}],
+                "sourceDataFields": [{"name": "id"}, {"name": "title"}],
+            },
+        )
+
+    def test_extracting_knowledge_base_omits_preview_properties(self):
+        payload = create_extracting_knowledge_base(
+            name="existing-docs-kb",
+            knowledge_source_names=["existing-docs-ks"],
+        )
+
+        self.assertEqual(payload["knowledgeSources"], [{"name": "existing-docs-ks"}])
+        self.assertNotIn("models", payload)
+        self.assertNotIn("outputMode", payload)
+        self.assertNotIn("retrievalReasoningEffort", payload)
+
     def test_mcp_server_knowledge_source_payload_shape(self):
         payload = create_mcp_server_knowledge_source(
             name="microsoft-learn-mcp-ks",

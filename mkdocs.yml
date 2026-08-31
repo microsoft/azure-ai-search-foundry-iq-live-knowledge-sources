@@ -64,6 +64,7 @@ nav:
       - Offline Replay: 09-offline-replay.md
   - Live Paths:
       - Architecture: 01-architecture.md
+      - Stable Search Index KS: 23-search-index-ks.md
       - MCP Server KS: 03-mcp-server-ks.md
       - Fabric Ontology KS: 04-fabric-ontology-ks.md
       - Fabric Prerequisites: fabric-ontology-prerequisites.md

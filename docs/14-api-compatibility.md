@@ -1,28 +1,28 @@
 # API Compatibility
 
-The live profiles in this accelerator are intentionally pinned to Azure AI Search `2026-05-01-preview`. They use two preview-only Knowledge Source kinds and the full retrieval behavior. Changing only `search.api_version` does not convert those payloads into a stable API workload.
+LiveKS has two deliberately separate API lanes. `search-index` uses generally available Azure AI Search `2026-04-01` with an existing index and minimal extractive retrieval. `mcp-only`, `byo-fabric`, and `full` remain pinned to `2026-05-01-preview` because they use preview-only source kinds and full retrieval behavior.
 
-LiveKS therefore rejects any other API version during configuration resolution, before `plan` or provisioning. A future stable lane needs a separate profile and payload contract; it must not silently weaken the current source evidence.
+Changing only `search.api_version` never converts one lane into the other. Configuration resolution rejects a profile/version mismatch before `plan` or any data-plane write.
 
 ## Stable And Preview Matrix
 
 | Contract | `2026-04-01` stable | `2026-05-01-preview` | This accelerator |
 | --- | --- | --- | --- |
-| Release status | Generally available data-plane API. | Preview API; behavior and schema can change. | Pinned preview lane only. |
-| Knowledge Source kinds | Search index, Azure Blob, indexed OneLake, and Web. | Stable kinds plus preview kinds, including MCP Server and Fabric Ontology. | MCP Server and Fabric Ontology are first-class; the uploaded sample index is not yet wrapped as a Knowledge Source. |
-| Retrieve input | `intents`. | `intents` and `messages`. | Uses the preview `messages` contract. |
-| Retrieval behavior | Minimal, extractive retrieval. | Query planning, answer synthesis, and configurable reasoning effort. | Uses answer synthesis and `low` reasoning effort. |
+| Release status | Generally available data-plane API. | Preview API; behavior and schema can change. | Separate stable and preview profiles. |
+| Knowledge Source kinds | Search index, Azure Blob, indexed OneLake, and Web. | Stable kinds plus preview kinds, including MCP Server and Fabric Ontology. | `search-index` wraps a BYO index; other live profiles use MCP Server and optional Fabric Ontology. |
+| Retrieve input | `intents`. | `intents` and `messages`. | `search-index` uses `intents`; preview profiles use `messages`. |
+| Retrieval behavior | Minimal, extractive retrieval. | Query planning, answer synthesis, and configurable reasoning effort. | Stable lane is extractive; preview lane uses answer synthesis and `low` reasoning effort. |
 | MCP Server KS | Not accepted. | Supported in preview. | Required by `mcp-only`, `byo-fabric`, and `full`. |
 | Fabric Ontology KS | Not accepted. | Supported in preview. | Required by `byo-fabric` and `full`; intentionally absent from `mcp-only`. |
-| Search authentication | API key or Microsoft Entra bearer token. | API key or Microsoft Entra bearer token. | Sample default reads an admin key transiently; bearer with **Search Index Data Reader** is the managed-client path. |
+| Search authentication | API key or Microsoft Entra bearer token. | API key or Microsoft Entra bearer token. | `search-index` uses a transient bearer token; preview sample deployments read their generated admin key transiently. |
 | Source authorization | Depends on the selected generally available source. | Fabric calls additionally require delegated `x-ms-query-source-authorization`. | Fabric verification acquires and passes the raw delegated Search token transiently. |
-| Supported LiveKS profiles | None. | `mcp-only`, `byo-fabric`, and `full`. | Stable plus MCP/Fabric fails closed during YAML validation. |
+| Supported LiveKS profiles | `search-index`. | `mcp-only`, `byo-fabric`, and `full`. | Every profile/version pairing fails closed during YAML validation. |
 
 ## What The Pin Protects
 
-The repository's builders create `mcpServer` and `fabricOntology` payloads. Its Knowledge Bases request `answerSynthesis`, use configurable reasoning effort, and its retrieve requests expect the preview evidence envelope. Substituting `2026-04-01` would mix incompatible source kinds and retrieval behavior.
+The preview builders create `mcpServer` and `fabricOntology` payloads. Their Knowledge Bases request `answerSynthesis`, use configurable reasoning effort, and send `messages`. Substituting `2026-04-01` would mix incompatible source kinds and retrieval behavior.
 
-This fail-closed rule is narrower than claiming the stable API is unsupported by Azure AI Search. The stable API is valid for its generally available source kinds and minimal, extractive behavior; this repository simply does not implement that separate lane yet.
+The stable builder creates `searchIndex`, requires a semantic configuration, omits models and preview-only Knowledge Base properties, and sends `intents`. It also treats the Search service and index as reused assets. Substituting the preview API would silently change the lane's availability and evidence contract, so LiveKS rejects it.
 
 ## Upgrade Checklist
 
@@ -30,7 +30,7 @@ Before changing the pinned version:
 
 1. Compare the migration guide and REST schemas for every Knowledge Source and Knowledge Base payload.
 2. Confirm MCP Server and Fabric Ontology remain available in the target version.
-3. Re-run local builder tests, all three live profile rehearsals, source-specific retrieve checks, native MCP checks, and cleanup checks.
+3. Re-run local builder tests, the stable and preview live profile rehearsals, source-specific retrieve checks, native MCP checks where applicable, and cleanup checks.
 4. Update the profile defaults, schema enum, REST samples, notebooks, app API, badges, and this matrix in one change.
 5. Keep public PR validation offline; run cloud drift checks only in an approved protected environment.
 
@@ -41,3 +41,4 @@ Before changing the pinned version:
 - [Upgrade Azure AI Search REST API versions](https://learn.microsoft.com/azure/search/search-api-migration)
 - [Azure AI Search What's New](https://learn.microsoft.com/azure/search/whats-new)
 - [Knowledge Source overview](https://learn.microsoft.com/azure/search/agentic-knowledge-source-overview)
+- [Create a Search Index Knowledge Source](https://learn.microsoft.com/azure/search/agentic-knowledge-source-how-to-search-index)

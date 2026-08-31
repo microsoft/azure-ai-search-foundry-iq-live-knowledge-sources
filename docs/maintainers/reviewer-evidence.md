@@ -176,7 +176,7 @@ Use that summary as the source for private review notes. Keep the generated summ
 Review scope:
 - Repo/branch:
 - Commit:
-- Deployment mode reviewed: mcp-only | byo-fabric | full
+- Deployment mode reviewed: search-index | mcp-only | byo-fabric | full
 - Review intent: private review | workshop rehearsal | blog validation | official sample preparation
 
 Validation:
@@ -203,7 +203,7 @@ Known caveats:
 Reviewer asks:
 - Azure AI Search KS terminology and REST shape
 - Fabric Ontology KS setup and delegated source authorization wording
-- Deployment-mode clarity: mcp-only, byo-fabric, full
+- Profile clarity: stable search-index; preview mcp-only, byo-fabric, full
 - Public-preview caveats and safe claims
 - Security posture for generated outputs and tokens
 ```
@@ -216,6 +216,7 @@ Use these proof points to decide whether a run supports a claim.
 
 | Claim | Minimum evidence |
 | --- | --- |
+| Search Index KS works | Stable `2026-04-01` retrieve returns extracted content plus `searchIndex` evidence, and cleanup proves the reused index remains readable. |
 | MCP Server KS works | `microsoft-learn-mcp-ks` exists, MCP-only KB exists, retrieve returns MCP activity or Microsoft Learn references. |
 | Fabric Ontology KS works | Fabric KS and Fabric-only KB exist, live retrieve with delegated source authorization returns Fabric activity or Fabric source data. |
 | Combined routing works | Combined KB includes both source names and retrieve output contains recognized live evidence from the source or sources selected for the query. Separate checks prove MCP and Fabric independently. |

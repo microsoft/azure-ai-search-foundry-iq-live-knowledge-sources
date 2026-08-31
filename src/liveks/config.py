@@ -107,6 +107,12 @@ def _validate_field(path: str, value: Any, spec: dict[str, Any]) -> Any:
         if not isinstance(value, str):
             raise ConfigError(f"{path} must be a string.")
         return value
+    if field_type == "string_list":
+        if not isinstance(value, list) or any(not isinstance(item, str) or not item.strip() for item in value):
+            raise ConfigError(f"{path} must be a list of non-empty strings.")
+        if len(value) != len(set(value)):
+            raise ConfigError(f"{path} must not contain duplicate values.")
+        return value
     if field_type == "guid":
         if not isinstance(value, str) or not GUID_RE.fullmatch(value):
             raise ConfigError(f"{path} must be a GUID.")
@@ -117,6 +123,29 @@ def _validate_field(path: str, value: Any, spec: dict[str, Any]) -> Any:
         parsed = urlparse(value)
         if parsed.scheme != "https" or not parsed.netloc:
             raise ConfigError(f"{path} must be an absolute HTTPS URL.")
+        return value.rstrip("/")
+    if field_type == "azure_search_url":
+        if not isinstance(value, str):
+            raise ConfigError(f"{path} must be an Azure AI Search HTTPS endpoint.")
+        parsed = urlparse(value)
+        hostname = (parsed.hostname or "").lower()
+        trusted_suffix = ".search.windows.net"
+        try:
+            port = parsed.port
+        except ValueError as error:
+            raise ConfigError(f"{path} must be a trusted Azure AI Search service endpoint.") from error
+        if (
+            parsed.scheme != "https"
+            or not hostname.endswith(trusted_suffix)
+            or parsed.username
+            or parsed.password
+            or port not in {None, 443}
+            or parsed.path not in {"", "/"}
+            or parsed.params
+            or parsed.query
+            or parsed.fragment
+        ):
+            raise ConfigError(f"{path} must be a trusted Azure AI Search service endpoint.")
         return value.rstrip("/")
     if field_type == "enum":
         if value not in spec.get("values", []):
@@ -228,12 +257,23 @@ class ResolvedConfig:
 
     def ownership(self) -> dict[str, str]:
         fabric_mode = self.get("fabric.mode")
-        return {
+        ownership = {
             "azure": "none" if self.profile == "offline" else "create",
             "fabricCapacity": "create" if fabric_mode == "create" else "reuse" if fabric_mode == "byo" else "none",
             "fabricWorkspace": "create" if fabric_mode == "create" else "reuse" if fabric_mode == "byo" else "none",
             "fabricOntology": "create" if fabric_mode == "create" else "reuse" if fabric_mode == "byo" else "none",
         }
+        if self.profile == "search-index":
+            ownership.update(
+                {
+                    "azure": "reuse",
+                    "searchService": "reuse",
+                    "searchIndex": "reuse",
+                    "knowledgeSources": "create",
+                    "knowledgeBases": "create",
+                }
+            )
+        return ownership
 
 
 def available_profiles() -> list[str]:
@@ -242,7 +282,7 @@ def available_profiles() -> list[str]:
         data = load_yaml(path)
         if data.get("kind", "deployment") == "deployment":
             names.append(str(data.get("profile", path.stem)))
-    preferred = ["offline", "mcp-only", "byo-fabric", "full"]
+    preferred = ["offline", "search-index", "mcp-only", "byo-fabric", "full"]
     return [name for name in preferred if name in names] + sorted(set(names) - set(preferred))
 
 
@@ -323,6 +363,13 @@ def resolve_config(
         values.setdefault("fabric.capacity_resource_group", f"rg-{environment}-fabric")
         sources.setdefault("fabric.capacity_name", "derived")
         sources.setdefault("fabric.capacity_resource_group", "derived")
+    if profile == "search-index":
+        if is_placeholder(values.get("search.index_knowledge_source_name")):
+            values["search.index_knowledge_source_name"] = f"{environment.lower()}-search-index-ks"
+            sources["search.index_knowledge_source_name"] = "derived"
+        if is_placeholder(values.get("search.index_knowledge_base_name")):
+            values["search.index_knowledge_base_name"] = f"{environment.lower()}-search-index-kb"
+            sources["search.index_knowledge_base_name"] = "derived"
 
     unknown = sorted(set(values) - set(fields))
     if unknown:
@@ -335,6 +382,11 @@ def resolve_config(
     mode = values.get("deployment.mode")
     if mode != profile:
         raise ConfigError(f"deployment.mode={mode!r} does not match profile={profile!r}.")
+    api_version = values.get("search.api_version")
+    if profile == "search-index" and api_version != "2026-04-01":
+        raise ConfigError("search-index profile requires the generally available 2026-04-01 API contract.")
+    if profile in {"mcp-only", "byo-fabric", "full"} and api_version != "2026-05-01-preview":
+        raise ConfigError(f"{profile} profile requires the 2026-05-01-preview API contract.")
     if profile == "full" and (values.get("fabric.workspace_id") or values.get("fabric.ontology_id")):
         raise ConfigError("full profile must not include BYO Fabric IDs; use byo-fabric instead.")
 
@@ -360,6 +412,14 @@ def write_user_config(path: Path, *, profile: str, environment: str) -> None:
         data["fabric"] = {"mode": "create", "location": "westus3"}
     elif profile == "mcp-only":
         data["azure"] = {"location": "eastus"}
+    elif profile == "search-index":
+        data["search"] = {
+            "endpoint": "",
+            "index_name": "",
+            "semantic_configuration_name": "",
+            "search_fields": [],
+            "source_data_fields": [],
+        }
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(yaml.safe_dump(data, sort_keys=False), encoding="utf-8")
     path.chmod(0o600)

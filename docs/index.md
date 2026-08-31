@@ -1,14 +1,14 @@
 # Foundry IQ Live Knowledge Sources
 
-Deploy and prove one live Azure AI Search MCP Server Knowledge Source, then extend the same guarded lifecycle to a governed Fabric Ontology.
+Wrap and prove an existing Azure AI Search index with the stable API, then extend the same guarded lifecycle to preview MCP Server and governed Fabric Ontology sources.
 
-[Start the first live path](15-codespaces-first-live.md){ .md-button .md-button--primary }
+[Start the stable live path](23-search-index-ks.md){ .md-button .md-button--primary }
 [Inspect the no-cloud replay](09-offline-replay.md){ .md-button }
 
 <figure class="manual-hero">
   <img
     src="assets/clone-to-grounded-proof.svg"
-    alt="Three stages from clone to proof: a 30-second offline replay, the MCP-only first live Azure path, and advanced Fabric expansion."
+    alt="Three stages from clone to proof: a 30-second offline replay, a choice between stable Search Index and preview MCP live paths, and advanced Fabric expansion."
     width="1600"
     height="760"
     loading="eager"
@@ -21,7 +21,8 @@ Deploy and prove one live Azure AI Search MCP Server Knowledge Source, then exte
 | Role | Finish line | Start here |
 | --- | --- | --- |
 | **Evaluator** | Inspect the packaged answer and trace contract with no cloud access. | `./liveks try` |
-| **Azure implementer** | Prove Microsoft Learn MCP runs live through Foundry IQ. | [Codespaces First Live](15-codespaces-first-live.md) |
+| **Search implementer** | Prove an existing agentic-ready index through the GA data plane. | [Stable Search Index KS](23-search-index-ks.md) |
+| **Azure implementer** | Prove Microsoft Learn MCP runs live through the preview Foundry IQ path. | [Codespaces First Live](15-codespaces-first-live.md) |
 | **Fabric implementer** | Add governed entities and relationships after the Azure path works. | [Fabric Live BYO Validation](11-fabric-live-byo-validation.md) |
 
 The accelerator is not a production reference architecture. It keeps the human path narrow while [AGENTS.md](https://github.com/microsoft/azure-ai-search-foundry-iq-live-knowledge-sources/blob/main/AGENTS.md) defines the separate execution contract for coding agents.
@@ -39,7 +40,23 @@ Require `Contract: PASS (4/4 assertions)`. Python 3.11 or newer is the only depe
 
 The ignored evidence capsule retains revision, fixture digest, source identities, counts, and assertion status. It excludes query, answer, raw response, endpoints, and credentials. Pull-request validation executes the same entry point.
 
-## First Actual Live: MCP-Only
+## Lowest-Risk Live: Existing Search Index
+
+```bash
+./liveks init --profile search-index --env liveks-index
+# Fill the existing endpoint, index, semantic configuration, and optional fields.
+az login --use-device-code --tenant <tenant-guid>
+./liveks doctor --env liveks-index
+./liveks plan --env liveks-index
+./liveks up --env liveks-index
+./liveks verify --env liveks-index --query "<question>" --expect-term "<known term>"
+```
+
+This generally available `2026-04-01` lane creates only a Search Index KS and minimal extractive Knowledge Base. The Search service and index remain reused assets, and cleanup must finish with `search-index-preserved=pass`.
+
+[Follow the stable execution contract](23-search-index-ks.md){ .md-button .md-button--primary }
+
+## First Preview Live: MCP-Only
 
 The checked-in Codespaces environment supplies Python 3.11, Node.js 22, Azure CLI, Bicep, and Azure Developer CLI. Container creation runs only safe local checks.
 
@@ -101,6 +118,7 @@ BYO cleanup preserves the existing Fabric assets. Full cleanup deletes only asse
 
 | Component | Role | Acceptance evidence |
 | --- | --- | --- |
+| Search Index KS | Wraps an existing index for stable extractive retrieval. | `searchIndex` evidence, expected content, and preserved-index cleanup proof. |
 | MCP Server KS | Calls an explicitly allowed remote HTTPS MCP tool. | `mcpServer` activity or references and tool identity. |
 | Fabric Ontology KS | Resolves governed business entities and relationships. | `fabricOntology` activity or references plus source data. |
 | Foundry IQ Knowledge Base | Selects sources and returns grounded output. | Answer, `activity`, `references`, and `sourceData`. |
@@ -120,23 +138,24 @@ Fabric Ontology is a native Knowledge Source and is not routed through the exter
 
 The ignored `.liveks/<environment>.yaml` file is the authoring ledger. `azd env` is generated state. Secrets are environment references, never raw YAML values.
 
-All live profiles are pinned to `2026-05-01-preview`. The repository rejects `2026-04-01` because this implementation uses preview-only MCP Server and Fabric Ontology source kinds, message input, query planning, answer synthesis, and configurable reasoning effort.
+`search-index` is pinned to generally available `2026-04-01`, `intents`, and minimal extractive retrieval. `mcp-only`, `byo-fabric`, and `full` are pinned to `2026-05-01-preview` because their source kinds and full retrieval behavior are preview-dependent. Cross-lane API overrides fail closed.
 
 [Compare stable and preview support](14-api-compatibility.md){ .md-button }
 
 ## Finish With Cleanup
 
 ```bash
-./liveks down --env liveks-mcp
+./liveks down --env <environment>
 ```
 
-Require `resource-group-absent=pass`. For `full`, also require the capacity and its generated or preserved resource-group outcome. A deletion request without an absence check is incomplete.
+For `search-index`, require `search-index-preserved=pass`. For preview deployment profiles, require `resource-group-absent=pass`. For `full`, also require the capacity and its generated or preserved resource-group outcome. A deletion request without an absence check is incomplete.
 
 ## Manual Map
 
 | Need | Manual |
 | --- | --- |
 | Shortest complete sequence | [Execution Runbook](runbook.md) |
+| Stable existing-index path | [Stable Search Index KS](23-search-index-ks.md) |
 | Every first-live Codespaces step | [Codespaces First Live](15-codespaces-first-live.md) |
 | MCP payload and source contract | [MCP Server Knowledge Source](03-mcp-server-ks.md) |
 | Fabric source contract | [Fabric Ontology Knowledge Source](04-fabric-ontology-ks.md) |
@@ -151,6 +170,7 @@ Require `resource-group-absent=pass`. For `full`, also require the capacity and 
 
 - [Agentic retrieval overview](https://learn.microsoft.com/azure/search/search-agentic-retrieval-concept)
 - [Knowledge Source overview](https://learn.microsoft.com/azure/search/agentic-knowledge-source-overview)
+- [Create a Search Index knowledge source](https://learn.microsoft.com/azure/search/agentic-knowledge-source-how-to-search-index)
 - [Create an MCP Server knowledge source](https://learn.microsoft.com/azure/search/agentic-knowledge-source-how-to-mcp-server)
 - [Create a Fabric Ontology knowledge source](https://learn.microsoft.com/azure/search/agentic-knowledge-source-how-to-fabric-ontology)
 - [Query a Knowledge Base using retrieve or MCP](https://learn.microsoft.com/azure/search/agentic-retrieval-how-to-retrieve)

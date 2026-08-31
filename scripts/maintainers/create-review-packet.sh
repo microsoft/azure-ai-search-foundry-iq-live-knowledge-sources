@@ -17,7 +17,7 @@ Usage:
 
 Options:
   --mode <mode>          Deployment mode reviewed.
-                         Values: mcp-only, byo-fabric, full
+                         Values: search-index, mcp-only, byo-fabric, full
   --intent <text>        Review intent. Default: private review
   --e2e-report <path>    Ignored local E2E report path to reference.
                          The script records only the path, not report contents.
@@ -80,10 +80,10 @@ while [[ $# -gt 0 ]]; do
 done
 
 case "$MODE" in
-  ""|mcp-only|byo-fabric|full)
+  ""|search-index|mcp-only|byo-fabric|full)
     ;;
   *)
-    echo "Invalid --mode: $MODE. Allowed values: mcp-only, byo-fabric, full." >&2
+    echo "Invalid --mode: $MODE. Allowed values: search-index, mcp-only, byo-fabric, full." >&2
     exit 2
     ;;
 esac
@@ -252,7 +252,7 @@ ${evidence_summary_block}
 - Azure AI Search Knowledge Source terminology and REST shape
 - MCP Server KS request/response shape and trace wording
 - Fabric Ontology KS setup and delegated source authorization wording
-- Deployment-mode clarity: \`mcp-only\`, \`byo-fabric\`, \`full\`
+- Profile clarity: stable \`search-index\`; preview \`mcp-only\`, \`byo-fabric\`, \`full\`
 - Public-preview caveats and safe claims
 - Security posture for generated outputs and tokens
 

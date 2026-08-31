@@ -10,6 +10,7 @@ The canonical input is an ignored `.liveks/<environment>.yaml` ledger. It is not
 
 | Profile | Required authored values | Runtime credential | What it creates |
 | --- | --- | --- | --- |
+| `search-index` | Existing Search endpoint, index name, and semantic configuration; optional field lists. | Azure CLI sign-in with Search data-plane permissions. | Search Index KS and minimal extractive KB; the existing service and index are preserved. |
 | `mcp-only` | None beyond the generated profile and environment. | Azure CLI and Azure Developer CLI sign-in. | Azure resources, MCP Server KS, MCP-only KB, and app. |
 | `byo-fabric` | `fabric.workspace_id` and `fabric.ontology_id`. | Azure sign-in plus a transient delegated Search token during Fabric calls. | Generated Azure resources and a Fabric-only validation KB; the existing Fabric assets are preserved. |
 | `full` | No existing Fabric IDs; optional Fabric location and SKU overrides. | Azure and Fabric access, available quota, and `--accept-fabric-capacity`. | Generated Azure resources and a billable Fabric F2 sample stack. |
@@ -52,44 +53,48 @@ Expected: profile metadata prints, offline doctor passes, and the repository gat
 Choose the smallest live profile that matches the tenant:
 
 ```bash
-./liveks init --profile mcp-only --env liveks-mcp
+./liveks init --profile search-index --env liveks-index
 ```
 
 Other choices:
 
 ```bash
+./liveks init --profile mcp-only --env liveks-mcp
 ./liveks init --profile byo-fabric --env liveks-byo
 ./liveks init --profile full --env liveks-full
 ```
 
-Review `.liveks/<environment>.yaml`. For `byo-fabric`, replace the blank Fabric workspace and ontology IDs. For external tenants, add `azure.tenant_id`, `azure.subscription_id`, and `azure.cli_config_dir`. See [Configuration](21-configuration.md).
+Review `.liveks/<environment>.yaml`. For `search-index`, add the existing Search endpoint, index, semantic configuration, and optional field lists. For `byo-fabric`, replace the blank Fabric workspace and ontology IDs. For external tenants, add `azure.tenant_id`, `azure.subscription_id`, and `azure.cli_config_dir`. See [Configuration](21-configuration.md).
 
 ## 4. Sign In
 
 ```bash
 az login --tenant <tenant-guid>
-azd auth login
 ```
 
-Use the same target tenant and subscription for both tools. `doctor` fails on a configured tenant or subscription mismatch.
+For `mcp-only`, `byo-fabric`, and `full`, also run `azd auth login`. Use the same target tenant and subscription for both tools. `doctor` fails on a configured tenant or subscription mismatch.
 
 ## 5. Doctor
 
 ```bash
-./liveks doctor --env liveks-mcp
+./liveks doctor --env liveks-index
 ```
 
 Resolve all failures. Warnings about Search preview availability or unknown Fabric quota require human review but do not claim that a deployment will fail.
+
+For `search-index`, doctor reads the existing index and verifies the semantic configuration and requested field capabilities with a transient bearer token. It does not read documents or mutate Search objects.
 
 Minimum versions are Python 3.11, Azure Developer CLI 1.27.0, and Node.js 22. Azure CLI is also required.
 
 ## 6. Plan Without Provisioning
 
 ```bash
-./liveks plan --env liveks-mcp
+./liveks plan --env liveks-index
 ```
 
-The plan:
+For `search-index`, the plan serializes the stable KS, extractive KB, and `intents` retrieve payloads and checks names for unowned collisions. It does not run Bicep, `azd`, npm, or any data-plane write.
+
+For preview deployment profiles, use their environment name instead. The plan:
 
 1. reruns doctor,
 2. compiles Bicep,
@@ -102,10 +107,15 @@ It does not set `azd` values, create Fabric assets, or run `azd up`.
 ## 7. Deploy And Verify
 
 ```bash
-./liveks up --env liveks-mcp
+./liveks up \
+  --env liveks-index \
+  --query "<question answerable from the existing index>" \
+  --expect-term "<known non-sensitive term>"
 ```
 
-Review the ARM preview and cost statement, then type `create liveks-mcp`. LiveKS provisions, deploys, and runs verification in the same lifecycle.
+Review the reuse ownership and cost statement, then type `create liveks-index`. LiveKS creates only the Search Index KS and minimal extractive KB, records each owned object, and runs the supplied content acceptance check. Follow [Stable Search Index Knowledge Source](23-search-index-ks.md) for the exact ledger and expected failures.
+
+For a preview MCP-only deployment, run `./liveks up --env liveks-mcp`, review the ARM preview, and type `create liveks-mcp`.
 
 For full greenfield:
 
@@ -117,13 +127,23 @@ Expected evidence:
 
 | Profile | Required evidence |
 | --- | --- |
+| `search-index` | Existing index remains readable; stable retrieve includes `searchIndex` activity or references and extracted text. |
 | `mcp-only` | Resource group and app exist; MCP retrieve includes MCP activity or references. |
 | `byo-fabric` | MCP evidence plus live Fabric and combined evidence using delegated Search authorization. |
 | `full` | Generated Fabric GraphModel is ready, separate checks prove both sources, and all Azure assets pass. |
 
 ### Run The Manual Acceptance Test
 
-Do not stop at a successful deployment message. Open the **App URL** from:
+The `search-index` lane has no deployed app. Run its content assertion directly:
+
+```bash
+./liveks verify \
+  --env liveks-index \
+  --query "<question answerable from the existing index>" \
+  --expect-term "<known non-sensitive term>"
+```
+
+For preview deployment profiles, do not stop at a successful deployment message. Open the **App URL** from:
 
 ```text
 deployments/<environment>/deployment-summary.md
@@ -168,21 +188,24 @@ For an Airline Ops `byo-fabric` or `full` environment:
 
 Expected: `tools/list` publishes `knowledge_base_retrieve`, `tools/call` returns at least one text block, and `grounding-content` matches every expected term. The command keeps raw MCP content in memory and records only sanitized counts. Without `--expect-term`, protocol checks can pass but grounding remains a warning.
 
+This command currently applies to the preview deployment profiles. The stable `search-index` profile proves its source through the documented REST retrieve contract; native MCP composition with Search Index KS is the next preview expansion path.
+
 Use [Call the Knowledge Base Through MCP](22-knowledge-base-mcp.md) for bearer authentication, a controlled missing-authorization failure, and the complete acceptance contract.
 
 ## 9. Clean Up
 
 ```bash
-./liveks down --env liveks-mcp
+./liveks down --env <environment>
 ```
 
-Type `delete liveks-mcp`. The command verifies the generated deployment resource group is absent afterward. For a generated `full` capacity, it also confirms that the exact ARM capacity is absent. When the run created the dedicated capacity resource group, it waits for that group to disappear as well.
+Type `delete <environment>`. For `search-index`, the command deletes only the recorded KS and KB, then proves the reused index remains. For a preview deployment, it verifies the generated resource group is absent afterward. A generated `full` capacity also requires the exact ARM capacity to be absent, with its dedicated capacity group deleted or preserved according to ownership.
 
 - `mcp-only` deletes generated Azure resources.
+- `search-index` deletes only the lock-owned Knowledge Base and Knowledge Source, then proves the reused index remains readable.
 - `byo-fabric` deletes generated Azure resources and preserves the existing Fabric workspace and ontology.
 - `full` deletes generated Fabric assets first, continues with Azure cleanup if Fabric reports a partial failure, and returns a nonzero partial-cleanup status.
 
-Do not close a rehearsal until `resource-group-absent` passes. For generated `full`, also require `fabric-capacity-absent`; require `fabric-capacity-resource-group-absent` for a generated group or `fabric-capacity-resource-group-preserved` for a pre-existing group. Treat a missing summary or unresolved create-mode ownership as partial cleanup.
+Do not close a stable rehearsal until `search-index-preserved` passes. Do not close a preview rehearsal until `resource-group-absent` passes. For generated `full`, also require `fabric-capacity-absent`; require `fabric-capacity-resource-group-absent` for a generated group or `fabric-capacity-resource-group-preserved` for a pre-existing group. Treat a missing summary or unresolved create-mode ownership as partial cleanup.
 
 The YAML and redacted lock must both identify Fabric assets as generated before Fabric deletion is allowed.
 
@@ -191,6 +214,12 @@ The YAML and redacted lock must both identify Fabric assets as generated before 
 For CI or a controlled test tenant:
 
 ```bash
+./liveks e2e \
+  --env liveks-index \
+  --query "<question answerable from the existing index>" \
+  --expect-term "<known non-sensitive term>" \
+  --cleanup \
+  --yes
 ./liveks e2e --env liveks-mcp --cleanup --yes
 ```
 

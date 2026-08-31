@@ -14,6 +14,7 @@
 
 ## Deployment Mode Impact
 
+- [ ] `search-index` (stable existing-index path)
 - [ ] `mcp-only`
 - [ ] `byo-fabric`
 - [ ] `full`
@@ -37,9 +38,9 @@ Result: PASS / FAIL / SKIP summary
 
 Do not paste raw tokens, tenant IDs, service URLs, customer data, or generated deployment reports into this PR.
 
-## Preview And Security Checklist
+## API And Security Checklist
 
-- [ ] API version remains explicit where preview APIs are used.
+- [ ] API version remains explicit and matches the stable or preview contract used by this change.
 - [ ] No secrets, bearer tokens, API keys, tenant-specific IDs, customer data, or private endpoint details were added.
 - [ ] Generated files remain under ignored paths such as `.deployment/`, `deployments/`, or `scratch/`.
 - [ ] Fabric live claims are backed by live Fabric activity or clearly described as offline replay.
@@ -55,5 +56,5 @@ Suggested reviewer asks:
 - Azure AI Search Knowledge Source terminology and REST shape
 - MCP Server KS request/response shape and trace wording
 - Fabric Ontology KS setup and delegated source authorization wording
-- deployment-mode clarity: `mcp-only`, `byo-fabric`, `full`
+- profile clarity: stable `search-index`; preview `mcp-only`, `byo-fabric`, `full`
 - public-preview caveats

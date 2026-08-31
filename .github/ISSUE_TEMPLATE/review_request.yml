@@ -16,6 +16,7 @@ body:
       label: Review scope
       options:
         - Azure AI Search terminology and REST shape
+        - Search Index Knowledge Source
         - MCP Server Knowledge Source
         - Fabric Ontology Knowledge Source
         - Deployment modes
@@ -29,6 +30,7 @@ body:
     attributes:
       label: Deployment modes involved
       options:
+        - label: search-index (stable existing-index path)
         - label: mcp-only
         - label: byo-fabric
         - label: full

@@ -1,13 +1,13 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="1600" height="760" viewBox="0 0 1600 760" role="img" aria-labelledby="title desc">
-  <title id="title">From clone to the first live Foundry IQ proof</title>
-  <desc id="desc">Three stages: inspect a 30-second offline replay, run the MCP-only profile as the first actual Azure deployment, then expand to an existing or greenfield Fabric ontology.</desc>
+  <title id="title">From clone to a live Foundry IQ proof</title>
+  <desc id="desc">Three stages: inspect a 30-second offline replay, choose a stable Search Index or preview MCP Server live path, then expand to an existing or greenfield Fabric ontology.</desc>
 
   <rect width="1600" height="760" fill="#F7F9FC"/>
   <rect x="0" y="0" width="14" height="760" fill="#0F6CBD"/>
 
   <text x="58" y="58" font-family="Segoe UI, Arial, sans-serif" font-size="18" font-weight="700" fill="#0F6CBD">FROM CLONE TO FIRST LIVE PROOF</text>
   <text x="58" y="112" font-family="Segoe UI, Arial, sans-serif" font-size="44" font-weight="700" fill="#111827">See the contract. Prove one live source. Expand when ready.</text>
-  <text x="60" y="154" font-family="Segoe UI, Arial, sans-serif" font-size="21" fill="#475569">The shortest supported path preserves doctor, plan, ARM preview, explicit confirmation, source evidence, and cleanup.</text>
+  <text x="60" y="154" font-family="Segoe UI, Arial, sans-serif" font-size="21" fill="#475569">The guarded lifecycle preserves doctor, plan, explicit confirmation, source evidence, and ownership-safe cleanup.</text>
 
   <rect x="1310" y="40" width="234" height="42" rx="8" fill="#E8F3FC" stroke="#8DC8E8" stroke-width="2"/>
   <text x="1340" y="67" font-family="Segoe UI, Arial, sans-serif" font-size="16" font-weight="700" fill="#0F548C">CODESPACES READY</text>
@@ -31,15 +31,16 @@
     <rect x="500" y="192" width="600" height="370" rx="8" fill="#102A43" stroke="#0F6CBD" stroke-width="3"/>
     <rect x="500" y="192" width="600" height="10" fill="#2E90FA"/>
     <rect x="848" y="222" width="220" height="38" rx="6" fill="#DFF6E9" stroke="#68C78A"/>
-    <text x="888" y="247" font-family="Segoe UI, Arial, sans-serif" font-size="15" font-weight="700" fill="#116B3A">FIRST ACTUAL LIVE</text>
-    <text x="532" y="250" font-family="Segoe UI, Arial, sans-serif" font-size="15" font-weight="700" fill="#90CDF4">2 | AZURE IMPLEMENTER</text>
-    <text x="532" y="304" font-family="Segoe UI, Arial, sans-serif" font-size="36" font-weight="700" fill="#FFFFFF">MCP-only</text>
-    <text x="532" y="341" font-family="Segoe UI, Arial, sans-serif" font-size="19" fill="#D7E3F0">No Fabric workspace or ontology required.</text>
+    <text x="864" y="247" font-family="Segoe UI, Arial, sans-serif" font-size="15" font-weight="700" fill="#116B3A">CHOOSE FIRST LIVE LANE</text>
+    <text x="532" y="250" font-family="Segoe UI, Arial, sans-serif" font-size="15" font-weight="700" fill="#90CDF4">2 | SEARCH OR AZURE IMPLEMENTER</text>
+    <text x="532" y="304" font-family="Segoe UI, Arial, sans-serif" font-size="36" font-weight="700" fill="#FFFFFF">Prove one source</text>
+    <text x="532" y="341" font-family="Segoe UI, Arial, sans-serif" font-size="19" fill="#D7E3F0">Reuse an index or deploy the preview MCP path.</text>
     <rect x="532" y="374" width="536" height="64" rx="6" fill="#0B1F33" stroke="#486581"/>
-    <text x="558" y="414" font-family="Consolas, monospace" font-size="21" font-weight="700" fill="#BEE3F8">doctor -&gt; plan -&gt; up -&gt; verify</text>
-    <text x="532" y="474" font-family="Segoe UI, Arial, sans-serif" font-size="17" fill="#E6EEF7">Azure AI Search calls the public Microsoft Learn MCP tool.</text>
+    <text x="558" y="400" font-family="Consolas, monospace" font-size="18" font-weight="700" fill="#BEE3F8">search-index | 2026-04-01 GA</text>
+    <text x="558" y="425" font-family="Consolas, monospace" font-size="18" font-weight="700" fill="#BEE3F8">mcp-only    | 2026-05-01-preview</text>
+    <text x="532" y="474" font-family="Segoe UI, Arial, sans-serif" font-size="17" fill="#E6EEF7">doctor -&gt; plan -&gt; up -&gt; verify -&gt; down</text>
     <rect x="532" y="500" width="172" height="34" rx="6" fill="#163D5C"/>
-    <text x="553" y="523" font-family="Segoe UI, Arial, sans-serif" font-size="14" font-weight="700" fill="#D9F0FF">ARM PREVIEW FIRST</text>
+    <text x="553" y="523" font-family="Segoe UI, Arial, sans-serif" font-size="14" font-weight="700" fill="#D9F0FF">REUSE OR DEPLOY</text>
     <rect x="718" y="500" width="184" height="34" rx="6" fill="#163D5C"/>
     <text x="739" y="523" font-family="Segoe UI, Arial, sans-serif" font-size="14" font-weight="700" fill="#D9F0FF">EXPLICIT CONFIRM</text>
     <rect x="916" y="500" width="152" height="34" rx="6" fill="#175C3B"/>
@@ -64,20 +65,20 @@
   </g>
 
   <rect x="58" y="604" width="1486" height="104" rx="8" fill="#FFFFFF" stroke="#CBD5E1" stroke-width="2"/>
-  <text x="84" y="640" font-family="Segoe UI, Arial, sans-serif" font-size="15" font-weight="700" fill="#475569">A LIVE PASS REQUIRES ALL THREE</text>
+  <text x="84" y="640" font-family="Segoe UI, Arial, sans-serif" font-size="15" font-weight="700" fill="#475569">A LIVE PASS REQUIRES ALL FOUR</text>
 
   <circle cx="102" cy="672" r="14" fill="#17805C"/>
   <path d="M95 672 L100 677 L110 666" fill="none" stroke="#FFFFFF" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
-  <text x="128" y="679" font-family="Segoe UI, Arial, sans-serif" font-size="18" font-weight="700" fill="#111827">live status</text>
+  <text x="128" y="679" font-family="Segoe UI, Arial, sans-serif" font-size="18" font-weight="700" fill="#111827">readiness contract</text>
 
   <circle cx="418" cy="672" r="14" fill="#17805C"/>
   <path d="M411 672 L416 677 L426 666" fill="none" stroke="#FFFFFF" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
-  <text x="444" y="679" font-family="Segoe UI, Arial, sans-serif" font-size="18" font-weight="700" fill="#111827">mcpServer activity or reference</text>
+  <text x="444" y="679" font-family="Segoe UI, Arial, sans-serif" font-size="18" font-weight="700" fill="#111827">source activity or reference</text>
 
   <circle cx="918" cy="672" r="14" fill="#17805C"/>
   <path d="M911 672 L916 677 L926 666" fill="none" stroke="#FFFFFF" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
-  <text x="944" y="679" font-family="Segoe UI, Arial, sans-serif" font-size="18" font-weight="700" fill="#111827">microsoft_docs_search identity</text>
+  <text x="944" y="679" font-family="Segoe UI, Arial, sans-serif" font-size="18" font-weight="700" fill="#111827">content assertion</text>
 
   <rect x="1294" y="648" width="222" height="46" rx="6" fill="#E7F7F0" stroke="#79B8A4"/>
-  <text x="1336" y="677" font-family="Segoe UI, Arial, sans-serif" font-size="16" font-weight="700" fill="#116B4A">THEN CLEAN UP</text>
+  <text x="1336" y="677" font-family="Segoe UI, Arial, sans-serif" font-size="16" font-weight="700" fill="#116B4A">SAFE CLEANUP</text>
 </svg>
