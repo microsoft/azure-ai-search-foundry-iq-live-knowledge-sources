@@ -4,7 +4,7 @@ environment_pattern: '^[A-Za-z][A-Za-z0-9-]{2,62}$'
 fields:
   deployment.mode:
     type: enum
-    values: [offline, search-index, mcp-only, byo-fabric, full]
+    values: [offline, search-index, mcp-search-index, mcp-only, byo-fabric, full]
     azd: DEPLOYMENT_MODE
   azure.location:
     type: string
@@ -48,6 +48,14 @@ fields:
     type: enum
     values: ['2026-04-01', 2026-05-01-preview]
     azd: AZURE_SEARCH_API_VERSION
+  search.index_api_version:
+    type: enum
+    values: ['2026-04-01']
+    optional: true
+  search.preview_api_version:
+    type: enum
+    values: [2026-05-01-preview]
+    optional: true
   search.endpoint:
     type: azure_search_url
     optional: true
@@ -97,6 +105,10 @@ fields:
   openai.deployment_name:
     type: string
     azd: AZURE_OPENAI_DEPLOYMENT_ID
+  openai.endpoint:
+    type: azure_openai_url
+    optional: true
+    azd: AZURE_OPENAI_ENDPOINT
   openai.model_name:
     type: string
     azd: AZURE_OPENAI_MODEL_NAME
@@ -172,6 +184,8 @@ legacy_env:
   AZURE_APP_SERVICE_SKU: azure.app_service_sku
   AZURE_SEARCH_API_VERSION: search.api_version
   SEARCH_API_VERSION: search.api_version
+  SEARCH_INDEX_API_VERSION: search.index_api_version
+  SEARCH_PREVIEW_API_VERSION: search.preview_api_version
   AZURE_SEARCH_ENDPOINT: search.endpoint
   SEARCH_ENDPOINT: search.endpoint
   AZURE_SEARCH_SKU: search.sku
@@ -187,6 +201,7 @@ legacy_env:
   KNOWLEDGE_BASE_NAME: search.combined_knowledge_base_name
   MCP_SERVER_URL: mcp.server_url
   MCP_TOOL_NAME: mcp.tool_name
+  AZURE_OPENAI_ENDPOINT: openai.endpoint
   AZURE_OPENAI_DEPLOYMENT_ID: openai.deployment_name
   AZURE_OPENAI_MODEL_NAME: openai.model_name
   AZURE_OPENAI_MODEL_VERSION: openai.model_version

@@ -6,6 +6,9 @@ All notable changes to this accelerator are documented here.
 
 ### Added
 
+- A data-plane-only `mcp-search-index` profile that reuses an agentic-ready Search index and Azure OpenAI deployment, creates a GA Search Index KS plus preview MCP Server KS and combined KB, and proves each source independently before combined routing.
+- Version-aware collision protection, ETag-conditional three-object lock ownership, ambiguous PUT reconciliation, redacted plan payloads, sourceData-based index assertions, dependency-ordered cleanup, and an opt-in OIDC protected live contract for the combined profile.
+- The [MCP + Search Index execution manual](https://microsoft.github.io/azure-ai-search-foundry-iq-live-knowledge-sources/24-mcp-search-index-kb/) backed by official Microsoft Learn contracts for [Search Index KS](https://learn.microsoft.com/azure/search/agentic-knowledge-source-how-to-search-index), [MCP Server KS](https://learn.microsoft.com/azure/search/agentic-knowledge-source-how-to-mcp-server), [Knowledge Base creation](https://learn.microsoft.com/azure/search/agentic-retrieval-how-to-create-knowledge-base), and [retrieve](https://learn.microsoft.com/azure/search/agentic-retrieval-how-to-retrieve).
 - A generally available `search-index` profile for existing agentic-ready Azure AI Search indexes, with keyless doctor checks, stable payload planning, extractive retrieve verification, expected-term assertions, collision protection, lock-proved KS/KB ownership, and preserved-index cleanup evidence.
 - A source-backed Search Index execution manual that records the required YAML inputs, success and failure messages, stable API boundary, and official Microsoft Learn contracts.
 - A Codespaces and Dev Container first-live path with pinned Python, Node.js, Azure CLI, Bicep, and Azure Developer CLI tooling, plus a validation rule that prevents automatic cloud mutation during container creation.
@@ -22,7 +25,7 @@ All notable changes to this accelerator are documented here.
 - Dedicated Fabric-only Knowledge Base configuration through `FABRIC_ONLY_KNOWLEDGE_BASE_NAME` so Fabric Ontology grounding can be verified independently of combined planner routing.
 - Traceable Langflow benchmark adaptation record that separates observable README and workflow patterns from out-of-scope implementation details and documents independent implementation and license handling.
 - Cross-platform `liveks` and `liveks.ps1` lifecycle entry points with dependency-free offline replay.
-- Canonical v2 YAML schema and executable `offline`, `mcp-only`, `byo-fabric`, and `full` profiles.
+- Canonical v2 YAML schema and executable `offline`, `search-index`, `mcp-search-index`, `mcp-only`, `byo-fabric`, and `full` profiles.
 - Plan-first `init`, `doctor`, `plan`, `up`, `verify`, `down`, and `e2e` commands with JSON output.
 - Redacted configuration locks, explicit resource ownership, BYO-preserving cleanup, and full-capacity acknowledgement.
 - GitHub Pages interactive offline replay backed by the same canonical fixtures as the CLI and managed API.
@@ -32,6 +35,9 @@ All notable changes to this accelerator are documented here.
 
 ### Changed
 
+- Profile selection, CLI/configuration documentation, generated environment catalogs, and API matrices now describe the guarded `search-index -> mcp-search-index` expansion without changing any existing profile.
+- Direct Search requests now accept an explicit API version so the combined lifecycle uses `2026-04-01` only for the Search Index KS and `2026-05-01-preview` only for MCP KS, combined KB, and retrieve.
+- Every profile now serializes environment `plan`, `up`, and `down`; E2E holds the same lock through optional cleanup. Direct Search profiles use ETag-conditional create and delete requests and reuse unchanged owned objects without another PUT.
 - README and runbook profile selection now place the stable existing-index lane between offline replay and preview MCP/Fabric deployment, while keeping the two API contracts fail-closed and separate.
 - README and manual home now lead with `30-second replay -> stable existing-index live -> preview MCP-only -> Fabric expansion`; replay status and fixture badges explicitly say that no Azure call occurred.
 - `search.api_version` and direct postprovision validation now fail closed on anything except the repository's tested `2026-05-01-preview` contract.
@@ -59,6 +65,8 @@ All notable changes to this accelerator are documented here.
 
 ### Compatibility
 
+- `mcp-search-index` requires both pinned versions, an existing Azure OpenAI chat deployment, and Search managed identity access to that model; it never falls back to the standalone stable or provisioned preview request shape.
+- Normal CI skips the protected live contract. Manual protected execution performs read/call verification only and does not create or delete cloud resources.
 - Search Index KS uses generally available `2026-04-01`, `intents`, and minimal extractive retrieval; MCP Server and Fabric Ontology profiles remain on `2026-05-01-preview` with `messages` and answer synthesis.
 - The Knowledge Base MCP tool accepts its documented `queries` input only; retrieve-only source-forcing parameters are not sent through MCP, so independent source proof uses the corresponding single-source Knowledge Base.
 - The checked-in Airline Ops terms are synthetic sample evidence and are not assumed to exist in an arbitrary BYO Fabric ontology; live assertions must match the connected ontology's own sanitized facts.

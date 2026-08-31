@@ -176,6 +176,8 @@ run_required "Python compile" \
     samples/python/inspect_retrieve_response.py \
     src/liveks/runtime.py \
     src/liveks/evidence.py \
+    src/liveks/search_index.py \
+    src/liveks/mcp_search_index.py \
     src/liveks/cli.py
 
 run_required "Python contract tests" \

@@ -30,6 +30,12 @@ Call the profile's deterministic single-source Knowledge Base. `mcp-only` select
 ./liveks mcp --env liveks-byo
 ```
 
+`mcp-search-index` exposes its combined KB instead and requires `--auth bearer`. Run its ordered REST `verify` contract first because the native MCP response does not provide separate activity and references for source-routing proof:
+
+```bash
+./liveks mcp --env liveks-combined --auth bearer
+```
+
 This no-expectation form proves endpoint discovery and tool execution only. Because the MCP response has no separate source trace, the command reports `grounding-content=warn` until a known fact is supplied.
 
 For the synthetic Airline Ops scenario, make the expected result executable:

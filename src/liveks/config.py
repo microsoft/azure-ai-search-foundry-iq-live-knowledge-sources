@@ -147,6 +147,28 @@ def _validate_field(path: str, value: Any, spec: dict[str, Any]) -> Any:
         ):
             raise ConfigError(f"{path} must be a trusted Azure AI Search service endpoint.")
         return value.rstrip("/")
+    if field_type == "azure_openai_url":
+        if not isinstance(value, str):
+            raise ConfigError(f"{path} must be an Azure OpenAI HTTPS endpoint.")
+        parsed = urlparse(value)
+        hostname = (parsed.hostname or "").lower()
+        try:
+            port = parsed.port
+        except ValueError as error:
+            raise ConfigError(f"{path} must be a trusted Azure OpenAI endpoint.") from error
+        if (
+            parsed.scheme != "https"
+            or not hostname.endswith(".openai.azure.com")
+            or parsed.username
+            or parsed.password
+            or port not in {None, 443}
+            or parsed.path not in {"", "/"}
+            or parsed.params
+            or parsed.query
+            or parsed.fragment
+        ):
+            raise ConfigError(f"{path} must be a trusted Azure OpenAI endpoint.")
+        return value.rstrip("/")
     if field_type == "enum":
         if value not in spec.get("values", []):
             allowed = ", ".join(map(str, spec.get("values", [])))
@@ -263,12 +285,13 @@ class ResolvedConfig:
             "fabricWorkspace": "create" if fabric_mode == "create" else "reuse" if fabric_mode == "byo" else "none",
             "fabricOntology": "create" if fabric_mode == "create" else "reuse" if fabric_mode == "byo" else "none",
         }
-        if self.profile == "search-index":
+        if self.profile in {"search-index", "mcp-search-index"}:
             ownership.update(
                 {
                     "azure": "reuse",
                     "searchService": "reuse",
                     "searchIndex": "reuse",
+                    "azureOpenAI": "reuse" if self.profile == "mcp-search-index" else "none",
                     "knowledgeSources": "create",
                     "knowledgeBases": "create",
                 }
@@ -282,7 +305,7 @@ def available_profiles() -> list[str]:
         data = load_yaml(path)
         if data.get("kind", "deployment") == "deployment":
             names.append(str(data.get("profile", path.stem)))
-    preferred = ["offline", "search-index", "mcp-only", "byo-fabric", "full"]
+    preferred = ["offline", "search-index", "mcp-search-index", "mcp-only", "byo-fabric", "full"]
     return [name for name in preferred if name in names] + sorted(set(names) - set(preferred))
 
 
@@ -363,13 +386,21 @@ def resolve_config(
         values.setdefault("fabric.capacity_resource_group", f"rg-{environment}-fabric")
         sources.setdefault("fabric.capacity_name", "derived")
         sources.setdefault("fabric.capacity_resource_group", "derived")
-    if profile == "search-index":
+    if profile in {"search-index", "mcp-search-index"}:
         if is_placeholder(values.get("search.index_knowledge_source_name")):
             values["search.index_knowledge_source_name"] = f"{environment.lower()}-search-index-ks"
             sources["search.index_knowledge_source_name"] = "derived"
+    if profile == "search-index":
         if is_placeholder(values.get("search.index_knowledge_base_name")):
             values["search.index_knowledge_base_name"] = f"{environment.lower()}-search-index-kb"
             sources["search.index_knowledge_base_name"] = "derived"
+    if profile == "mcp-search-index":
+        if is_placeholder(values.get("search.mcp_knowledge_source_name")):
+            values["search.mcp_knowledge_source_name"] = f"{environment.lower()}-mcp-server-ks"
+            sources["search.mcp_knowledge_source_name"] = "derived"
+        if is_placeholder(values.get("search.combined_knowledge_base_name")):
+            values["search.combined_knowledge_base_name"] = f"{environment.lower()}-combined-kb"
+            sources["search.combined_knowledge_base_name"] = "derived"
 
     unknown = sorted(set(values) - set(fields))
     if unknown:
@@ -387,6 +418,18 @@ def resolve_config(
         raise ConfigError("search-index profile requires the generally available 2026-04-01 API contract.")
     if profile in {"mcp-only", "byo-fabric", "full"} and api_version != "2026-05-01-preview":
         raise ConfigError(f"{profile} profile requires the 2026-05-01-preview API contract.")
+    if profile == "mcp-search-index":
+        if values.get("search.index_api_version") != "2026-04-01":
+            raise ConfigError("mcp-search-index requires Search Index KS API version 2026-04-01.")
+        if values.get("search.preview_api_version") != "2026-05-01-preview":
+            raise ConfigError("mcp-search-index requires MCP Server KS and Knowledge Base API version 2026-05-01-preview.")
+        managed_names = [
+            str(values.get("search.index_knowledge_source_name")),
+            str(values.get("search.mcp_knowledge_source_name")),
+            str(values.get("search.combined_knowledge_base_name")),
+        ]
+        if len(set(managed_names)) != len(managed_names):
+            raise ConfigError("mcp-search-index generated Knowledge Source and Knowledge Base names must be distinct.")
     if profile == "full" and (values.get("fabric.workspace_id") or values.get("fabric.ontology_id")):
         raise ConfigError("full profile must not include BYO Fabric IDs; use byo-fabric instead.")
 
@@ -419,6 +462,19 @@ def write_user_config(path: Path, *, profile: str, environment: str) -> None:
             "semantic_configuration_name": "",
             "search_fields": [],
             "source_data_fields": [],
+        }
+    elif profile == "mcp-search-index":
+        data["search"] = {
+            "endpoint": "",
+            "index_name": "",
+            "semantic_configuration_name": "",
+            "search_fields": [],
+            "source_data_fields": [],
+        }
+        data["openai"] = {
+            "endpoint": "",
+            "deployment_name": "",
+            "model_name": "",
         }
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(yaml.safe_dump(data, sort_keys=False), encoding="utf-8")

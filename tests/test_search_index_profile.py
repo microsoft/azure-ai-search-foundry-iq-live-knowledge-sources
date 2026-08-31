@@ -172,20 +172,55 @@ class SearchIndexLifecycleTests(unittest.TestCase):
         plan = json.loads((self.root / ".deployment/unit-search/search-index-plan.json").read_text())
         self.assertEqual(plan["apiVersion"], "2026-04-01")
 
+    def test_stable_profile_detects_combined_profile_owned_objects(self):
+        foreign_lock = {
+            "profile": "mcp-search-index",
+            "environment": self.config.environment,
+            "configDigest": "different",
+            "managedObjects": {
+                "searchIndexKnowledgeSource": "foreign-search-ks",
+                "mcpKnowledgeSource": "foreign-mcp-ks",
+                "combinedKnowledgeBase": "foreign-combined-kb",
+            },
+            "managedObjectEtags": {
+                "searchIndexKnowledgeSource": "foreign-source-etag",
+            },
+        }
+        with mock.patch.object(cli, "_load_lock", return_value=foreign_lock):
+            managed, etags, matches, _ = cli._search_index_lock_state(self.config)
+
+        self.assertFalse(matches)
+        self.assertEqual(managed["combinedKnowledgeBase"], "foreign-combined-kb")
+        self.assertEqual(etags["searchIndexKnowledgeSource"], "foreign-source-etag")
+
     def test_up_records_only_created_knowledge_objects(self):
-        responses = iter([(404, {}), (201, {}), (404, {}), (201, {})])
+        responses = iter(
+            [
+                (404, {}),
+                (201, {"@odata.etag": "etag-source"}),
+                (404, {}),
+                (201, {"@odata.etag": "etag-base"}),
+            ]
+        )
         locks = []
 
         def fake_write_lock(config, *, status, extra=None):
-            locks.append((status, dict((extra or {}).get("managedObjects", {}))))
+            locks.append(
+                (
+                    status,
+                    dict((extra or {}).get("managedObjects", {})),
+                    dict((extra or {}).get("managedObjectEtags", {})),
+                )
+            )
             return self.root / ".liveks/unit-search.lock.json"
 
+        request_mock = mock.Mock(side_effect=lambda *args, **kwargs: next(responses))
         with (
             mock.patch.object(cli, "plan_report", return_value={"status": "pass", "checks": []}),
-            mock.patch.object(cli, "_search_index_lock_state", return_value=({}, True, "matching environment lock")),
+            mock.patch.object(cli, "_search_index_lock_state", return_value=({}, {}, True, "matching environment lock")),
             mock.patch.object(cli, "_confirm_up"),
             mock.patch.object(cli, "acquire_search_bearer_token", return_value="token"),
-            mock.patch.object(cli, "search_index_request", side_effect=lambda *args, **kwargs: next(responses)),
+            mock.patch.object(cli, "search_index_request", request_mock),
             mock.patch.object(cli, "verify_report", return_value={"status": "pass", "checks": []}) as verify_mock,
             mock.patch.object(cli, "write_lock", side_effect=fake_write_lock),
         ):
@@ -205,6 +240,25 @@ class SearchIndexLifecycleTests(unittest.TestCase):
                 "knowledgeBase": "unit-search-search-index-kb",
             },
         )
+        self.assertEqual(
+            locks[-1][2],
+            {
+                "knowledgeSource": "etag-source",
+                "knowledgeBase": "etag-base",
+            },
+        )
+        put_headers = [
+            call.kwargs["headers"]
+            for call in request_mock.call_args_list
+            if call.kwargs["method"] == "PUT"
+        ]
+        self.assertEqual(
+            put_headers,
+            [
+                {"If-None-Match": "*", "Prefer": "return=representation"},
+                {"If-None-Match": "*", "Prefer": "return=representation"},
+            ],
+        )
         verify_mock.assert_called_once_with(
             self.config,
             quiet=True,
@@ -217,15 +271,23 @@ class SearchIndexLifecycleTests(unittest.TestCase):
             "knowledgeSource": "unit-search-search-index-ks",
             "knowledgeBase": "unit-search-search-index-kb",
         }
+        managed_etags = {
+            "knowledgeSource": "etag-source",
+            "knowledgeBase": "etag-base",
+        }
         request_calls = []
         responses = iter([(204, {}), (204, {}), (200, {"name": "existing-docs"})])
 
-        def fake_request(config, token, *, method, path, **kwargs):
-            request_calls.append((method, path))
+        def fake_request(config, token, *, method, path, headers=None, **kwargs):
+            request_calls.append((method, path, headers))
             return next(responses)
 
         with (
-            mock.patch.object(cli, "_search_index_lock_state", return_value=(managed, True, "matching environment lock")),
+            mock.patch.object(
+                cli,
+                "_search_index_lock_state",
+                return_value=(managed, managed_etags, True, "matching environment lock"),
+            ),
             mock.patch.object(cli, "acquire_search_bearer_token", return_value="token"),
             mock.patch.object(cli, "search_index_request", side_effect=fake_request),
             mock.patch.object(cli, "write_lock", return_value=self.root / ".liveks/unit-search.lock.json"),
@@ -233,13 +295,17 @@ class SearchIndexLifecycleTests(unittest.TestCase):
             report = cli.down_report(self.config, yes=True)
 
         self.assertEqual(report["status"], "pass")
-        self.assertEqual([method for method, _ in request_calls], ["DELETE", "DELETE", "GET"])
+        self.assertEqual([method for method, _, _ in request_calls], ["DELETE", "DELETE", "GET"])
+        self.assertEqual(
+            [headers for _, _, headers in request_calls[:2]],
+            [{"If-Match": "etag-base"}, {"If-Match": "etag-source"}],
+        )
         self.assertTrue(request_calls[-1][1].endswith("/indexes/existing-docs"))
         self.assertEqual(next(check for check in report["checks"] if check["name"] == "search-index-preserved")["status"], "pass")
 
     def test_down_preserves_everything_without_matching_lock(self):
         with (
-            mock.patch.object(cli, "_search_index_lock_state", return_value=({}, False, "mismatch")),
+            mock.patch.object(cli, "_search_index_lock_state", return_value=({}, {}, False, "mismatch")),
             mock.patch.object(cli, "search_index_request") as request_mock,
         ):
             report = cli.down_report(self.config, yes=True)
@@ -302,6 +368,18 @@ class SearchIndexLifecycleTests(unittest.TestCase):
         self.assertNotIn("example.search.windows.net", persisted)
         grounding = next(check for check in report["checks"] if check["name"] == "grounding-content")
         self.assertEqual(grounding["matchedExpectedTermCount"], 1)
+
+    def test_verify_rejects_empty_expected_term_before_live_calls(self):
+        with (
+            mock.patch.object(cli, "acquire_search_bearer_token") as token_mock,
+            mock.patch.object(cli, "search_index_request") as request_mock,
+        ):
+            report = cli.verify_report(self.config, expected_terms=[" "])
+
+        self.assertEqual(report["status"], "fail")
+        self.assertEqual(report["checks"][0]["name"], "runtime-input")
+        token_mock.assert_not_called()
+        request_mock.assert_not_called()
 
     def test_mcp_command_explains_stable_profile_boundary_without_azd(self):
         with mock.patch.object(cli, "CommandRunner") as runner:

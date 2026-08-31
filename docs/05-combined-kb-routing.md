@@ -1,9 +1,11 @@
 # Combined Knowledge Base Routing
 
-The combined scenario attaches both live Knowledge Sources to one Knowledge Base:
+LiveKS includes two combined scenarios:
 
-- Fabric Ontology KS for governed business semantics.
-- MCP Server KS for dynamic tool-backed retrieval.
+- `mcp-search-index`: a GA Search Index KS plus a preview MCP Server KS in one preview KB.
+- `byo-fabric` and `full`: Fabric Ontology KS plus MCP Server KS.
+
+Use [MCP + Search Index Knowledge Base](24-mcp-search-index-kb.md) for the data-plane-only existing-index lifecycle. It proves Search Index and MCP independently through the same combined KB before allowing both source parameters in the final query.
 
 ## Validation Goal
 
@@ -17,6 +19,8 @@ Inspect:
 - Fabric ontology response
 - `references`
 - `sourceData`
+
+The `mcp-search-index` profile claims combined routing only from those fields. It never infers routing from the synthesized answer.
 
 ## REST Flow
 
@@ -35,6 +39,7 @@ samples/rest/08-retrieve-combined-airline-ops.http
 
 Good descriptions and retrieval instructions help source selection. Keep each source description specific:
 
+- Search Index source: domain content held in the existing agentic-ready index.
 - Fabric source: business entities, relationships, governed semantic terms.
 - MCP source: remote tool-backed documentation or operational API data.
 

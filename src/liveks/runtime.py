@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import os
 import re
 import subprocess
 import time
@@ -64,6 +65,54 @@ class CommandRunner:
         if check and result.returncode != 0:
             raise RuntimeError(f"Command failed ({result.returncode}): {' '.join(args)}\n{result.stdout[-3000:]}")
         return wrapped
+
+
+class EnvironmentOperationLock:
+    """Serialize lifecycle commands that update one environment ownership ledger."""
+
+    def __init__(self, path: Path) -> None:
+        self.path = path
+        self.handle: Any = None
+
+    def __enter__(self) -> "EnvironmentOperationLock":
+        self.path.parent.mkdir(parents=True, exist_ok=True)
+        self.handle = self.path.open("a+b")
+        self.handle.seek(0, os.SEEK_END)
+        if self.handle.tell() == 0:
+            self.handle.write(b"\0")
+            self.handle.flush()
+        self.handle.seek(0)
+        try:
+            if os.name == "nt":
+                import msvcrt
+
+                msvcrt.locking(self.handle.fileno(), msvcrt.LK_NBLCK, 1)
+            else:
+                import fcntl
+
+                fcntl.flock(self.handle.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
+        except OSError as error:
+            self.handle.close()
+            self.handle = None
+            raise RuntimeError("Another lifecycle operation is active for this environment.") from error
+        return self
+
+    def __exit__(self, exc_type: Any, exc_value: Any, traceback: Any) -> None:
+        if self.handle is None:
+            return
+        try:
+            if os.name == "nt":
+                import msvcrt
+
+                self.handle.seek(0)
+                msvcrt.locking(self.handle.fileno(), msvcrt.LK_UNLCK, 1)
+            else:
+                import fcntl
+
+                fcntl.flock(self.handle.fileno(), fcntl.LOCK_UN)
+        finally:
+            self.handle.close()
+            self.handle = None
 
 
 def parse_version(value: str) -> tuple[int, ...]:

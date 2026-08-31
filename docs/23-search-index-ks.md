@@ -114,7 +114,7 @@ Review the two generated objects and the reuse ownership statement, then type:
 create liveks-index
 ```
 
-`up` creates the Knowledge Source first, records ownership immediately, creates the Knowledge Base, and runs a stable extractive retrieve with the supplied content assertion. A partial failure leaves the successfully created object in the ignored lock so `down` can remove it safely.
+`up` journals each pending name before its conditional PUT, records the returned ETag, creates the Knowledge Source before the Knowledge Base, and runs a stable extractive retrieve with the supplied content assertion. A partial or ambiguous failure remains in the ignored lock for exact-definition reconciliation. An unchanged owned object is reused without another PUT; definition changes require cleanup and recreation. Every delete requires the recorded ETag, so a replaced object is preserved.
 
 Repeat verification with a non-sensitive query and known fact from the index:
 
@@ -167,7 +167,7 @@ Type `delete liveks-index`. Cleanup deletes the recorded Knowledge Base first an
 [PASS] search-index-preserved: The existing Search index remains readable after cleanup.
 ```
 
-If the lock is missing, mismatched, or invalid, cleanup returns `cleanup-incomplete` and preserves all named objects for manual review.
+If the lock is missing, mismatched, invalid, or lacks an ETag that can be reconciled to a pending exact definition, cleanup returns `cleanup-incomplete` and preserves the object for manual review.
 
 ## Stable Boundary
 
@@ -180,7 +180,7 @@ The stable lane intentionally uses:
 - Microsoft Entra bearer authentication,
 - BYO ownership for the Search service and index.
 
-Use `mcp-only`, `byo-fabric`, or `full` when you need preview `messages`, query planning, answer synthesis, MCP Server KS, or Fabric Ontology KS. Those profiles remain pinned to `2026-05-01-preview` and use a separate deployment contract.
+Use `mcp-search-index` to keep this GA Search Index KS contract while attaching it to a preview MCP Server KS and combined Knowledge Base. Use `mcp-only`, `byo-fabric`, or `full` when the accelerator should provision the preview stack. The preview objects and retrieve calls remain pinned to `2026-05-01-preview`.
 
 ## Microsoft Sources Of Truth
 

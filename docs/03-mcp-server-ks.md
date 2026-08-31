@@ -23,7 +23,7 @@ https://learn.microsoft.com/api/mcp
 
 ## One MCP Execution Contract
 
-Use `mcp-only` for the smallest end-to-end live deployment. It uses the public Microsoft Learn MCP endpoint, so no Fabric workspace or ontology is required. The sequence below moves from local payload evidence to live source evidence; `up` is the first command that mutates cloud state.
+Use `mcp-only` for the smallest end-to-end provisioned deployment. Use `mcp-search-index` when the Search service, agentic-ready index, and Azure OpenAI deployment already exist and only the two KS objects plus combined KB should be created. Both use the public Microsoft Learn MCP endpoint, so no Fabric workspace or ontology is required. The sequence below moves from local payload evidence to live source evidence; `up` is the first command that mutates cloud state.
 
 Use [Codespaces First Live](15-codespaces-first-live.md) when you want the supported Python, Node.js, Azure CLI, Bicep, and Azure Developer CLI versions preinstalled. Container creation does not authenticate or provision.
 
@@ -94,6 +94,8 @@ Use one acceptance table for the complete path:
 | Cleanup | `resource-group-absent=pass`. | Generated Azure resources for this environment were released. |
 
 The explicit `mcp` command persists counts only under ignored `deployments/liveks-mcp/`; it does not persist the query, response content, endpoint, key, or token.
+
+For the existing-index composition path, follow [MCP + Search Index Knowledge Base](24-mcp-search-index-kb.md). Its verifier uses the combined KB for an index-only retrieve, an MCP-only retrieve, and then a combined planner query. This ordering is the source proof; native MCP output alone cannot identify routing.
 
 When the evaluation is complete:
 
