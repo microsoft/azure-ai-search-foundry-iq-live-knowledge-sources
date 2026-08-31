@@ -44,6 +44,7 @@ class CommandRunner:
         check: bool = False,
         cwd: Path | None = None,
         timeout: int | None = None,
+        sensitive_output: bool = False,
     ) -> CommandResult:
         args = [str(part) for part in command]
         self.history.append(args)
@@ -57,7 +58,7 @@ class CommandRunner:
             timeout=timeout,
             check=False,
         )
-        if not self.quiet and result.stdout:
+        if not self.quiet and not sensitive_output and result.stdout:
             print(result.stdout, end="" if result.stdout.endswith("\n") else "\n")
         wrapped = CommandResult(args, result.returncode, result.stdout)
         if check and result.returncode != 0:

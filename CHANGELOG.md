@@ -6,6 +6,8 @@ All notable changes to this accelerator are documented here.
 
 ### Added
 
+- A generally available `search-index` profile for existing agentic-ready Azure AI Search indexes, with keyless doctor checks, stable payload planning, extractive retrieve verification, expected-term assertions, collision protection, lock-proved KS/KB ownership, and preserved-index cleanup evidence.
+- A source-backed Search Index execution manual that records the required YAML inputs, success and failure messages, stable API boundary, and official Microsoft Learn contracts.
 - A Codespaces and Dev Container first-live path with pinned Python, Node.js, Azure CLI, Bicep, and Azure Developer CLI tooling, plus a validation rule that prevents automatic cloud mutation during container creation.
 - A source-backed, identifier-free MCP-only live evidence sample and visual that distinguish a controlled live E2E pass from the canonical offline replay.
 - A stable-versus-preview API compatibility matrix covering source kinds, retrieve inputs, reasoning behavior, authentication, source authorization, and supported profiles.
@@ -30,7 +32,8 @@ All notable changes to this accelerator are documented here.
 
 ### Changed
 
-- README, manual home, and trace demo now lead with `30-second replay -> mcp-only first live -> Fabric expansion`; replay status and fixture badges explicitly say that no Azure call occurred.
+- README and runbook profile selection now place the stable existing-index lane between offline replay and preview MCP/Fabric deployment, while keeping the two API contracts fail-closed and separate.
+- README and manual home now lead with `30-second replay -> stable existing-index live -> preview MCP-only -> Fabric expansion`; replay status and fixture badges explicitly say that no Azure call occurred.
 - `search.api_version` and direct postprovision validation now fail closed on anything except the repository's tested `2026-05-01-preview` contract.
 - Local and Windows validation now execute the documented first-success command; a damaged known-answer, activity, reference, or source-identity fixture fails the same entry point shown to users.
 - The MCP Server guide now uses one payload-to-cleanup execution contract that distinguishes representative JSON, the resolved deployment dry-run, live retrieve evidence, and native Knowledge Base MCP content proof.
@@ -56,9 +59,10 @@ All notable changes to this accelerator are documented here.
 
 ### Compatibility
 
+- Search Index KS uses generally available `2026-04-01`, `intents`, and minimal extractive retrieval; MCP Server and Fabric Ontology profiles remain on `2026-05-01-preview` with `messages` and answer synthesis.
 - The Knowledge Base MCP tool accepts its documented `queries` input only; retrieve-only source-forcing parameters are not sent through MCP, so independent source proof uses the corresponding single-source Knowledge Base.
 - The checked-in Airline Ops terms are synthetic sample evidence and are not assumed to exist in an arbitrary BYO Fabric ontology; live assertions must match the connected ontology's own sanitized facts.
-- Azure AI Search Knowledge Source API remains pinned to `2026-05-01-preview`.
+- MCP Server and Fabric Ontology Knowledge Source APIs remain pinned to `2026-05-01-preview`; the Search Index profile is pinned separately to stable `2026-04-01`.
 - Python 3.11+, Azure Developer CLI 1.27.0+, and Node.js 22+ are required for live profiles.
 - Legacy dotenv input remains supported through `--env-file` and one-time `init --from-env` migration.
 

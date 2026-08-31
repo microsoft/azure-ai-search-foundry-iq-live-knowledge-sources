@@ -17,7 +17,7 @@ from liveks.runtime import CommandResult  # noqa: E402
 
 class LiveKsConfigTests(unittest.TestCase):
     def test_profiles_are_ordered_and_include_full(self):
-        self.assertEqual(available_profiles(), ["offline", "mcp-only", "byo-fabric", "full"])
+        self.assertEqual(available_profiles(), ["offline", "search-index", "mcp-only", "byo-fabric", "full"])
 
     def test_mcp_profile_resolves_to_azd_values(self):
         config = resolve_config(profile="mcp-only", environment="unit-mcp")

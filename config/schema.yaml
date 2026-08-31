@@ -4,7 +4,7 @@ environment_pattern: '^[A-Za-z][A-Za-z0-9-]{2,62}$'
 fields:
   deployment.mode:
     type: enum
-    values: [offline, mcp-only, byo-fabric, full]
+    values: [offline, search-index, mcp-only, byo-fabric, full]
     azd: DEPLOYMENT_MODE
   azure.location:
     type: string
@@ -46,8 +46,11 @@ fields:
     azd: AZURE_APP_SERVICE_SKU
   search.api_version:
     type: enum
-    values: [2026-05-01-preview]
+    values: ['2026-04-01', 2026-05-01-preview]
     azd: AZURE_SEARCH_API_VERSION
+  search.endpoint:
+    type: azure_search_url
+    optional: true
   search.sku:
     type: enum
     values: [basic, standard]
@@ -55,6 +58,21 @@ fields:
   search.index_name:
     type: string
     azd: AIRLINE_OPS_INDEX_NAME
+  search.semantic_configuration_name:
+    type: string
+    optional: true
+  search.search_fields:
+    type: string_list
+    optional: true
+  search.source_data_fields:
+    type: string_list
+    optional: true
+  search.index_knowledge_source_name:
+    type: string
+    optional: true
+  search.index_knowledge_base_name:
+    type: string
+    optional: true
   search.mcp_knowledge_source_name:
     type: string
     azd: MCP_KNOWLEDGE_SOURCE_NAME
@@ -154,8 +172,14 @@ legacy_env:
   AZURE_APP_SERVICE_SKU: azure.app_service_sku
   AZURE_SEARCH_API_VERSION: search.api_version
   SEARCH_API_VERSION: search.api_version
+  AZURE_SEARCH_ENDPOINT: search.endpoint
+  SEARCH_ENDPOINT: search.endpoint
   AZURE_SEARCH_SKU: search.sku
+  SEARCH_INDEX_NAME: search.index_name
   AIRLINE_OPS_INDEX_NAME: search.index_name
+  SEARCH_SEMANTIC_CONFIGURATION_NAME: search.semantic_configuration_name
+  SEARCH_INDEX_KNOWLEDGE_SOURCE_NAME: search.index_knowledge_source_name
+  SEARCH_INDEX_KNOWLEDGE_BASE_NAME: search.index_knowledge_base_name
   MCP_KNOWLEDGE_SOURCE_NAME: search.mcp_knowledge_source_name
   FABRIC_ONTOLOGY_KNOWLEDGE_SOURCE_NAME: search.fabric_knowledge_source_name
   MCP_ONLY_KNOWLEDGE_BASE_NAME: search.mcp_knowledge_base_name

@@ -7,7 +7,7 @@ This public accelerator demonstrates Foundry IQ composition across Azure AI Sear
 Follow this progression unless the user explicitly requests another profile:
 
 ```text
-offline -> mcp-only -> byo-fabric
+offline -> search-index (when an agentic-ready index exists) -> mcp-only -> byo-fabric
 ```
 
 `full` is a greenfield demo profile. It creates a billable Fabric F2 capacity and generated Fabric assets, so it requires explicit user intent and `--accept-fabric-capacity`.
@@ -31,7 +31,7 @@ Do not create cloud resources merely because credentials are available. `try`, `
 ## Configuration Authority
 
 - `config/schema.yaml` defines supported fields, validation, azd projection, secrets, and legacy mappings.
-- `profiles/offline.yaml`, `mcp-only.yaml`, `byo-fabric.yaml`, and `full.yaml` define executable defaults, resources, cost, and success criteria.
+- `profiles/offline.yaml`, `search-index.yaml`, `mcp-only.yaml`, `byo-fabric.yaml`, and `full.yaml` define executable defaults, resources, cost, and success criteria.
 - `.liveks/<environment>.yaml` is the ignored human-authored ledger.
 - `.liveks/<environment>.lock.json` is the ignored redacted resolution and ownership record.
 - `azd env` is generated deployment state, not the v2 authoring source.
@@ -40,6 +40,20 @@ Do not create cloud resources merely because credentials are available. `try`, `
 Unknown YAML fields fail closed. Secret fields must use `{env: VARIABLE_NAME}` and must never contain raw values.
 
 ## Live Lifecycle
+
+Stable existing-index lane:
+
+```bash
+./liveks init --profile search-index --env liveks-index
+# Fill the existing endpoint, index, semantic configuration, and optional field lists.
+./liveks doctor --env liveks-index
+./liveks plan --env liveks-index
+./liveks up --env liveks-index --query "<question>" --expect-term "<known term>"
+./liveks verify --env liveks-index --query "<question>" --expect-term "<known term>"
+./liveks down --env liveks-index
+```
+
+Preview deployment lane:
 
 ```bash
 ./liveks init --profile mcp-only --env liveks-mcp
@@ -62,6 +76,7 @@ Rules:
 
 ## Ownership Rules
 
+- `search-index`: Search service and index are reused and must be preserved; only a matching lock can authorize deletion of the generated KS and KB.
 - `mcp-only`: generated Azure assets may be deleted; no Fabric assets are owned.
 - `byo-fabric`: generated Azure assets may be deleted; Fabric capacity, workspace, and ontology must be preserved.
 - `full`: generated Azure and Fabric assets may be deleted.
@@ -78,6 +93,8 @@ Use the evidence that matches the claim:
 | --- | --- |
 | Repository is internally consistent | `bash scripts/validate-local.sh` |
 | Offline response shape | `./liveks try --details` |
+| Stable Search Index path is live | `liveks verify` reports `search-index-retrieve=pass`; use `--expect-term` for content acceptance |
+| Existing Search index survived cleanup | `liveks down` reports `search-index-preserved=pass` |
 | Deployment is ready | Passing `liveks doctor` and `liveks plan` |
 | MCP path is live | MCP activity or references from `liveks verify` |
 | Fabric path is live | `fabricOntology` evidence in live mode with delegated authorization |
@@ -104,6 +121,6 @@ The supported Fabric pattern is native Fabric Ontology Knowledge Source. The che
 
 ## Source Of Truth
 
-Azure AI Search Knowledge Source APIs are public preview and pinned here to `2026-05-01-preview`. Keep the official Microsoft Learn articles for MCP Server KS, Fabric Ontology KS, Knowledge Base creation, and retrieve behavior as the API source of truth.
+The Search Index lane is generally available and pinned to `2026-04-01`. MCP Server and Fabric Ontology lanes are public preview and pinned to `2026-05-01-preview`. Keep the official Microsoft Learn articles for Search Index KS, MCP Server KS, Fabric Ontology KS, Knowledge Base creation, and retrieve behavior as the API source of truth.
 
 When live behavior differs from replay, state that replay demonstrates response shape only. Summarize live evidence using sanitized status, source names, counts, and cleanup outcome.

@@ -31,10 +31,18 @@ from .config import (
 )
 from .evidence import generated_at, repository_revision, runtime_summary, sha256_file, write_json
 from .runtime import CommandRunner, http_json, http_mcp_json, parse_azd_values, parse_version
+from .search_index import (
+    acquire_bearer_token as acquire_search_bearer_token,
+    build_payloads as build_search_index_payloads,
+    inspect_index,
+    object_path as search_object_path,
+    request as search_index_request,
+    response_text as search_index_response_text,
+)
 
 
 ROOT = Path(__file__).resolve().parents[2]
-LIVE_PROFILES = {"mcp-only", "byo-fabric", "full"}
+LIVE_PROFILES = {"search-index", "mcp-only", "byo-fabric", "full"}
 GENERATED_FABRIC_AZD_KEYS = (
     "FABRIC_CAPACITY_ID",
     "FABRIC_CAPACITY_ARM_ID",
@@ -104,7 +112,7 @@ def _sanitized_e2e_checks(report: dict[str, Any]) -> list[dict[str, Any]]:
             source_types = check.get("sourceTypes")
             if isinstance(source_types, list):
                 safe_check["sourceTypes"] = sorted(
-                    {str(item) for item in source_types if item in {"fabricOntology", "mcpServer"}}
+                    {str(item) for item in source_types if item in {"fabricOntology", "mcpServer", "searchIndex"}}
                 )
             checks.append(safe_check)
     return checks
@@ -131,6 +139,8 @@ def _write_e2e_evidence_capsule(
         source_types.append("fabricOntology")
     if "mcp-retrieve" in successful_names:
         source_types.append("mcpServer")
+    if "search-index-retrieve" in successful_names:
+        source_types.append("searchIndex")
     mcp_status = next(
         (str(check["status"]) for check in checks if check["name"] == "knowledge-base-mcp"),
         "not-run",
@@ -154,11 +164,19 @@ def _write_e2e_evidence_capsule(
             "cleanupRequested": cleanup_requested,
         },
         "runtime": runtime_summary(),
-        "declaredContracts": {
-            "mcpServerKnowledgeSourceTransport": "remote-https",
-            "knowledgeBaseMcpTransport": "stateless-json-rpc-http",
-            "liveGrounding": "protected-integration",
-        },
+        "declaredContracts": (
+            {
+                "searchIndexKnowledgeSource": "2026-04-01-stable",
+                "retrieval": "minimal-extractive",
+                "existingIndexOwnership": "reuse",
+            }
+            if config.profile == "search-index"
+            else {
+                "mcpServerKnowledgeSourceTransport": "remote-https",
+                "knowledgeBaseMcpTransport": "stateless-json-rpc-http",
+                "liveGrounding": "protected-integration",
+            }
+        ),
         "observedEvidence": {
             "sourceTypes": sorted(source_types),
             "knowledgeBaseMcp": mcp_status,
@@ -269,6 +287,66 @@ def _command_version(command: list[str], config: ResolvedConfig) -> tuple[int, s
     return result.returncode, result.stdout.strip()
 
 
+def _search_index_doctor_checks(config: ResolvedConfig) -> list[dict[str, Any]]:
+    checks: list[dict[str, Any]] = []
+    if not shutil.which("az"):
+        return checks
+    runner = CommandRunner(root=ROOT, env=config.child_env(), quiet=True)
+    account = runner.run(["az", "account", "show", "-o", "json"])
+    account_data: dict[str, Any] = {}
+    if account.returncode == 0:
+        try:
+            account_data = json.loads(account.stdout)
+        except json.JSONDecodeError:
+            pass
+    checks.append(
+        _check(
+            "azure-login",
+            "pass" if account_data.get("id") else "fail",
+            "Azure CLI account is active" if account_data.get("id") else "Run az login for the target tenant",
+        )
+    )
+
+    configured_tenant = str(config.get("azure.tenant_id", ""))
+    configured_subscription = str(config.get("azure.subscription_id", ""))
+    if configured_tenant:
+        matches = configured_tenant == str(account_data.get("tenantId", ""))
+        checks.append(_check("tenant-match", "pass" if matches else "fail", "Configured tenant matches Azure CLI" if matches else "Configured tenant differs from Azure CLI"))
+    if configured_subscription:
+        matches = configured_subscription == str(account_data.get("id", ""))
+        checks.append(_check("subscription-match", "pass" if matches else "fail", "Configured subscription matches Azure CLI" if matches else "Configured subscription differs from Azure CLI"))
+    if not account_data.get("id"):
+        return checks
+
+    try:
+        token = acquire_search_bearer_token(runner)
+        checks.append(_check("search-auth", "pass", "A transient Azure AI Search bearer token was acquired."))
+        status_code, index = search_index_request(
+            config,
+            token,
+            method="GET",
+            path=search_object_path("indexes", str(config.get("search.index_name"))),
+            timeout=30,
+        )
+    except Exception:
+        checks.append(_check("search-index", "fail", "The configured Search index could not be read with the current identity."))
+        return checks
+
+    index_ready = status_code == 200
+    checks.append(
+        _check(
+            "search-index",
+            "pass" if index_ready else "fail",
+            "The existing Search index is readable."
+            if index_ready
+            else f"Azure AI Search returned HTTP {status_code} for the configured index.",
+        )
+    )
+    if index_ready:
+        checks.extend(_check(name, status, message) for name, status, message in inspect_index(index, config))
+    return checks
+
+
 def doctor_report(config: ResolvedConfig, *, cloud: bool = True) -> dict[str, Any]:
     checks: list[dict[str, Any]] = []
     required_tools = list(config.manifest.get("required_tools", []))
@@ -290,7 +368,9 @@ def doctor_report(config: ResolvedConfig, *, cloud: bool = True) -> dict[str, An
         ready = code == 0 and parse_version(output) >= (22, 0, 0)
         checks.append(_check("node-version", "pass" if ready else "fail", f"{output} (requires 22+)"))
 
-    if config.profile in LIVE_PROFILES and cloud:
+    if config.profile == "search-index" and cloud:
+        checks.extend(_search_index_doctor_checks(config))
+    elif config.profile in LIVE_PROFILES and cloud:
         runner = CommandRunner(root=ROOT, env=config.child_env(), quiet=True)
         account = runner.run(["az", "account", "show", "-o", "json"])
         account_data: dict[str, Any] = {}
@@ -372,6 +452,143 @@ def doctor_report(config: ResolvedConfig, *, cloud: bool = True) -> dict[str, An
     )
 
 
+def _search_index_lock_state(config: ResolvedConfig) -> tuple[dict[str, str], bool, str]:
+    try:
+        lock = _load_lock(config.environment)
+    except ConfigError as error:
+        return {}, False, f"invalid environment lock: {error}"
+    if lock is None:
+        return {}, True, "environment lock is not present"
+
+    managed = lock.get("managedObjects")
+    managed_objects = {
+        str(key): str(value)
+        for key, value in managed.items()
+        if isinstance(managed, dict) and key in {"knowledgeSource", "knowledgeBase"} and value
+    } if isinstance(managed, dict) else {}
+    matches = (
+        lock.get("profile") == config.profile
+        and lock.get("environment") == config.environment
+        and lock.get("configDigest") == config.config_digest
+    )
+    return managed_objects, matches, "matching environment lock" if matches else "environment lock does not match the resolved configuration"
+
+
+def _search_index_plan_report(config: ResolvedConfig, checks: list[dict[str, Any]]) -> dict[str, Any]:
+    managed, lock_matches, lock_message = _search_index_lock_state(config)
+    if managed and not lock_matches:
+        checks.append(
+            _check(
+                "environment-lock",
+                "fail",
+                "A different configuration owns generated Search objects; use its original ledger for cleanup before planning again.",
+            )
+        )
+        return envelope(
+            "plan",
+            "fail",
+            profile=config.profile,
+            environment=config.environment,
+            checks=checks,
+            resources=config.manifest.get("resources", []),
+            nextActions=["Restore the original environment ledger and run liveks down."],
+        )
+    checks.append(_check("environment-lock", "pass", lock_message))
+
+    payloads = build_search_index_payloads(
+        config,
+        query="What information is available in this index?",
+    )
+    knowledge_source = payloads["knowledgeSource"]
+    knowledge_base = payloads["knowledgeBase"]
+    retrieve = payloads["retrieve"]
+    payload_ready = (
+        knowledge_source.get("kind") == "searchIndex"
+        and "searchIndexParameters" in knowledge_source
+        and not {"models", "outputMode", "retrievalReasoningEffort"}.intersection(knowledge_base)
+        and "intents" in retrieve
+        and "messages" not in retrieve
+    )
+    checks.append(
+        _check(
+            "stable-payload-contract",
+            "pass" if payload_ready else "fail",
+            "Search Index KS, extractive Knowledge Base, and intents retrieve payloads match the stable lane."
+            if payload_ready
+            else "The stable payload contract is internally inconsistent.",
+        )
+    )
+
+    runner = CommandRunner(root=ROOT, env=config.child_env(), quiet=True)
+    try:
+        token = acquire_search_bearer_token(runner)
+        names = {
+            "knowledgeSource": ("knowledgesources", str(config.get("search.index_knowledge_source_name"))),
+            "knowledgeBase": ("knowledgebases", str(config.get("search.index_knowledge_base_name"))),
+        }
+        for label, (kind, name) in names.items():
+            status_code, _ = search_index_request(
+                config,
+                token,
+                method="GET",
+                path=search_object_path(kind, name),
+                timeout=30,
+            )
+            collision = status_code == 200 and managed.get(label) != name
+            ready = status_code == 404 or (status_code == 200 and not collision)
+            checks.append(
+                _check(
+                    f"{label}-name",
+                    "pass" if ready else "fail",
+                    "Name is available."
+                    if status_code == 404
+                    else "Existing object is owned by this environment."
+                    if ready
+                    else "An existing unowned object uses this name; choose another environment or explicit name.",
+                )
+            )
+    except Exception:
+        checks.append(_check("search-object-collision-check", "fail", "Existing Search object names could not be checked."))
+
+    output_dir = ROOT / ".deployment" / config.environment
+    output_dir.mkdir(parents=True, exist_ok=True)
+    payload_path = output_dir / "search-index-plan.json"
+    write_json(
+        payload_path,
+        {
+            "schemaVersion": 1,
+            "apiVersion": config.get("search.api_version"),
+            "payloads": payloads,
+            "ownership": config.ownership(),
+        },
+    )
+    status = "fail" if any(check["status"] == "fail" for check in checks) else "warn" if any(check["status"] in {"warn", "unknown"} for check in checks) else "pass"
+    lock = write_lock(
+        config,
+        status="planned" if status != "fail" else "plan-failed",
+        extra={
+            "checks": checks,
+            "resources": config.manifest.get("resources", []),
+            "estimatedDuration": config.manifest.get("estimated_duration"),
+            "cost": config.manifest.get("cost"),
+            "managedObjects": managed,
+        },
+    )
+    return envelope(
+        "plan",
+        status,
+        profile=config.profile,
+        environment=config.environment,
+        checks=checks,
+        resources=config.manifest.get("resources", []),
+        cost=config.manifest.get("cost"),
+        estimatedDuration=config.manifest.get("estimated_duration"),
+        ownership=config.ownership(),
+        artifacts=[_display_path(lock), _display_path(payload_path)],
+        nextActions=[f"Run ./liveks up --env {config.environment}" if status != "fail" else "Fix plan failures before creating Search objects"],
+    )
+
+
 def plan_report(
     config: ResolvedConfig,
     *,
@@ -387,6 +604,9 @@ def plan_report(
     if config.profile == "offline":
         lock = write_lock(config, status="planned", extra={"checks": checks})
         return envelope("plan", "pass", profile=config.profile, environment=config.environment, checks=checks, resources=[], cost=config.manifest.get("cost"), estimatedDuration=config.manifest.get("estimated_duration"), artifacts=[_display_path(lock)], nextActions=["Run ./liveks try"])
+
+    if config.profile == "search-index":
+        return _search_index_plan_report(config, checks)
 
     output_dir = ROOT / ".deployment" / config.environment
     output_dir.mkdir(parents=True, exist_ok=True)
@@ -464,6 +684,126 @@ def _confirm_up(config: ResolvedConfig, *, yes: bool, accept_fabric_capacity: bo
         raise PermissionError("Provisioning confirmation was not provided.")
 
 
+def _search_index_up_report(
+    config: ResolvedConfig,
+    *,
+    yes: bool,
+    quiet: bool,
+    query: str | None,
+    expected_terms: list[str] | None,
+) -> dict[str, Any]:
+    plan = plan_report(config, quiet=True)
+    if plan["status"] == "fail":
+        return {**plan, "command": "up"}
+
+    checks = list(plan.get("checks", []))
+    managed, lock_matches, _ = _search_index_lock_state(config)
+    if not lock_matches:
+        return envelope(
+            "up",
+            "fail",
+            profile=config.profile,
+            environment=config.environment,
+            checks=checks + [_check("environment-lock", "fail", "The planned lock no longer matches the resolved configuration.")],
+        )
+    runner = CommandRunner(root=ROOT, env=config.child_env(), quiet=quiet)
+    payloads = build_search_index_payloads(config, query="What information is available in this index?")
+    try:
+        _confirm_up(config, yes=yes, accept_fabric_capacity=False, creates_capacity=False)
+        token = acquire_search_bearer_token(runner)
+        objects = [
+            (
+                "knowledgeSource",
+                "knowledgesources",
+                str(config.get("search.index_knowledge_source_name")),
+                payloads["knowledgeSource"],
+            ),
+            (
+                "knowledgeBase",
+                "knowledgebases",
+                str(config.get("search.index_knowledge_base_name")),
+                payloads["knowledgeBase"],
+            ),
+        ]
+        for label, kind, name, body in objects:
+            existing_code, _ = search_index_request(
+                config,
+                token,
+                method="GET",
+                path=search_object_path(kind, name),
+                timeout=30,
+            )
+            if existing_code == 200 and managed.get(label) != name:
+                raise RuntimeError(f"Refusing to overwrite an unowned {label}.")
+            if existing_code not in {200, 404}:
+                raise RuntimeError(f"Unable to check the target {label} name (HTTP {existing_code}).")
+            status_code, _ = search_index_request(
+                config,
+                token,
+                method="PUT",
+                path=search_object_path(kind, name),
+                body=body,
+            )
+            if status_code not in {200, 201}:
+                raise RuntimeError(f"Creating {label} failed (HTTP {status_code}).")
+            managed[label] = name
+            checks.append(_check(f"create-{label}", "pass", f"Generated {label} is ready."))
+            write_lock(
+                config,
+                status="deployment-in-progress",
+                extra={"checks": checks, "managedObjects": managed},
+            )
+
+        verified = verify_report(
+            config,
+            quiet=True,
+            query=query,
+            expected_terms=expected_terms,
+        )
+        checks.extend(verified.get("checks", []))
+        status = "pass" if verified.get("status") == "pass" else "fail"
+        lock = write_lock(
+            config,
+            status="deployed" if status == "pass" else "verification-failed",
+            extra={"checks": checks, "managedObjects": managed},
+        )
+        return envelope(
+            "up",
+            status,
+            profile=config.profile,
+            environment=config.environment,
+            checks=checks,
+            ownership=config.ownership(),
+            artifacts=[_display_path(lock)],
+            nextActions=[f"Run ./liveks down --env {config.environment} when finished"],
+        )
+    except PermissionError as error:
+        return envelope(
+            "up",
+            "confirmation-required",
+            profile=config.profile,
+            environment=config.environment,
+            checks=checks + [_check("confirmation", "fail", str(error))],
+            nextActions=["Review the plan and provide confirmation."],
+        )
+    except Exception as error:
+        lock = write_lock(
+            config,
+            status="deployment-failed",
+            extra={"checks": checks, "managedObjects": managed, "error": str(error)},
+        )
+        return envelope(
+            "up",
+            "fail",
+            profile=config.profile,
+            environment=config.environment,
+            checks=checks + [_check("deployment", "fail", str(error))],
+            ownership=config.ownership(),
+            artifacts=[_display_path(lock)],
+            nextActions=[f"Run ./liveks down --env {config.environment} --yes to remove only recorded generated objects"],
+        )
+
+
 def up_report(
     config: ResolvedConfig,
     *,
@@ -473,7 +813,17 @@ def up_report(
     skip_app_build: bool = False,
     skip_dry_run: bool = False,
     postprovision_only: bool = False,
+    query: str | None = None,
+    expected_terms: list[str] | None = None,
 ) -> dict[str, Any]:
+    if config.profile == "search-index":
+        return _search_index_up_report(
+            config,
+            yes=yes,
+            quiet=quiet,
+            query=query,
+            expected_terms=expected_terms,
+        )
     plan = plan_report(config, quiet=True, skip_app_build=skip_app_build, skip_dry_run=skip_dry_run)
     if plan["status"] == "fail":
         return {**plan, "command": "up"}
@@ -617,6 +967,23 @@ def mcp_report(
             profile=config.profile,
             environment=config.environment,
             checks=[_check("deployment", "fail", "A deployed live profile is required for an MCP call.")],
+        )
+        if persist:
+            _persist_mcp_report(config, report)
+        return report
+    if config.profile == "search-index":
+        report = envelope(
+            "mcp",
+            "fail",
+            profile=config.profile,
+            environment=config.environment,
+            checks=[
+                _check(
+                    "profile-contract",
+                    "fail",
+                    "The stable search-index profile validates the REST retrieve path; use liveks verify. MCP is available in the preview deployment profiles.",
+                )
+            ],
         )
         if persist:
             _persist_mcp_report(config, report)
@@ -820,10 +1187,163 @@ def mcp_report(
     return report
 
 
-def verify_report(config: ResolvedConfig, *, quiet: bool = False) -> dict[str, Any]:
+def _search_index_verify_report(
+    config: ResolvedConfig,
+    *,
+    quiet: bool,
+    query: str | None,
+    expected_terms: list[str] | None,
+) -> dict[str, Any]:
+    checks: list[dict[str, Any]] = []
+    runner = CommandRunner(root=ROOT, env=config.child_env(), quiet=quiet)
+    try:
+        token = acquire_search_bearer_token(runner)
+    except Exception:
+        return envelope(
+            "verify",
+            "fail",
+            profile=config.profile,
+            environment=config.environment,
+            checks=[_check("search-auth", "fail", "Unable to acquire a transient Azure AI Search bearer token.")],
+        )
+
+    object_contracts = [
+        ("search-index", "indexes", str(config.get("search.index_name"))),
+        ("search-index-knowledge-source", "knowledgesources", str(config.get("search.index_knowledge_source_name"))),
+        ("search-index-knowledge-base", "knowledgebases", str(config.get("search.index_knowledge_base_name"))),
+    ]
+    objects: dict[str, Any] = {}
+    for label, kind, name in object_contracts:
+        try:
+            status_code, payload = search_index_request(
+                config,
+                token,
+                method="GET",
+                path=search_object_path(kind, name),
+                timeout=30,
+            )
+        except Exception:
+            status_code, payload = 0, {}
+        objects[label] = payload
+        checks.append(
+            _check(
+                label,
+                "pass" if status_code == 200 else "fail",
+                "Object is readable." if status_code == 200 else f"Object read failed (HTTP {status_code or 'unavailable'}).",
+            )
+        )
+
+    knowledge_source = objects.get("search-index-knowledge-source")
+    source_parameters = knowledge_source.get("searchIndexParameters", {}) if isinstance(knowledge_source, dict) else {}
+    source_matches = (
+        isinstance(knowledge_source, dict)
+        and knowledge_source.get("kind") == "searchIndex"
+        and source_parameters.get("searchIndexName") == config.get("search.index_name")
+        and source_parameters.get("semanticConfigurationName") == config.get("search.semantic_configuration_name")
+    )
+    checks.append(
+        _check(
+            "knowledge-source-contract",
+            "pass" if source_matches else "fail",
+            "Knowledge Source references the configured existing index and semantic configuration."
+            if source_matches
+            else "Knowledge Source definition does not match the configured index contract.",
+        )
+    )
+
+    knowledge_base = objects.get("search-index-knowledge-base")
+    source_names = {
+        str(item.get("name"))
+        for item in knowledge_base.get("knowledgeSources", [])
+        if isinstance(knowledge_base, dict) and isinstance(item, dict) and item.get("name")
+    } if isinstance(knowledge_base, dict) else set()
+    stable_kb = (
+        config.get("search.index_knowledge_source_name") in source_names
+        and not {"models", "outputMode", "retrievalReasoningEffort"}.intersection(knowledge_base or {})
+    )
+    checks.append(
+        _check(
+            "knowledge-base-contract",
+            "pass" if stable_kb else "fail",
+            "Knowledge Base uses the generated source without preview-only properties."
+            if stable_kb
+            else "Knowledge Base definition does not match the stable extractive contract.",
+        )
+    )
+
+    effective_query = query or "What information is available in this index?"
+    payloads = build_search_index_payloads(config, query=effective_query)
+    try:
+        retrieve_code, retrieve_payload = search_index_request(
+            config,
+            token,
+            method="POST",
+            path=f"{search_object_path('knowledgebases', str(config.get('search.index_knowledge_base_name')))}/retrieve",
+            body=payloads["retrieve"],
+            attempts=2,
+        )
+    except Exception:
+        retrieve_code, retrieve_payload = 0, {}
+    text_content = search_index_response_text(retrieve_payload)
+    retrieve_ok = retrieve_code == 200 and bool(text_content) and _response_has_evidence(retrieve_payload, "searchIndex")
+    checks.append(
+        _check(
+            "search-index-retrieve",
+            "pass" if retrieve_ok else "fail",
+            "Stable retrieve returned extracted content and searchIndex activity or reference evidence."
+            if retrieve_ok
+            else f"Stable retrieve did not return the required evidence (HTTP {retrieve_code or 'unavailable'}).",
+        )
+    )
+
+    terms = expected_terms or []
+    if terms:
+        folded = text_content.casefold()
+        matched = sum(1 for term in terms if term.casefold() in folded)
+        checks.append(
+            _check(
+                "grounding-content",
+                "pass" if matched == len(terms) else "fail",
+                f"Extracted content matched {matched}/{len(terms)} expected term(s).",
+                expectedTermCount=len(terms),
+                matchedExpectedTermCount=matched,
+            )
+        )
+
+    status = "fail" if any(check["status"] == "fail" for check in checks) else "pass"
+    report = envelope(
+        "verify",
+        status,
+        profile=config.profile,
+        environment=config.environment,
+        checks=checks,
+        nextActions=[f"Run ./liveks down --env {config.environment} when finished"],
+    )
+    report_dir = ROOT / "deployments" / config.environment
+    report_dir.mkdir(parents=True, exist_ok=True)
+    report_path = report_dir / "verify-report.json"
+    report_path.write_text(json.dumps(report, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+    report["artifacts"] = [_display_path(report_path)]
+    return report
+
+
+def verify_report(
+    config: ResolvedConfig,
+    *,
+    quiet: bool = False,
+    query: str | None = None,
+    expected_terms: list[str] | None = None,
+) -> dict[str, Any]:
     if config.profile == "offline":
         result = subprocess.run([sys.executable, "tools/try_offline.py", "--format", "json"], cwd=ROOT, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, check=False)
         return envelope("verify", "pass" if result.returncode == 0 else "fail", profile=config.profile, environment=config.environment, checks=[_check("offline-replay", "pass" if result.returncode == 0 else "fail", "combined trace inspected" if result.returncode == 0 else result.stdout)])
+    if config.profile == "search-index":
+        return _search_index_verify_report(
+            config,
+            quiet=quiet,
+            query=query,
+            expected_terms=expected_terms,
+        )
 
     runner = CommandRunner(root=ROOT, env=config.child_env(), quiet=quiet)
     checks: list[dict[str, Any]] = []
@@ -989,7 +1509,121 @@ def _cleanup_ownership(config: ResolvedConfig) -> tuple[dict[str, str], str]:
     return effective, "resolved configuration + environment lock"
 
 
+def _search_index_down_report(config: ResolvedConfig, *, yes: bool, quiet: bool) -> dict[str, Any]:
+    if not yes:
+        expected = f"delete {config.environment}"
+        answer = input(f"Type '{expected}' to delete generated resources: ").strip()
+        if answer != expected:
+            return envelope(
+                "down",
+                "confirmation-required",
+                profile=config.profile,
+                environment=config.environment,
+                checks=[_check("confirmation", "fail", "Cleanup cancelled")],
+            )
+
+    managed, lock_matches, lock_message = _search_index_lock_state(config)
+    if not lock_matches or lock_message != "matching environment lock":
+        return envelope(
+            "down",
+            "cleanup-incomplete",
+            profile=config.profile,
+            environment=config.environment,
+            checks=[
+                _check(
+                    "ownership",
+                    "warn",
+                    "Generated Search object ownership cannot be proven; the existing service, index, and all named objects were preserved.",
+                )
+            ],
+            ownership=config.ownership(),
+            nextActions=["Restore the matching environment lock before cleanup."],
+        )
+
+    checks = [_check("ownership", "pass", "Matching configuration and lock prove the generated object names.")]
+    runner = CommandRunner(root=ROOT, env=config.child_env(), quiet=quiet)
+    try:
+        token = acquire_search_bearer_token(runner)
+    except Exception:
+        return envelope(
+            "down",
+            "cleanup-incomplete",
+            profile=config.profile,
+            environment=config.environment,
+            checks=checks + [_check("search-auth", "fail", "Unable to acquire a transient Azure AI Search bearer token.")],
+            ownership=config.ownership(),
+        )
+
+    remaining = dict(managed)
+    for label, kind in (("knowledgeBase", "knowledgebases"), ("knowledgeSource", "knowledgesources")):
+        name = managed.get(label)
+        if not name:
+            checks.append(_check(f"delete-{label}", "pass", "No generated object is recorded."))
+            continue
+        try:
+            status_code, _ = search_index_request(
+                config,
+                token,
+                method="DELETE",
+                path=search_object_path(kind, name),
+                timeout=60,
+            )
+        except Exception:
+            status_code = 0
+        deleted = status_code in {200, 202, 204, 404}
+        checks.append(
+            _check(
+                f"delete-{label}",
+                "pass" if deleted else "fail",
+                "Generated object is absent."
+                if deleted
+                else f"Generated object deletion failed (HTTP {status_code or 'unavailable'}).",
+            )
+        )
+        if deleted:
+            remaining.pop(label, None)
+
+    try:
+        index_code, _ = search_index_request(
+            config,
+            token,
+            method="GET",
+            path=search_object_path("indexes", str(config.get("search.index_name"))),
+            timeout=30,
+        )
+    except Exception:
+        index_code = 0
+    checks.append(
+        _check(
+            "search-index-preserved",
+            "pass" if index_code == 200 else "fail",
+            "The existing Search index remains readable after cleanup."
+            if index_code == 200
+            else f"The existing Search index could not be confirmed after cleanup (HTTP {index_code or 'unavailable'}).",
+        )
+    )
+
+    status = "pass" if not remaining and all(check["status"] != "fail" for check in checks) else "cleanup-incomplete"
+    lock = write_lock(
+        config,
+        status="cleaned" if status == "pass" else "cleanup-incomplete",
+        extra={"checks": checks, "managedObjects": remaining},
+    )
+    return envelope(
+        "down",
+        status,
+        profile=config.profile,
+        environment=config.environment,
+        checks=checks,
+        ownership=config.ownership(),
+        artifacts=[_display_path(lock)],
+        nextActions=[] if status == "pass" else ["Retry cleanup after resolving the failed generated-object deletion."],
+    )
+
+
 def down_report(config: ResolvedConfig, *, yes: bool, quiet: bool = False) -> dict[str, Any]:
+    if config.profile == "search-index":
+        return _search_index_down_report(config, yes=yes, quiet=quiet)
     checks: list[dict[str, Any]] = []
     if not yes:
         expected = f"delete {config.environment}"
@@ -1257,7 +1891,7 @@ def build_parser() -> argparse.ArgumentParser:
     try_parser.add_argument("--evidence-out", type=Path)
 
     init_parser = subparsers.add_parser("init", help="Create an ignored YAML environment ledger.")
-    init_parser.add_argument("--profile", choices=["mcp-only", "byo-fabric", "full"], required=True)
+    init_parser.add_argument("--profile", choices=["search-index", "mcp-only", "byo-fabric", "full"], required=True)
     init_parser.add_argument("--env", dest="environment", required=True)
     init_parser.add_argument("--config", type=Path)
     init_parser.add_argument("--from-env", type=Path)
@@ -1274,8 +1908,12 @@ def build_parser() -> argparse.ArgumentParser:
     up_parser.add_argument("--skip-app-build", action="store_true", help=argparse.SUPPRESS)
     up_parser.add_argument("--skip-dry-run", action="store_true", help=argparse.SUPPRESS)
     up_parser.add_argument("--postprovision-only", action="store_true", help=argparse.SUPPRESS)
+    up_parser.add_argument("--query", help="Runtime acceptance query for the search-index profile.")
+    up_parser.add_argument("--expect-term", action="append", default=[], help="Expected non-sensitive term for search-index content acceptance; repeatable.")
     verify_parser = subparsers.add_parser("verify", help="Verify deployed resources and retrieve evidence.")
     _common_config_args(verify_parser, require_env=False)
+    verify_parser.add_argument("--query")
+    verify_parser.add_argument("--expect-term", action="append", default=[])
     mcp_parser = subparsers.add_parser("mcp", help="Call a deployed Knowledge Base through its MCP endpoint.")
     _common_config_args(mcp_parser, require_env=True)
     mcp_parser.add_argument("--query")
@@ -1293,6 +1931,8 @@ def build_parser() -> argparse.ArgumentParser:
     e2e_parser.add_argument("--keep-resources", action="store_true")
     e2e_parser.add_argument("--yes", action="store_true")
     e2e_parser.add_argument("--accept-fabric-capacity", action="store_true")
+    e2e_parser.add_argument("--query", help="Runtime acceptance query for the search-index profile.")
+    e2e_parser.add_argument("--expect-term", action="append", default=[], help="Expected non-sensitive term for search-index content acceptance; repeatable.")
     return parser
 
 
@@ -1355,7 +1995,15 @@ def main(argv: list[str] | None = None) -> int:
                 _init_from_legacy(args.from_env, args.profile, args.environment, destination)
             else:
                 write_user_config(destination, profile=args.profile, environment=args.environment)
-            report = envelope("init", "pass", profile=args.profile, environment=args.environment, artifacts=[str(destination.relative_to(ROOT))], nextActions=[f"Review {destination.relative_to(ROOT)}, then run ./liveks doctor --env {args.environment}"])
+            display_destination = _display_path(destination)
+            report = envelope(
+                "init",
+                "pass",
+                profile=args.profile,
+                environment=args.environment,
+                artifacts=[display_destination],
+                nextActions=[f"Review {display_destination}, then run ./liveks doctor --env {args.environment}"],
+            )
             emit(report, args.format)
             return 0
 
@@ -1373,9 +2021,16 @@ def main(argv: list[str] | None = None) -> int:
                 skip_app_build=args.skip_app_build,
                 skip_dry_run=args.skip_dry_run,
                 postprovision_only=args.postprovision_only,
+                query=args.query,
+                expected_terms=args.expect_term,
             )
         elif args.command == "verify":
-            report = verify_report(config, quiet=args.format == "json")
+            report = verify_report(
+                config,
+                quiet=args.format == "json",
+                query=args.query,
+                expected_terms=args.expect_term,
+            )
         elif args.command == "mcp":
             report = mcp_report(
                 config,
@@ -1391,7 +2046,14 @@ def main(argv: list[str] | None = None) -> int:
         elif args.command == "e2e":
             if args.cleanup == args.keep_resources:
                 raise ConfigError("Choose exactly one of --cleanup or --keep-resources.")
-            up = up_report(config, yes=args.yes, accept_fabric_capacity=args.accept_fabric_capacity, quiet=args.format == "json")
+            up = up_report(
+                config,
+                yes=args.yes,
+                accept_fabric_capacity=args.accept_fabric_capacity,
+                quiet=args.format == "json",
+                query=args.query,
+                expected_terms=args.expect_term,
+            )
             cleanup: dict[str, Any] | None = None
             if args.cleanup:
                 cleanup = down_report(config, yes=True, quiet=args.format == "json")

@@ -18,6 +18,7 @@ from liveks.config import flatten, load_yaml  # noqa: E402
 
 PROFILE_TARGETS = {
     "offline": ROOT / "env/offline.env.example",
+    "search-index": ROOT / "env/search-index.env.example",
     "mcp-only": ROOT / "env/mcp-only.env.example",
     "byo-fabric": ROOT / "env/byo-fabric.env.example",
     "full": ROOT / "env/full.env.example",
@@ -51,6 +52,8 @@ def profile_values(name: str) -> tuple[dict[str, Any], dict[str, Any]]:
 def render_profile(name: str) -> str:
     schema, values = profile_values(name)
     reverse = {path: env_name for env_name, path in schema["legacy_env"].items() if env_name not in {"SEARCH_API_VERSION"}}
+    if name == "search-index":
+        reverse["search.index_name"] = "SEARCH_INDEX_NAME"
     lines = [
         f"# Generated legacy compatibility example for {name}.",
         "# Source of truth: config/schema.yaml and profiles/*.yaml.",
@@ -74,6 +77,7 @@ def render_catalog() -> str:
         "# Generated legacy environment catalog.",
         "# Source of truth: config/schema.yaml and profiles/*.yaml.",
         "# Prefer .liveks/<env>.yaml created by ./liveks init.",
+        "# - search-index: wrap an existing Search index with the stable extractive contract.",
         "# - mcp-only: deploy Azure AI Search with the MCP Server Knowledge Source.",
         "# - byo-fabric: connect an existing Fabric ontology without taking ownership.",
         "# - full: create the Fabric sample stack after explicit cost acknowledgement.",

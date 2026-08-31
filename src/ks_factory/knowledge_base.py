@@ -49,3 +49,17 @@ def create_knowledge_base(
         ]
 
     return payload
+
+
+def create_extracting_knowledge_base(
+    *,
+    name: str,
+    knowledge_source_names: list[str],
+    description: str = "Knowledge Base for minimal extractive retrieval.",
+) -> dict[str, Any]:
+    """Build the narrow Knowledge Base payload accepted by the stable API."""
+    return {
+        "name": name,
+        "description": description,
+        "knowledgeSources": [{"name": source_name} for source_name in knowledge_source_names],
+    }

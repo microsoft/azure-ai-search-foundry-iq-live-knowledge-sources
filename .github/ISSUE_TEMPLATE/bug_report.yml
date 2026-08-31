@@ -13,6 +13,7 @@ body:
     attributes:
       label: Area
       options:
+        - Search Index Knowledge Source
         - MCP Server Knowledge Source
         - Fabric Ontology Knowledge Source
         - Combined Knowledge Base
@@ -28,6 +29,7 @@ body:
     attributes:
       label: Deployment mode
       options:
+        - search-index
         - mcp-only
         - byo-fabric
         - full
@@ -39,7 +41,7 @@ body:
     id: api-version
     attributes:
       label: Azure AI Search API version
-      placeholder: "2026-05-01-preview"
+      placeholder: "2026-04-01 or 2026-05-01-preview"
     validations:
       required: false
   - type: textarea
