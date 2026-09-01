@@ -106,6 +106,18 @@ Start with machine-readable diagnostics:
 - Separate MCP and Fabric checks prove both live paths. A combined KB check passes with recognized live evidence from one or both because the Knowledge Base planner chooses which attached source to call for each query.
 - Cleanup must pass for release rehearsal runs. Use `--keep-resources` only while debugging.
 
+## Protected Canary Fails
+
+- A preflight failure lists missing environment configuration names only. Add them to the protected `mcp-search-index-live` GitHub Environment; do not move values into repository YAML.
+- The credentialed job is intentionally unavailable outside manual `workflow_dispatch` on `main` with `run-with-cleanup`.
+- HTTP `408`, `429`, `500`, `502`, `503`, and `504`, plus network timeouts, are transient categories only when the operation is a read or a lock/ETag-guarded conditional write.
+- A valid `Retry-After` is honored up to the hard cap. Otherwise bounded exponential backoff is used.
+- Deterministic `4xx` responses are not retried. Conditional conflicts remain ownership failures, not transient success.
+- `http-*-exhausted` or `network-timeout-exhausted` in the capsule is the terminal retry classification. Inspect the ignored detailed report locally; never upload it.
+- The lifecycle command has a shorter timeout than the job so `always()` cleanup and evidence still have time to run.
+- A failed or timed-out lifecycle is incomplete until the final cleanup result passes. The existing Search service, index, Azure OpenAI deployment, and remote MCP server must remain.
+- Repository tests prove the retry/workflow/capsule contract only. If the protected job was not approved and dispatched, report **Protected live canary: NOT RUN**.
+
 ## Cleanup Reports Partial
 
 - Read the ownership check in the `down` output and the redacted `.liveks/<env>.lock.json`.

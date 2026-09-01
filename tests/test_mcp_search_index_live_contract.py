@@ -1,3 +1,5 @@
+import contextlib
+import io
 import os
 import sys
 import unittest
@@ -8,6 +10,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 
 from liveks import cli  # noqa: E402
+from liveks.canary import protected_lifecycle_arguments  # noqa: E402
 from liveks.config import resolve_config  # noqa: E402
 
 
@@ -46,6 +49,25 @@ class ProtectedMcpSearchIndexContractTests(unittest.TestCase):
         self.assertLess(names.index("search-index-retrieve"), names.index("mcp-retrieve"))
         self.assertLess(names.index("mcp-retrieve"), names.index("combined-retrieve"))
         self.assertTrue(checks["combined-retrieve"]["sourceTypes"])
+
+
+@unittest.skipUnless(
+    os.environ.get("LIVEKS_RUN_PROTECTED_MCP_SEARCH_INDEX_LIFECYCLE") == "1",
+    "protected MCP + Search Index lifecycle canary is opt-in",
+)
+class ProtectedMcpSearchIndexLifecycleCanaryTests(unittest.TestCase):
+    def test_guarded_e2e_always_requests_cleanup(self):
+        config_path = Path(os.environ["LIVEKS_PROTECTED_CONFIG"])
+        arguments = protected_lifecycle_arguments(
+            config_path=config_path,
+            environment=os.environ["LIVEKS_CANARY_ENVIRONMENT"],
+            environ=os.environ,
+        )
+        self.assertIn("--cleanup", arguments)
+        self.assertNotIn("--keep-resources", arguments)
+        with contextlib.redirect_stdout(io.StringIO()):
+            result = cli.main(arguments)
+        self.assertEqual(result, 0)
 
 
 if __name__ == "__main__":

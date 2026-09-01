@@ -260,6 +260,16 @@ For full:
 
 Never use `--keep-resources` for a release rehearsal without recording who owns the follow-up cleanup.
 
+### Protected MCP + Search Index Canary
+
+Maintainers can dispatch `.github/workflows/protected-mcp-search-index.yml` only from `main` with `run-with-cleanup`. The job is gated by the `mcp-search-index-live` GitHub Environment and one fixed concurrency group. Each run derives a unique LiveKS environment from the workflow run ID and attempt.
+
+Preflight names all missing configuration before OIDC login and never prints values. The lifecycle uses the existing `e2e --cleanup --yes` path, which already holds one operation lock across plan, create, ordered source verification, combined verification, and cleanup. The workflow adds command/job timeouts plus an `always()` cleanup and evidence step.
+
+Upload policy is strict: only the allowlist-sanitized `canary-evidence.json` capsule is retained. Never upload `e2e-report.json`, cleanup JSON, locks, ledgers, raw responses, or queries.
+
+Normal repository tests report both protected tests as skipped and prove only contract shape. Record the live canary as **NOT RUN** until an approved environment run succeeds.
+
 ## Evidence Boundary
 
 Keep `.liveks/`, `.deployment/`, `deployments/`, raw responses, tokens, and private screenshots out of git. Every `e2e` run writes allowlist-sanitized `evidence-capsule.json` and `evidence-capsule.md` files beside the detailed local reports. Review even sanitized capsules before sharing; public summaries should include only profile, revision, status, source types, assertion names, evidence counts, report digest, and cleanup result.

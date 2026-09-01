@@ -6,6 +6,8 @@ All notable changes to this accelerator are documented here.
 
 ### Added
 
+- A manual, GitHub Environment-gated `mcp-search-index` lifecycle canary with generated per-run environments, fixed concurrency, finite timeouts, explicit secret-name preflight, real `e2e --cleanup` execution, always-run guarded cleanup, and allowlist-only uploaded evidence.
+- Bounded retry classification for network timeouts and HTTP `408`, `429`, `500`, `502`, `503`, and `504`, including capped `Retry-After`, exponential backoff, deterministic failure boundaries, conditional-write idempotency checks, and sanitized retry telemetry. See the official [Azure AI Search HTTP status codes](https://learn.microsoft.com/rest/api/searchservice/http-status-codes).
 - A data-plane-only `mcp-search-index` profile that reuses an agentic-ready Search index and Azure OpenAI deployment, creates a GA Search Index KS plus preview MCP Server KS and combined KB, and proves each source independently before combined routing.
 - Version-aware collision protection, ETag-conditional three-object lock ownership, ambiguous PUT reconciliation, redacted plan payloads, sourceData-based index assertions, dependency-ordered cleanup, and an opt-in OIDC protected live contract for the combined profile.
 - The [MCP + Search Index execution manual](https://microsoft.github.io/azure-ai-search-foundry-iq-live-knowledge-sources/24-mcp-search-index-kb/) backed by official Microsoft Learn contracts for [Search Index KS](https://learn.microsoft.com/azure/search/agentic-knowledge-source-how-to-search-index), [MCP Server KS](https://learn.microsoft.com/azure/search/agentic-knowledge-source-how-to-mcp-server), [Knowledge Base creation](https://learn.microsoft.com/azure/search/agentic-retrieval-how-to-create-knowledge-base), and [retrieve](https://learn.microsoft.com/azure/search/agentic-retrieval-how-to-retrieve).
@@ -35,6 +37,7 @@ All notable changes to this accelerator are documented here.
 
 ### Changed
 
+- The existing protected read-only retrieve test remains available, while the same test module now owns the opt-in full lifecycle canary contract. Normal CI runs neither credentialed path.
 - Profile selection, CLI/configuration documentation, generated environment catalogs, and API matrices now describe the guarded `search-index -> mcp-search-index` expansion without changing any existing profile.
 - Direct Search requests now accept an explicit API version so the combined lifecycle uses `2026-04-01` only for the Search Index KS and `2026-05-01-preview` only for MCP KS, combined KB, and retrieve.
 - Every profile now serializes environment `plan`, `up`, and `down`; E2E holds the same lock through optional cleanup. Direct Search profiles use ETag-conditional create and delete requests and reuse unchanged owned objects without another PUT.
@@ -65,6 +68,7 @@ All notable changes to this accelerator are documented here.
 
 ### Compatibility
 
+- Repository validation proves canary and resilience contract shape only. Protected live execution remains **NOT RUN** until an approved manual Environment run succeeds.
 - `mcp-search-index` requires both pinned versions, an existing Azure OpenAI chat deployment, and Search managed identity access to that model; it never falls back to the standalone stable or provisioned preview request shape.
 - Normal CI skips the protected live contract. Manual protected execution performs read/call verification only and does not create or delete cloud resources.
 - Search Index KS uses generally available `2026-04-01`, `intents`, and minimal extractive retrieval; MCP Server and Fabric Ontology profiles remain on `2026-05-01-preview` with `messages` and answer synthesis.

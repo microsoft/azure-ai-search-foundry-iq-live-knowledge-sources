@@ -8,7 +8,7 @@ from urllib.parse import quote
 from ks_factory import create_extracting_knowledge_base, create_search_index_knowledge_source
 
 from .config import ResolvedConfig
-from .runtime import CommandRunner, http_json
+from .runtime import CommandRunner, RetryPolicy, http_json
 
 
 def acquire_bearer_token(runner: CommandRunner) -> str:
@@ -42,8 +42,10 @@ def request(
     body: dict[str, Any] | None = None,
     api_version: str | None = None,
     headers: dict[str, str] | None = None,
-    attempts: int = 1,
+    attempts: int = 3,
     timeout: int = 120,
+    retry_mode: str = "auto",
+    retry_policy: RetryPolicy | None = None,
 ) -> tuple[int, Any]:
     endpoint = str(config.get("search.endpoint")).rstrip("/")
     resolved_api_version = str(api_version or config.get("search.api_version"))
@@ -61,6 +63,8 @@ def request(
             attempts=attempts,
             delay_seconds=2,
             timeout=timeout,
+            retry_mode=retry_mode,
+            retry_policy=retry_policy,
         )
     except Exception as error:
         raise RuntimeError("Azure AI Search request could not be completed.") from error

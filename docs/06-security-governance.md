@@ -49,6 +49,18 @@ flowchart LR
 - Keep sample responses synthetic.
 - GitHub Pages runs canonical offline fixtures only. Live credentials and Search requests remain behind the Azure managed API.
 
+## Protected Canary Isolation
+
+- The lifecycle canary has only a manual `workflow_dispatch` trigger and a job condition restricted to the Microsoft repository `main` ref.
+- The credentialed job references the `mcp-search-index-live` GitHub Environment. Configure required reviewers and restrict deployment branches before adding secrets.
+- Missing environment configuration fails in preflight before Azure login. Messages contain variable names only.
+- One concurrency group prevents overlapping runs against the shared BYO target; each run still derives unique generated KS/KB names.
+- The canary uses `--cleanup` only and has bounded command and job timeouts plus an `always()` cleanup.
+- Only the allowlist-sanitized capsule is uploaded. Detailed reports, ledgers, locks, queries, answers, endpoints, identifiers, and raw payloads remain runner-local.
+- Ordinary pull-request and fork validation receives no canary secrets and runs no credentialed job.
+
+See GitHub's official guidance for [deployment environments](https://docs.github.com/actions/how-tos/deploy/configure-and-manage-deployments/manage-environments) and [workflow concurrency](https://docs.github.com/actions/how-tos/write-workflows/choose-when-workflows-run/control-workflow-concurrency).
+
 ## Cleanup Governance
 
 - `byo-fabric` owns no Fabric capacity, workspace, or ontology and must never delete them.

@@ -101,6 +101,14 @@ This profile creates only a GA `2026-04-01` Search Index KS, a `2026-05-01-previ
 
 Cleanup deletes the lock-owned combined KB, MCP KS, and Search Index KS in dependency order, then requires `search-index-preserved=pass`. It never deletes the Search service, index, Azure OpenAI deployment, resource group, or Fabric. Read the [MCP + Search Index execution contract](docs/24-mcp-search-index-kb.md).
 
+### Protected Lifecycle Canary
+
+Maintainers can manually dispatch **Protected MCP and Search Index lifecycle canary** from `main` after approval in the `mcp-search-index-live` GitHub Environment. The job generates a unique environment name, validates required secret names before Azure login, runs the guarded `mcp-search-index` E2E path with `--cleanup --yes`, retries only bounded transient and semantically safe operations, and performs an additional always-run cleanup.
+
+The only uploaded artifact is `canary-evidence.json`, which contains revision, assertion statuses, source types/counts, retry categories/counts, ownership classes, cost-sensitive classes, cleanup status, and a detailed-report digest. It excludes questions, answers, raw payloads, endpoints, resource names, credentials, tenant/subscription IDs, GUIDs, and customer data.
+
+Repository tests validate this workflow and evidence shape without credentials or Azure calls. **Protected live canary: NOT RUN by normal CI.** An approved manual run is still required before making a live lifecycle or resilience claim.
+
 ## First Preview Live: MCP-Only
 
 Use the checked-in Codespaces environment to avoid installing Python, Node.js, Azure CLI, Bicep, and Azure Developer CLI yourself. Container creation runs only replay, dependency bootstrap, profile listing, and offline doctor; it never signs in or creates cloud resources.
@@ -319,6 +327,8 @@ For a controlled end-to-end rehearsal:
 ```bash
 ./liveks e2e --env liveks-mcp --cleanup --yes
 ```
+
+The protected canary never uses `--keep-resources`, `full`, or a Fabric profile.
 
 Use exactly one of `--cleanup` or `--keep-resources`. Prefer cleanup and record the owner whenever resources are retained.
 
