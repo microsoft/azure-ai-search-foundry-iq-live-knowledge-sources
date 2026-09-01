@@ -85,6 +85,8 @@ Rules:
 - Require the separate full-capacity acknowledgement even with `--yes`.
 - Use exactly one of `--cleanup` or `--keep-resources` for E2E.
 - Prefer `--cleanup`; if resources are retained, identify the cleanup owner.
+- Protected lifecycle canaries are manual `workflow_dispatch` runs on `main`, require the `mcp-search-index-live` GitHub Environment, and always use `--cleanup`.
+- Never run the protected canary from a fork, pull request, untrusted ref, or ordinary repository validation.
 
 ## Ownership Rules
 
@@ -109,6 +111,7 @@ Use the evidence that matches the claim:
 | Stable Search Index path is live | `liveks verify` reports `search-index-retrieve=pass`; use `--expect-term` for content acceptance |
 | Existing Search index survived cleanup | `liveks down` reports `search-index-preserved=pass` |
 | MCP + Search Index path is live | Independent `search-index-retrieve` and `mcp-retrieve` checks pass before `combined-retrieve`; the combined check reports only activity, references, or sourceData evidence |
+| Protected lifecycle canary is live | An approved manual run completes guarded E2E cleanup and uploads only `canary-evidence.json`; repository tests prove contract shape, not live execution |
 | Deployment is ready | Passing `liveks doctor` and `liveks plan` |
 | MCP path is live | MCP activity or references from `liveks verify` |
 | Fabric path is live | `fabricOntology` evidence in live mode with delegated authorization |
@@ -127,6 +130,7 @@ Do not publish or commit:
 - customer data or real tenant, subscription, workspace, or ontology IDs,
 - keys, bearer tokens, connection strings, or raw delegated tokens,
 - raw live retrieve responses or unsanitized screenshots,
+- protected canary detailed reports or step inputs; upload only the allowlist-sanitized capsule,
 - `.liveks/`, `.azure/`, `.deployment/`, `deployments/`, local dotenv files, or generated builds,
 - internal/private-preview Fabric setup, tenant allowlisting, or unpublished endpoints,
 - Fabric MCP through MCP Server KS as the recommended Fabric path.

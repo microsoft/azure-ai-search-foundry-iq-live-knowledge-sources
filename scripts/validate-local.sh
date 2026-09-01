@@ -167,6 +167,7 @@ run_required "Python compile" \
     scripts/azd_postprovision.py \
     scripts/deploy_static_webapp_api.py \
     scripts/generate_env_examples.py \
+    scripts/protected_canary.py \
     scripts/maintainers/summarize-e2e-evidence.py \
     scripts/maintainers/extract-review-evidence.py \
     tools/validate.py \
@@ -176,6 +177,7 @@ run_required "Python compile" \
     samples/python/inspect_retrieve_response.py \
     src/liveks/runtime.py \
     src/liveks/evidence.py \
+    src/liveks/canary.py \
     src/liveks/search_index.py \
     src/liveks/mcp_search_index.py \
     src/liveks/cli.py

@@ -41,6 +41,8 @@ from .runtime import (
     http_mcp_json,
     parse_azd_values,
     parse_version,
+    reset_retry_telemetry,
+    retry_telemetry_summary,
 )
 from .search_index import (
     acquire_bearer_token as acquire_search_bearer_token,
@@ -150,6 +152,18 @@ def _sanitized_e2e_checks(report: dict[str, Any]) -> list[dict[str, Any]]:
                 safe_check["sourceTypes"] = sorted(
                     {str(item) for item in source_types if item in {"fabricOntology", "mcpServer", "searchIndex"}}
                 )
+            evidence_count = check.get("evidenceCount")
+            if isinstance(evidence_count, int) and evidence_count >= 0:
+                safe_check["evidenceCount"] = evidence_count
+            source_counts = check.get("sourceCounts")
+            if isinstance(source_counts, dict):
+                safe_check["sourceCounts"] = {
+                    str(key): int(value)
+                    for key, value in source_counts.items()
+                    if key in {"fabricOntology", "mcpServer", "searchIndex"}
+                    and isinstance(value, int)
+                    and value >= 0
+                }
             checks.append(safe_check)
     return checks
 
@@ -1877,6 +1891,19 @@ def _evidence_types(payload: Any) -> list[str]:
     return sorted({str(item.get("type")) for item in evidence if isinstance(item, dict) and item.get("type")})
 
 
+def _evidence_count(payload: Any, source_type: str | None = None) -> int:
+    if not isinstance(payload, dict):
+        return 0
+    evidence = list(payload.get("activity", [])) + list(payload.get("references", []))
+    if source_type is None:
+        return sum(1 for item in evidence if isinstance(item, dict))
+    return sum(
+        1
+        for item in evidence
+        if isinstance(item, dict) and item.get("type") == source_type
+    )
+
+
 def _mcp_text_blocks(payload: Any) -> list[str]:
     if not isinstance(payload, dict):
         return []
@@ -2083,6 +2110,7 @@ def mcp_report(
             attempts=3,
             delay_seconds=3,
             timeout=30,
+            retry_mode="read",
         )
     except Exception:
         checks.append(_check("tools-list", "fail", "The MCP endpoint could not complete tool discovery."))
@@ -2119,6 +2147,7 @@ def mcp_report(
             attempts=3,
             delay_seconds=3,
             timeout=180,
+            retry_mode="read",
         )
     except Exception:
         checks.append(_check("tools-call", "fail", "The MCP endpoint could not complete the tool call."))
@@ -2271,7 +2300,8 @@ def _search_index_verify_report(
             method="POST",
             path=f"{search_object_path('knowledgebases', str(config.get('search.index_knowledge_base_name')))}/retrieve",
             body=payloads["retrieve"],
-            attempts=2,
+            attempts=3,
+            retry_mode="read",
         )
     except Exception:
         retrieve_code, retrieve_payload = 0, {}
@@ -2284,6 +2314,7 @@ def _search_index_verify_report(
             "Stable retrieve returned extracted content and searchIndex activity or reference evidence."
             if retrieve_ok
             else f"Stable retrieve did not return the required evidence (HTTP {retrieve_code or 'unavailable'}).",
+            evidenceCount=_evidence_count(retrieve_payload, "searchIndex"),
         )
     )
 
@@ -2508,7 +2539,8 @@ def _mcp_search_index_verify_report(
                 path=kb_path,
                 api_version=preview,
                 body=payloads["retrieve"][label],
-                attempts=2,
+                attempts=3,
+                retry_mode="read",
             )
         except Exception:
             retrieve_results[label] = (0, {})
@@ -2522,6 +2554,7 @@ def _mcp_search_index_verify_report(
             "Independent preview retrieve returned searchIndex activity, references, or sourceData evidence."
             if index_ok
             else _mcp_search_index_retrieve_failure(index_code, "Search Index"),
+            evidenceCount=_evidence_count(index_payload, "searchIndex"),
         )
     )
     terms = expected_terms or []
@@ -2549,6 +2582,7 @@ def _mcp_search_index_verify_report(
             "Independent preview retrieve returned mcpServer activity, references, or sourceData evidence."
             if mcp_ok
             else _mcp_search_index_retrieve_failure(mcp_code, "MCP Server"),
+            evidenceCount=_evidence_count(mcp_payload, "mcpServer"),
         )
     )
 
@@ -2564,7 +2598,8 @@ def _mcp_search_index_verify_report(
                 path=kb_path,
                 api_version=preview,
                 body=payloads["retrieve"]["combined"],
-                attempts=2,
+                attempts=3,
+                retry_mode="read",
             )
         except Exception:
             combined_code, combined_payload = 0, {}
@@ -2588,6 +2623,11 @@ def _mcp_search_index_verify_report(
             if not independent_sources_passed
             else _mcp_search_index_retrieve_failure(combined_code, "Combined"),
             sourceTypes=source_types,
+            evidenceCount=_evidence_count(combined_payload),
+            sourceCounts={
+                source_type: _evidence_count(combined_payload, source_type)
+                for source_type in source_types
+            },
         )
     )
 
@@ -2663,7 +2703,7 @@ def verify_report(
         try:
             status_code, status_payload = http_json(f"{app_url}/api/status", attempts=18, delay_seconds=10, timeout=20)
             checks.append(_check("app-status", "pass" if status_code == 200 else "fail", f"HTTP {status_code}"))
-            mcp_code, mcp_payload = http_json(f"{app_url}/api/retrieve/mcp", method="POST", body={"query": "What must be configured for an Azure AI Search MCP Server knowledge source?"}, attempts=3, delay_seconds=5, timeout=120)
+            mcp_code, mcp_payload = http_json(f"{app_url}/api/retrieve/mcp", method="POST", body={"query": "What must be configured for an Azure AI Search MCP Server knowledge source?"}, attempts=3, delay_seconds=5, timeout=120, retry_mode="read")
             mcp_ok = mcp_code == 200 and _response_has_live_evidence(mcp_payload, "mcpServer")
             checks.append(_check("mcp-retrieve", "pass" if mcp_ok else "fail", "Live MCP activity/reference evidence returned" if mcp_ok else f"HTTP {mcp_code}; live MCP evidence missing"))
             if config.profile in {"byo-fabric", "full"}:
@@ -2673,7 +2713,7 @@ def verify_report(
                     checks.append(_check("fabric-token", "fail", "Unable to acquire delegated Search token"))
                 else:
                     fabric_body = {"query": "Which airlines have the highest customer-care exposure this month?", "fabricUserSearchToken": token}
-                    fabric_code, fabric_payload = http_json(f"{app_url}/api/retrieve/fabric", method="POST", body=fabric_body, attempts=3, delay_seconds=5, timeout=120)
+                    fabric_code, fabric_payload = http_json(f"{app_url}/api/retrieve/fabric", method="POST", body=fabric_body, attempts=3, delay_seconds=5, timeout=120, retry_mode="read")
                     fabric_ok = fabric_code == 200 and _response_has_live_evidence(fabric_payload, "fabricOntology")
                     checks.append(_check("fabric-retrieve", "pass" if fabric_ok else "fail", "Live Fabric ontology evidence returned" if fabric_ok else f"HTTP {fabric_code}; live Fabric evidence missing"))
                     combined_body = {
@@ -2684,7 +2724,7 @@ def verify_report(
                         ),
                         "fabricUserSearchToken": token,
                     }
-                    combined_code, combined_payload = http_json(f"{app_url}/api/retrieve/combined", method="POST", body=combined_body, attempts=3, delay_seconds=5, timeout=120)
+                    combined_code, combined_payload = http_json(f"{app_url}/api/retrieve/combined", method="POST", body=combined_body, attempts=3, delay_seconds=5, timeout=120, retry_mode="read")
                     source_types = _evidence_types(combined_payload)
                     selected_types = [item for item in source_types if item in {"fabricOntology", "mcpServer"}]
                     combined_ok = combined_code == 200 and combined_payload.get("mode") == "live" and bool(selected_types)
@@ -2908,6 +2948,8 @@ def _search_index_down_report(config: ResolvedConfig, *, yes: bool, quiet: bool)
                 method="DELETE",
                 path=search_object_path(kind, name),
                 headers={"If-Match": etag},
+                attempts=3,
+                retry_mode="conditional-write",
                 timeout=60,
             )
         except Exception:
@@ -3088,6 +3130,8 @@ def _mcp_search_index_down_report(config: ResolvedConfig, *, yes: bool, quiet: b
                 path=search_object_path(kind, name),
                 api_version=api_version,
                 headers={"If-Match": etag},
+                attempts=3,
+                retry_mode="conditional-write",
                 timeout=60,
             )
         except Exception:
@@ -3560,6 +3604,7 @@ def _init_from_legacy(path: Path, profile: str, environment: str, destination: P
 def main(argv: list[str] | None = None) -> int:
     parser = build_parser()
     args = parser.parse_args(argv)
+    reset_retry_telemetry()
     if not args.command:
         parser.print_help()
         return 0
@@ -3702,13 +3747,16 @@ def main(argv: list[str] | None = None) -> int:
                 )
             status = "pass" if up["status"] == "pass" and (cleanup is None or cleanup["status"] == "pass") else "fail"
             report = envelope("e2e", status, profile=config.profile, environment=config.environment, phases={"up": up, "down": cleanup}, artifacts=list(dict.fromkeys(up.get("artifacts", []) + (cleanup or {}).get("artifacts", []))))
+            report["retrySummary"] = retry_telemetry_summary()
             write_e2e_reports(config, report, cleanup_requested=args.cleanup)
         else:
             raise ConfigError(f"Unsupported command: {args.command}")
+        report.setdefault("retrySummary", retry_telemetry_summary())
         emit(report, args.format)
         return _exit_code(report)
     except ConfigError as error:
         report = envelope(args.command, "fail", checks=[_check("configuration", "fail", str(error))])
+        report["retrySummary"] = retry_telemetry_summary()
         emit(report, getattr(args, "format", "text"))
         return 2
     except KeyboardInterrupt:

@@ -133,15 +133,38 @@ Native MCP output does not include the REST `activity` and `references` envelope
 
 ## Protected Live Contract
 
-`.github/workflows/protected-mcp-search-index.yml` is manual-only and uses the protected `mcp-search-index-live` GitHub environment. It signs in with OIDC, creates an ignored ledger from environment secrets, and runs the opt-in live test. The test performs no create or delete operation and uploads no raw response or report.
+`.github/workflows/protected-mcp-search-index.yml` is manual-only, accepts only an explicit `run-with-cleanup` confirmation on `main`, and uses the protected `mcp-search-index-live` GitHub Environment. Forks, pull requests, and untrusted refs cannot enter the credentialed job.
+
+The first protected step checks required configuration names without printing values. Only then does OIDC login run. One generated environment name is used per workflow run and attempt. The lifecycle test invokes the actual guarded E2E path:
+
+```text
+doctor -> plan -> conditional create -> Search Index verify -> MCP verify
+       -> combined verify -> dependency-ordered cleanup
+```
+
+The command is bounded by its own timeout and the job has a finite timeout. Workflow concurrency prevents two canaries from operating on the shared BYO target simultaneously. An `always()` step reruns lock/ETag-guarded cleanup after success, failure, or command timeout. The path never uses `--keep-resources`, `full`, or Fabric.
+
+Only `.deployment/canary-evidence.json` is uploaded. Detailed E2E, cleanup, lock, and retry inputs remain ignored on the runner. The capsule retains only:
+
+- revision, profile, assertion names/statuses,
+- source types and evidence counts,
+- retry categories/counts and terminal categories,
+- generated-versus-BYO ownership classes,
+- cost-sensitive resource classes,
+- cleanup result and detailed-report digest.
+
+It excludes questions, answers, raw payloads, tokens, endpoints, resource names, tenant/subscription IDs, GUID-shaped identifiers, and customer data.
 
 Normal unit discovery skips this test:
 
 ```text
 protected MCP + Search Index contract is opt-in
+protected MCP + Search Index lifecycle canary is opt-in
 ```
 
-Configure the protected environment only with approved non-customer acceptance questions and expected terms.
+Repository tests prove trigger, preflight, retry, cleanup, and capsule shape without Azure calls. They are not live evidence. Configure the protected environment only with approved non-customer acceptance questions and expected terms, then run the manual protected job to establish live evidence.
+
+Operational references: [Azure AI Search HTTP status codes](https://learn.microsoft.com/rest/api/searchservice/http-status-codes), [GitHub deployment environments](https://docs.github.com/actions/how-tos/deploy/configure-and-manage-deployments/manage-environments), and [GitHub workflow concurrency](https://docs.github.com/actions/how-tos/write-workflows/choose-when-workflows-run/control-workflow-concurrency).
 
 ## Cleanup
 

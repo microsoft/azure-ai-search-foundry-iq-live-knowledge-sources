@@ -13,7 +13,7 @@ Return to [Overview](00-overview.md) to choose a repository path, or continue wi
 
 This sample uses Azure AI Search Knowledge Source APIs in `2026-05-01-preview`.
 
-LiveKS and the direct postprovision path reject other versions before cloud calls because the current MCP Server, Fabric Ontology, message-input, answer-synthesis, and reasoning payloads are a single preview contract. Azure AI Search `2026-04-01` stable remains valid for its generally available source kinds and minimal, extractive retrieval; this accelerator does not implement that separate lane. See [API Compatibility](14-api-compatibility.md).
+LiveKS and the direct postprovision path reject other versions before cloud calls because the current MCP Server, Fabric Ontology, message-input, answer-synthesis, and reasoning payloads are a single preview contract. The `search-index` profile implements Azure AI Search `2026-04-01` for generally available minimal extractive retrieval. The `mcp-search-index` profile keeps its Search Index KS on that stable contract while pinning MCP KS, combined KB, and retrieve to `2026-05-01-preview`. See [API Compatibility](14-api-compatibility.md).
 
 Treat these as preview-sensitive:
 
@@ -75,6 +75,8 @@ If the app has Fabric IDs but no delegated token, it should show offline replay 
 
 | Mode | Caveat | Safe interpretation |
 | --- | --- | --- |
+| `search-index` | Uses only the GA Search Index KS and extractive retrieve contract. | Lowest-risk existing-index proof without MCP. |
+| `mcp-search-index` | Reuses Search and Azure OpenAI assets but creates preview MCP/KB objects. | Protected canary target; no Fabric assets are created or deleted. |
 | `mcp-only` | Fabric is intentionally skipped. | This proves MCP Server KS, app hosting, Search/OpenAI deployment, and trace inspection. |
 | `byo-fabric` | Requires existing Fabric workspace and ontology IDs. | This is the safest customer-facing live Fabric path when semantic assets already exist. |
 | `full` | Requires Fabric capacity quota, Fabric API readiness, GraphModel readiness, and delegated auth for live retrieve. | This is the platform story and greenfield demo path, not the fastest first run. |
@@ -131,12 +133,14 @@ Avoid these claims in README, blogs, and presentations:
 - "Knowledge Source parameters are a strict source allow-list."
 - "Static screenshots prove the live path."
 - "A successful `azd up` proves KS/KB retrieve behavior."
+- "Repository tests prove the protected canary ran live."
 
 Prefer these claims:
 
 - "Reusable accelerator scaffold."
 - "Public preview sample."
 - "Validated deployment paths with explicit evidence."
+- "Credential-free tests validate the protected canary contract; an approved manual run supplies live evidence."
 - "MCP-only is the fastest first run."
 - "BYO Fabric is the safest live Fabric customer path."
 - "Full mode is the greenfield platform story and depends on quota, tenant settings, and delegated auth."

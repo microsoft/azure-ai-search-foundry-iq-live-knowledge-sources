@@ -126,6 +126,8 @@ The combined data-plane profile accepts `--query`, repeatable `--expect-term`, `
 
 Use `--keep-resources` only while debugging. Release evidence should include successful cleanup.
 
+The protected `mcp-search-index` canary is stricter: it is manual-only, accepts `--cleanup` only, derives a unique environment per run, serializes runs through workflow concurrency, and performs a second guarded cleanup with `always()`. Missing configuration fails before Azure login.
+
 Every E2E run writes four ignored artifacts under `deployments/<environment>/`:
 
 | Artifact | Purpose |
@@ -136,6 +138,8 @@ Every E2E run writes four ignored artifacts under `deployments/<environment>/`:
 | `evidence-capsule.md` | Human-readable view of the same sanitized assertion set. |
 
 The capsules omit the environment name, check messages, resource identifiers, endpoints, raw responses, and credentials. Review them before sharing because the detailed reports beside them remain local-only.
+
+The protected workflow uploads a separate `canary-evidence.json` allowlist capsule only. It adds retry categories/counts, source evidence counts, generated/BYO ownership classes, cost-sensitive classes, cleanup status, and a digest of the non-uploaded detailed report.
 
 ## Machine-Readable Output
 
