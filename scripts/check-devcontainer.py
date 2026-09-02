@@ -8,33 +8,15 @@ import re
 import sys
 from pathlib import Path
 
+import yaml
+
 
 CONFIG_PATH = Path(".devcontainer/devcontainer.json")
 DOCKERFILE_PATH = Path(".devcontainer/Dockerfile")
 LOCK_PATH = Path(".devcontainer/devcontainer-lock.json")
 POST_CREATE_PATH = Path(".devcontainer/post-create.sh")
 WELCOME_PATH = Path(".devcontainer/welcome.sh")
-
-EXPECTED_IMAGE = "mcr.microsoft.com/devcontainers/python:1-3.11-bookworm"
-EXPECTED_FEATURES = {
-    "ghcr.io/devcontainers/features/node:2.1.0": {
-        "version": "22",
-        "pnpmVersion": "none",
-    },
-    "ghcr.io/devcontainers/features/azure-cli:1.3.0": {
-        "version": "2.86.0",
-        "installBicep": True,
-        "bicepVersion": "v0.44.1",
-    },
-    "ghcr.io/azure/azure-dev/azd:0.2.0": {"version": "1.28.0"},
-}
-
-REQUIRED_OFFLINE_COMMANDS = (
-    "./liveks try",
-    "./liveks bootstrap",
-    "./liveks profiles",
-    "./liveks doctor --profile offline",
-)
+COMPATIBILITY_PATH = Path("config/compatibility.yaml")
 
 FORBIDDEN_AUTO_COMMANDS = (
     r"^\s*(?:\./)?liveks\s+(?:up|down|e2e)\b",
@@ -50,9 +32,37 @@ def fail(message: str) -> int:
 
 
 def main() -> int:
-    for path in (CONFIG_PATH, DOCKERFILE_PATH, LOCK_PATH, POST_CREATE_PATH, WELCOME_PATH):
+    for path in (CONFIG_PATH, DOCKERFILE_PATH, LOCK_PATH, POST_CREATE_PATH, WELCOME_PATH, COMPATIBILITY_PATH):
         if not path.is_file():
             return fail(f"missing {path}")
+
+    try:
+        compatibility = yaml.safe_load(COMPATIBILITY_PATH.read_text(encoding="utf-8"))
+        python_version = str(compatibility["runtimes"]["python"]["minimum"])
+        tools = compatibility["tools"]
+        required_offline_commands = tuple(
+            str(step["display"])
+            for step in compatibility["command_sets"]["posix"]["steps"]
+            if step["id"] != "validate-local"
+        )
+    except (KeyError, TypeError, yaml.YAMLError) as exc:
+        return fail(f"{COMPATIBILITY_PATH} is invalid: {exc}")
+
+    expected_image = f"mcr.microsoft.com/devcontainers/python:1-{python_version}-bookworm"
+    expected_features = {
+        "ghcr.io/devcontainers/features/node:2.1.0": {
+            "version": str(tools["node"]["pinned_environment"]),
+            "pnpmVersion": "none",
+        },
+        "ghcr.io/devcontainers/features/azure-cli:1.3.0": {
+            "version": str(tools["azure_cli"]["pinned_environment"]),
+            "installBicep": True,
+            "bicepVersion": f"v{tools['bicep']['pinned_environment']}",
+        },
+        "ghcr.io/azure/azure-dev/azd:0.2.0": {
+            "version": str(tools["azd"]["pinned_environment"])
+        },
+    }
 
     try:
         config = json.loads(CONFIG_PATH.read_text(encoding="utf-8"))
@@ -63,13 +73,13 @@ def main() -> int:
         return fail("the reviewed dev container Dockerfile is not configured")
 
     dockerfile = DOCKERFILE_PATH.read_text(encoding="utf-8")
-    if f"FROM {EXPECTED_IMAGE}" not in dockerfile:
-        return fail("the Python 3.11 Bookworm image is not pinned as expected")
+    if f"FROM {expected_image}" not in dockerfile:
+        return fail(f"the Python {python_version} Bookworm image is not pinned as expected")
     if "rm -f /etc/apt/sources.list.d/yarn.list" not in dockerfile:
         return fail("the unused expired Yarn apt source is not removed")
 
     features = config.get("features")
-    if features != EXPECTED_FEATURES:
+    if features != expected_features:
         return fail("runtime features or versions differ from the tested contract")
 
     try:
@@ -77,7 +87,7 @@ def main() -> int:
     except json.JSONDecodeError as exc:
         return fail(f"{LOCK_PATH} is not valid JSON: {exc}")
     locked_features = lock.get("features")
-    if not isinstance(locked_features, dict) or set(locked_features) != set(EXPECTED_FEATURES):
+    if not isinstance(locked_features, dict) or set(locked_features) != set(expected_features):
         return fail("the Feature lock does not match devcontainer.json")
     for feature_id, locked in locked_features.items():
         if not isinstance(locked, dict):
@@ -98,7 +108,7 @@ def main() -> int:
         return fail("postAttachCommand must delegate to the non-mutating welcome script")
 
     post_create = POST_CREATE_PATH.read_text(encoding="utf-8")
-    missing = [command for command in REQUIRED_OFFLINE_COMMANDS if command not in post_create]
+    missing = [command for command in required_offline_commands if command not in post_create]
     if missing:
         return fail("post-create is missing safe checks: " + ", ".join(missing))
 

@@ -17,6 +17,13 @@ from urllib.parse import quote
 import yaml
 
 from . import __version__
+from .compatibility import (
+    AZD_MINIMUM,
+    NODE_MINIMUM,
+    PREVIEW_SEARCH_API_VERSION,
+    PYTHON_MINIMUM,
+    STABLE_SEARCH_API_VERSION,
+)
 from .config import (
     ConfigError,
     ResolvedConfig,
@@ -216,15 +223,15 @@ def _write_e2e_evidence_capsule(
         "runtime": runtime_summary(),
         "declaredContracts": (
             {
-                "searchIndexKnowledgeSource": "2026-04-01-stable",
+                "searchIndexKnowledgeSource": f"{STABLE_SEARCH_API_VERSION}-stable",
                 "retrieval": "minimal-extractive",
                 "existingIndexOwnership": "reuse",
             }
             if config.profile == "search-index"
             else {
-                "searchIndexKnowledgeSource": "2026-04-01-stable",
-                "mcpServerKnowledgeSource": "2026-05-01-preview",
-                "knowledgeBase": "2026-05-01-preview",
+                "searchIndexKnowledgeSource": f"{STABLE_SEARCH_API_VERSION}-stable",
+                "mcpServerKnowledgeSource": PREVIEW_SEARCH_API_VERSION,
+                "knowledgeBase": PREVIEW_SEARCH_API_VERSION,
                 "existingIndexOwnership": "reuse",
                 "liveGrounding": "protected-integration",
             }
@@ -415,8 +422,9 @@ def doctor_report(config: ResolvedConfig, *, cloud: bool = True) -> dict[str, An
     required_tools = list(config.manifest.get("required_tools", []))
     for tool in required_tools:
         if tool == "python3":
-            ready = sys.version_info >= (3, 11)
-            checks.append(_check("python", "pass" if ready else "fail", f"{sys.version.split()[0]} (requires 3.11+)"))
+            ready = sys.version_info >= PYTHON_MINIMUM
+            minimum = ".".join(map(str, PYTHON_MINIMUM))
+            checks.append(_check("python", "pass" if ready else "fail", f"{sys.version.split()[0]} (requires {minimum}+)"))
             continue
         path = shutil.which(tool)
         checks.append(_check(f"tool:{tool}", "pass" if path else "fail", path or f"{tool} is not installed"))
@@ -424,12 +432,20 @@ def doctor_report(config: ResolvedConfig, *, cloud: bool = True) -> dict[str, An
     if "azd" in required_tools and shutil.which("azd"):
         code, output = _command_version(["azd", "version"], config)
         version = parse_version(output)
-        ready = code == 0 and version >= (1, 27, 0)
-        checks.append(_check("azd-version", "pass" if ready else "fail", output.splitlines()[0] if output else "unknown; requires 1.27+"))
+        ready = code == 0 and version >= AZD_MINIMUM
+        minimum = ".".join(map(str, AZD_MINIMUM))
+        checks.append(
+            _check(
+                "azd-version",
+                "pass" if ready else "fail",
+                output.splitlines()[0] if output else f"unknown; requires {minimum}+",
+            )
+        )
     if "node" in required_tools and shutil.which("node"):
         code, output = _command_version(["node", "--version"], config)
-        ready = code == 0 and parse_version(output) >= (22, 0, 0)
-        checks.append(_check("node-version", "pass" if ready else "fail", f"{output} (requires 22+)"))
+        ready = code == 0 and parse_version(output) >= NODE_MINIMUM
+        minimum = ".".join(map(str, NODE_MINIMUM))
+        checks.append(_check("node-version", "pass" if ready else "fail", f"{output} (requires {minimum}+)"))
 
     if config.profile in DIRECT_SEARCH_PROFILES and cloud:
         checks.extend(

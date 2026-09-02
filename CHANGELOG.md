@@ -6,6 +6,7 @@ All notable changes to this accelerator are documented here.
 
 ### Added
 
+- A machine-readable compatibility authority with generated public runtime/API/command matrices, executable POSIX and PowerShell first-path contracts, actionable cross-surface drift checks, and focused positive/negative tests. Ordinary CI remains credential-free; Azure and Fabric live validation are explicitly **NOT RUN**.
 - A manual, GitHub Environment-gated `mcp-search-index` lifecycle canary with generated per-run environments, fixed concurrency, finite timeouts, explicit secret-name preflight, real `e2e --cleanup` execution, always-run guarded cleanup, and allowlist-only uploaded evidence.
 - Bounded retry classification for network timeouts and HTTP `408`, `429`, `500`, `502`, `503`, and `504`, including capped `Retry-After`, exponential backoff, deterministic failure boundaries, conditional-write idempotency checks, and sanitized retry telemetry. See the official [Azure AI Search HTTP status codes](https://learn.microsoft.com/rest/api/searchservice/http-status-codes).
 - A data-plane-only `mcp-search-index` profile that reuses an agentic-ready Search index and Azure OpenAI deployment, creates a GA Search Index KS plus preview MCP Server KS and combined KB, and proves each source independently before combined routing.

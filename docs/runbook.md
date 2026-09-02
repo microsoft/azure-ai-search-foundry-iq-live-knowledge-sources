@@ -38,14 +38,17 @@ The ignored `.deployment/first-run-evidence.json` capsule contains only the sour
 
 Open the same response visually in the [interactive trace demo](https://microsoft.github.io/azure-ai-search-foundry-iq-live-knowledge-sources/demo/?demo=combined).
 
-## 2. Bootstrap And Validate
+## 2. Run The Canonical Checkout Contract
 
+<!-- compatibility-command-contract:start -->
 ```bash
+./liveks try
 ./liveks bootstrap
 ./liveks profiles
-./liveks doctor --profile offline
+./liveks doctor --profile offline --format json
 bash scripts/validate-local.sh
 ```
+<!-- compatibility-command-contract:end -->
 
 Expected: profile metadata prints, offline doctor passes, and the repository gate completes without failures.
 

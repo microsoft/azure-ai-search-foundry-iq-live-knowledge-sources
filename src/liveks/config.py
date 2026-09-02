@@ -14,6 +14,8 @@ from urllib.parse import urlparse
 
 import yaml
 
+from .compatibility import PREVIEW_SEARCH_API_VERSION, STABLE_SEARCH_API_VERSION
+
 
 ROOT = Path(__file__).resolve().parents[2]
 SCHEMA_PATH = ROOT / "config/schema.yaml"
@@ -414,15 +416,22 @@ def resolve_config(
     if mode != profile:
         raise ConfigError(f"deployment.mode={mode!r} does not match profile={profile!r}.")
     api_version = values.get("search.api_version")
-    if profile == "search-index" and api_version != "2026-04-01":
-        raise ConfigError("search-index profile requires the generally available 2026-04-01 API contract.")
-    if profile in {"mcp-only", "byo-fabric", "full"} and api_version != "2026-05-01-preview":
-        raise ConfigError(f"{profile} profile requires the 2026-05-01-preview API contract.")
+    if profile == "search-index" and api_version != STABLE_SEARCH_API_VERSION:
+        raise ConfigError(
+            f"search-index profile requires the generally available {STABLE_SEARCH_API_VERSION} API contract."
+        )
+    if profile in {"mcp-only", "byo-fabric", "full"} and api_version != PREVIEW_SEARCH_API_VERSION:
+        raise ConfigError(f"{profile} profile requires the {PREVIEW_SEARCH_API_VERSION} API contract.")
     if profile == "mcp-search-index":
-        if values.get("search.index_api_version") != "2026-04-01":
-            raise ConfigError("mcp-search-index requires Search Index KS API version 2026-04-01.")
-        if values.get("search.preview_api_version") != "2026-05-01-preview":
-            raise ConfigError("mcp-search-index requires MCP Server KS and Knowledge Base API version 2026-05-01-preview.")
+        if values.get("search.index_api_version") != STABLE_SEARCH_API_VERSION:
+            raise ConfigError(
+                f"mcp-search-index requires Search Index KS API version {STABLE_SEARCH_API_VERSION}."
+            )
+        if values.get("search.preview_api_version") != PREVIEW_SEARCH_API_VERSION:
+            raise ConfigError(
+                "mcp-search-index requires MCP Server KS and Knowledge Base API version "
+                f"{PREVIEW_SEARCH_API_VERSION}."
+            )
         managed_names = [
             str(values.get("search.index_knowledge_source_name")),
             str(values.get("search.mcp_knowledge_source_name")),

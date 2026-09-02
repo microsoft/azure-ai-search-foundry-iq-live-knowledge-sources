@@ -9,6 +9,7 @@ ROOT = Path(__file__).resolve().parents[1]
 
 
 class LiveksWrapperTests(unittest.TestCase):
+    @unittest.skipIf(os.name == "nt", "The POSIX launcher is covered by the Ubuntu command contract.")
     def test_try_bypasses_an_incomplete_virtual_environment(self):
         with tempfile.TemporaryDirectory() as temp_dir:
             venv = Path(temp_dir)
@@ -31,6 +32,7 @@ class LiveksWrapperTests(unittest.TestCase):
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertIn('"mode": "offline-replay"', result.stdout)
 
+    @unittest.skipIf(os.name == "nt", "The POSIX launcher is covered by the Ubuntu command contract.")
     def test_relative_virtual_environment_override_is_root_relative(self):
         with tempfile.TemporaryDirectory() as temp_dir:
             venv = Path(temp_dir)

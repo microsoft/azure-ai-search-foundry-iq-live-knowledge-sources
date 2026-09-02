@@ -4,23 +4,19 @@ LiveKS is the plan-first lifecycle entry point for this accelerator. The same co
 
 ## First Use
 
-Offline replay has no package installation step:
+The canonical credential-free checkout contract is:
 
+<!-- compatibility-command-contract:start -->
 ```bash
-./liveks try --evidence-out .deployment/first-run-evidence.json
-./liveks try --sample mcp --details
-```
-
-The first command exits nonzero if the packaged known-answer, activity, reference, or source-identity contract fails. Its evidence capsule is safe-field-only and does not include the answer, query, raw response, or credentials.
-
-Install the pinned CLI dependency into the ignored `.liveks/venv` before using the remaining commands:
-
-```bash
+./liveks try
 ./liveks bootstrap
 ./liveks profiles
+./liveks doctor --profile offline --format json
+bash scripts/validate-local.sh
 ```
+<!-- compatibility-command-contract:end -->
 
-PowerShell equivalents replace `./liveks` with `./liveks.ps1`.
+The first command exits nonzero if the packaged known-answer, activity, reference, or source-identity contract fails. `bootstrap` installs the pinned CLI dependency into the ignored `.liveks/venv`. PowerShell uses `.\liveks.ps1` and ends with `.\scripts\validate-local.ps1`; see [API Compatibility](14-api-compatibility.md) for the generated Windows command block and evidence contract.
 
 ## Lifecycle
 
@@ -176,16 +172,7 @@ Legacy `--mode`, `--env-name`, `--location`, `--fabric-location`, and `--env-fil
 
 ## Tool Compatibility
 
-| Tool | Minimum | Validated v2 baseline |
-| --- | --- | --- |
-| Python | 3.11 | 3.11 and 3.14 |
-| Azure Developer CLI | 1.27.0 | 1.28.0 |
-| Azure CLI | Required | 2.86.0 |
-| Bicep CLI | Required for live plans | 0.44.1 |
-| Node.js | 22 | 22 |
-| npm | Bundled with Node.js | Node 22 distribution |
-
-The Windows launcher and configuration contracts run in GitHub Actions on `windows-latest`. The complete local gate and Bicep build run on Ubuntu; live E2E evidence is tenant-specific and stays outside git.
+The generated [compatibility matrix](14-api-compatibility.md#continuously-checked-compatibility) separates enforced minimums, exact CI combinations, dev container pins, and unverified combinations. `config/compatibility.yaml` is the machine-readable authority; this page does not maintain a second version table.
 
 ## Generated Artifacts
 

@@ -76,7 +76,27 @@ fi
 
 cd "$(git rev-parse --show-toplevel)"
 
-TOTAL=17
+PYTHON_BIN="${PYTHON_BIN:-}"
+if [[ -z "$PYTHON_BIN" ]]; then
+  venv_root="${LIVEKS_VENV:-.liveks/venv}"
+  for candidate in "$venv_root/bin/python" "$venv_root/Scripts/python.exe" python3 python; do
+    if [[ "$candidate" == */* ]]; then
+      if [[ -x "$candidate" ]]; then
+        PYTHON_BIN="$candidate"
+        break
+      fi
+    elif command -v "$candidate" >/dev/null 2>&1; then
+      PYTHON_BIN="$(command -v "$candidate")"
+      break
+    fi
+  done
+fi
+if [[ -z "$PYTHON_BIN" ]]; then
+  echo "Python 3.11 or newer is required." >&2
+  exit 2
+fi
+
+TOTAL=18
 CURRENT=0
 FAILED=false
 SKIPPED=0
@@ -149,13 +169,16 @@ run_required "Shell syntax" \
     scripts/validate-local.sh
 
 run_required "LiveKS CLI profiles" \
-  bash -c 'PYTHONPATH=src python3 -m liveks.cli profiles --format json >/dev/null && PYTHONPATH=src python3 scripts/generate_env_examples.py --check >/dev/null && bash -n .env.sample env/*.env.example'
+  bash -c 'PYTHONPATH=src "$1" -m liveks.cli profiles --format json >/dev/null && PYTHONPATH=src "$1" scripts/generate_env_examples.py --check >/dev/null && bash -n .env.sample env/*.env.example' _ "$PYTHON_BIN"
+
+run_required "Compatibility and documentation contract" \
+  "$PYTHON_BIN" scripts/check_compatibility.py --check
 
 run_required "Dev container contract" \
-  python3 scripts/check-devcontainer.py
+  "$PYTHON_BIN" scripts/check-devcontainer.py
 
 run_required "Python compile" \
-  python3 -m py_compile \
+  "$PYTHON_BIN" -m py_compile \
     scripts/check-doc-links.py \
     scripts/postprovision.py \
     scripts/fabric-provision.py \
@@ -167,6 +190,7 @@ run_required "Python compile" \
     scripts/azd_postprovision.py \
     scripts/deploy_static_webapp_api.py \
     scripts/generate_env_examples.py \
+    scripts/check_compatibility.py \
     scripts/protected_canary.py \
     scripts/maintainers/summarize-e2e-evidence.py \
     scripts/maintainers/extract-review-evidence.py \
@@ -176,6 +200,7 @@ run_required "Python compile" \
     samples/python/build_payloads.py \
     samples/python/inspect_retrieve_response.py \
     src/liveks/runtime.py \
+    src/liveks/compatibility.py \
     src/liveks/evidence.py \
     src/liveks/canary.py \
     src/liveks/search_index.py \
@@ -183,10 +208,10 @@ run_required "Python compile" \
     src/liveks/cli.py
 
 run_required "Python contract tests" \
-  python3 -m unittest discover -s tests
+  "$PYTHON_BIN" -m unittest discover -s tests
 
 run_required "Notebook JSON parse" \
-  python3 - <<'PY'
+  "$PYTHON_BIN" - <<'PY'
 import json
 from pathlib import Path
 
@@ -196,7 +221,7 @@ for path in sorted(Path("notebooks").glob("*.ipynb")):
 PY
 
 run_required "GitHub issue template structure" \
-  python3 - <<'PY'
+  "$PYTHON_BIN" - <<'PY'
 from pathlib import Path
 
 paths = sorted(Path(".github/ISSUE_TEMPLATE").glob("*.yml"))
@@ -214,23 +239,23 @@ for path in paths:
 PY
 
 run_required "Markdown links" \
-  python3 scripts/check-doc-links.py
+  "$PYTHON_BIN" scripts/check-doc-links.py
 
 run_required "Sample packaging hygiene" \
-  python3 scripts/check-sample-hygiene.py
+  "$PYTHON_BIN" scripts/check-sample-hygiene.py
 
 run_required "Repository size hygiene" \
-  python3 scripts/check-repo-size.py
+  "$PYTHON_BIN" scripts/check-repo-size.py
 
 run_required "Documented first-success contract" \
   ./liveks try --evidence-out .deployment/first-run-evidence.json
 
 run_required "Sample payload generation" \
-  bash -c 'python3 samples/python/build_payloads.py >/dev/null'
+  bash -c '"$1" samples/python/build_payloads.py >/dev/null' _ "$PYTHON_BIN"
 
 step "Offline response inspection"
 for response in samples/responses/*.json; do
-  python3 samples/python/inspect_retrieve_response.py "$response" >/dev/null
+  "$PYTHON_BIN" samples/python/inspect_retrieve_response.py "$response" >/dev/null
 done
 pass "Offline response inspection"
 

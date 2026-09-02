@@ -1,0 +1,251 @@
+schema_version: 1
+repository_url: https://github.com/microsoft/azure-ai-search-foundry-iq-live-knowledge-sources
+
+runtimes:
+  python:
+    label: Python
+    minimum: '3.11'
+    requirement: Python 3.11 or newer is required by every profile and both launchers.
+    continuous_evidence: GitHub Actions runs the documented command contract on Python 3.11 for ubuntu-latest and windows-latest.
+    unverified: Python 3.12 through 3.14 are accepted by the launchers but are not continuously exercised by this repository.
+    required_profiles: [offline, search-index, mcp-search-index, mcp-only, byo-fabric, full]
+  runner_os:
+    label: Runner OS
+    minimum: not-applicable
+    requirement: The repository has separate POSIX Bash and Windows PowerShell command contracts.
+    continuous_evidence: validate.yml exercises ubuntu-latest and windows-latest; these labels are floating runner images, not OS release pins.
+    unverified: Other Linux distributions, macOS, and other Windows releases are not continuously exercised.
+
+tools:
+  azure_cli:
+    label: Azure CLI
+    command: az
+    minimum: not-specified
+    pinned_environment: '2.86.0'
+    requirement: Required by every live profile; the repository enforces presence but does not declare a supported version range.
+    continuous_evidence: The dev container pin is checked at 2.86.0; validate-local exercises the hosted runner's unpinned Azure CLI and Bicep capability.
+    unverified: Azure CLI versions other than the dev container pin are not compatibility claims.
+    required_profiles: [search-index, mcp-search-index, mcp-only, byo-fabric, full]
+  azd:
+    label: Azure Developer CLI
+    command: azd
+    minimum: '1.27.0'
+    pinned_environment: '1.28.0'
+    requirement: Required only by provisioned preview profiles; doctor enforces 1.27.0 or newer.
+    continuous_evidence: The dev container declaration is checked at 1.28.0; ordinary credential-free CI does not run an azd deployment command.
+    unverified: No broader azd version range or live deployment compatibility is claimed.
+    required_profiles: [mcp-only, byo-fabric, full]
+  node:
+    label: Node.js
+    command: node
+    minimum: '22'
+    pinned_environment: '22'
+    requirement: Required by provisioned preview profiles and by the static demo build.
+    continuous_evidence: setup-node runs Node.js 22 for the Ubuntu, Windows, and Pages jobs, and npm builds the static demo.
+    unverified: Other Node.js major versions are not continuously exercised.
+    required_profiles: [mcp-only, byo-fabric, full]
+  npm:
+    label: npm
+    command: npm
+    minimum: bundled-with-node-22
+    pinned_environment: not-separately-pinned
+    requirement: Required with Node.js for provisioned preview profiles and npm ci/build validation.
+    continuous_evidence: Ubuntu, Windows, and Pages jobs use the npm bundled by setup-node 22.
+    unverified: A standalone npm version range is not claimed.
+    required_profiles: [mcp-only, byo-fabric, full]
+  bicep:
+    label: Bicep CLI
+    command: az bicep
+    minimum: not-specified
+    pinned_environment: '0.44.1'
+    requirement: Required through Azure CLI for provisioned preview plan and deployment paths.
+    continuous_evidence: The dev container pin is checked at 0.44.1; validate-local compiles infra/main.bicep with the hosted runner capability.
+    unverified: Bicep versions other than the dev container pin are not compatibility claims.
+    required_profiles: [mcp-only, byo-fabric, full]
+
+ci:
+  combinations:
+    - id: local-validation
+      workflow: .github/workflows/validate.yml
+      job: local-validation
+      runner: ubuntu-latest
+      python: '3.11'
+      node: '22'
+      command_set: posix
+      evidence: Runs the complete documented no-cloud command contract and repository gate.
+    - id: windows-cli
+      workflow: .github/workflows/validate.yml
+      job: cli-windows
+      runner: windows-latest
+      python: '3.11'
+      node: '22'
+      command_set: windows
+      evidence: Runs the PowerShell command contract and the Windows-compatible repository gate.
+    - id: manual-build
+      workflow: .github/workflows/pages.yml
+      job: build
+      runner: ubuntu-latest
+      python: '3.11'
+      node: '22'
+      command_set: null
+      evidence: Builds the MkDocs manual strictly and builds the static demo.
+  protected_live:
+    workflow: .github/workflows/protected-mcp-search-index.yml
+    runner: ubuntu-latest
+    python: '3.11'
+    status: NOT RUN
+    evidence: Manual Environment-gated execution is outside ordinary compatibility CI.
+
+api_contracts:
+  search_index:
+    label: Search Index KS
+    version: '2026-04-01'
+    release_status: generally available
+    operations: Search Index KS creation and standalone minimal extractive retrieval.
+    profile_fields:
+      search-index: search.api_version
+      mcp-search-index: search.index_api_version
+    generated_env:
+      env/search-index.env.example: AZURE_SEARCH_API_VERSION
+      env/mcp-search-index.env.example: SEARCH_INDEX_API_VERSION
+    evidence: config/schema.yaml and the search-index and mcp-search-index profiles.
+  preview:
+    label: MCP Server, Fabric Ontology, and preview KB
+    version: 2026-05-01-preview
+    release_status: public preview
+    operations: MCP Server KS, Fabric Ontology KS, combined KB, messages retrieve, and Knowledge Base MCP.
+    profile_fields:
+      mcp-search-index: search.preview_api_version
+      mcp-only: search.api_version
+      byo-fabric: search.api_version
+      full: search.api_version
+    generated_env:
+      .env.sample: AZURE_SEARCH_API_VERSION
+      env/mcp-search-index.env.example: SEARCH_PREVIEW_API_VERSION
+      env/mcp-only.env.example: AZURE_SEARCH_API_VERSION
+      env/byo-fabric.env.example: AZURE_SEARCH_API_VERSION
+      env/full.env.example: AZURE_SEARCH_API_VERSION
+    text_bindings:
+      - infra/main.bicep
+      - scripts/check-sample-hygiene.py
+      - scripts/ensure_azd_defaults.py
+      - scripts/postprovision.py
+      - static-app/api/shared/search.js
+      - samples/rest/01-create-mcp-server-ks.http
+      - samples/rest/02-create-mcp-only-kb.http
+      - samples/rest/03-retrieve-mcp.http
+      - samples/rest/04-create-fabric-ontology-ks.http
+      - samples/rest/05-create-combined-kb.http
+      - samples/rest/06-retrieve-fabric-ontology.http
+      - samples/rest/07-delete-resources.http
+      - samples/rest/08-retrieve-combined-airline-ops.http
+      - notebooks/01-mcp-server-ks-quickstart.ipynb
+      - notebooks/02-fabric-ontology-ks-airline-ops.ipynb
+    json_bindings:
+      samples/evidence/mcp-only-live-proof.sample.json: searchApiVersion
+    evidence: config/schema.yaml, preview profiles, generated examples, infrastructure, app, REST samples, and notebooks.
+
+dependencies:
+  requirements-liveks.txt:
+    - PyYAML==6.0.3
+  requirements-docs.txt:
+    - mkdocs-material==9.*
+
+command_sets:
+  posix:
+    label: macOS and Linux
+    workflow_runner: ubuntu-latest
+    steps:
+      - id: try
+        display: ./liveks try
+        argv: [./liveks, try]
+        expected_exit: 0
+        stdout_contains: ['Contract: PASS (4/4 assertions)']
+        cloud_mutation: false
+      - id: bootstrap
+        display: ./liveks bootstrap
+        argv: [./liveks, bootstrap]
+        expected_exit: 0
+        stdout_contains: ['LiveKS CLI environment ready:']
+        cloud_mutation: false
+      - id: profiles
+        display: ./liveks profiles
+        argv: [./liveks, profiles]
+        expected_exit: 0
+        stdout_contains: [offline, mcp-search-index]
+        cloud_mutation: false
+      - id: doctor
+        display: ./liveks doctor --profile offline --format json
+        argv: [./liveks, doctor, --profile, offline, --format, json]
+        expected_exit: 0
+        json_evidence:
+          command: doctor
+          profile: offline
+          status: pass
+        cloud_mutation: false
+      - id: validate-local
+        display: bash scripts/validate-local.sh
+        argv: [bash, scripts/validate-local.sh]
+        expected_exit: 0
+        stdout_contains: ['Local validation: PASS']
+        cloud_mutation: false
+  windows:
+    label: Windows PowerShell
+    workflow_runner: windows-latest
+    steps:
+      - id: try
+        display: .\liveks.ps1 try
+        argv: [pwsh, -NoProfile, -File, .\liveks.ps1, try]
+        expected_exit: 0
+        stdout_contains: ['Contract: PASS (4/4 assertions)']
+        cloud_mutation: false
+      - id: bootstrap
+        display: .\liveks.ps1 bootstrap
+        argv: [pwsh, -NoProfile, -File, .\liveks.ps1, bootstrap]
+        expected_exit: 0
+        stdout_contains: ['LiveKS CLI environment ready:']
+        cloud_mutation: false
+      - id: profiles
+        display: .\liveks.ps1 profiles
+        argv: [pwsh, -NoProfile, -File, .\liveks.ps1, profiles]
+        expected_exit: 0
+        stdout_contains: [offline, mcp-search-index]
+        cloud_mutation: false
+      - id: doctor
+        display: .\liveks.ps1 doctor --profile offline --format json
+        argv: [pwsh, -NoProfile, -File, .\liveks.ps1, doctor, --profile, offline, --format, json]
+        expected_exit: 0
+        json_evidence:
+          command: doctor
+          profile: offline
+          status: pass
+        cloud_mutation: false
+      - id: validate-local
+        display: .\scripts\validate-local.ps1
+        argv: [pwsh, -NoProfile, -File, .\scripts\validate-local.ps1]
+        expected_exit: 0
+        stdout_contains: ['Local validation: PASS']
+        cloud_mutation: false
+
+documentation:
+  generated_surfaces:
+    - path: README.md
+      marker: compatibility-command-contract
+      content: posix-commands
+    - path: AGENTS.md
+      marker: compatibility-command-contract
+      content: posix-commands
+    - path: docs/runbook.md
+      marker: compatibility-command-contract
+      content: posix-commands
+    - path: docs/20-liveks-cli.md
+      marker: compatibility-command-contract
+      content: posix-commands
+    - path: docs/14-api-compatibility.md
+      marker: compatibility-contract
+      content: full-contract
+
+live_validation:
+  azure: NOT RUN
+  fabric: NOT RUN
+  reason: This compatibility contract is credential-free and never runs up, down, or e2e.

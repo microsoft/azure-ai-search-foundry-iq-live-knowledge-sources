@@ -3,6 +3,7 @@ $ErrorActionPreference = "Stop"
 $Root = Split-Path -Parent $MyInvocation.MyCommand.Path
 $VenvPython = Join-Path $Root ".liveks\venv\Scripts\python.exe"
 $CommandName = if ($args.Count -gt 0) { $args[0] } else { "help" }
+$Remaining = if ($args.Count -gt 1) { $args[1..($args.Count - 1)] } else { @() }
 
 function Find-LiveKsPython {
     if (Get-Command py -ErrorAction SilentlyContinue) {
@@ -31,7 +32,6 @@ function Invoke-LiveKsPython {
 
 if ($CommandName -eq "try" -and -not (Test-Path $VenvPython)) {
     $Python = Find-LiveKsPython
-    $Remaining = if ($args.Count -gt 1) { $args[1..($args.Count - 1)] } else { @() }
     $InvokeArgs = @((Join-Path $Root "tools\try_offline.py")) + @($Remaining)
     Invoke-LiveKsPython $Python $InvokeArgs
     exit $LASTEXITCODE
@@ -41,7 +41,7 @@ if ($CommandName -eq "bootstrap") {
     $Python = Find-LiveKsPython
     New-Item -ItemType Directory -Force (Join-Path $Root ".liveks") | Out-Null
     Invoke-LiveKsPython $Python @("-m", "venv", (Join-Path $Root ".liveks\venv"))
-    & $VenvPython -m pip install --disable-pip-version-check -r (Join-Path $Root "requirements-liveks.txt")
+    & $VenvPython -m pip install --disable-pip-version-check --no-input -r (Join-Path $Root "requirements-liveks.txt") @Remaining
     Write-Host "LiveKS CLI environment ready: $(Split-Path -Parent $VenvPython)"
     exit 0
 }
