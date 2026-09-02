@@ -96,7 +96,7 @@ if [[ -z "$PYTHON_BIN" ]]; then
   exit 2
 fi
 
-TOTAL=19
+TOTAL=20
 CURRENT=0
 FAILED=false
 SKIPPED=0
@@ -177,6 +177,9 @@ run_required "Compatibility and documentation contract" \
 run_required "Release and workflow policy contract" \
   "$PYTHON_BIN" scripts/release.py check
 
+run_required "Scenario packs and replay cases" \
+  bash -c 'PYTHONPATH=src "$1" -m liveks.scenarios validate --run-all --format json >/dev/null && PYTHONPATH=src "$1" -m liveks.scenarios catalog --check' _ "$PYTHON_BIN"
+
 run_required "Dev container contract" \
   "$PYTHON_BIN" scripts/check-devcontainer.py
 
@@ -201,6 +204,7 @@ run_required "Python compile" \
     tools/validate.py \
     tools/doctor.py \
     tools/try_offline.py \
+    tools/scenarios.py \
     samples/python/build_payloads.py \
     samples/python/inspect_retrieve_response.py \
     src/liveks/runtime.py \
@@ -209,6 +213,7 @@ run_required "Python compile" \
     src/liveks/canary.py \
     src/liveks/search_index.py \
     src/liveks/mcp_search_index.py \
+    src/liveks/scenarios.py \
     src/liveks/cli.py
 
 run_required "Python contract tests" \

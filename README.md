@@ -310,6 +310,16 @@ Expand the checked-in response without an Azure subscription, tenant, Fabric wor
 
 The answer is printed first, followed by MCP Server KS and Fabric Ontology KS evidence. This is replay only.
 
+The three compatibility aliases now resolve through versioned, declarative synthetic scenario packs:
+
+```bash
+./liveks scenarios list
+./liveks scenarios validate --run-all
+./liveks scenarios run combined --format json
+```
+
+Packs select existing deployment profiles without redefining resource topology. See [Scenario Packs](docs/18-scenario-packs.md) for the catalog, authoring contract, redacted evidence boundary, and protected-live limitation.
+
 ![Retrieve trace contract](assets/trace-contract.gif)
 
 ## Verify And Clean Up

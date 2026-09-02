@@ -74,6 +74,7 @@
       "infra/",
       "notebooks/",
       "profiles/",
+      "scenario-packs/",
       "samples/",
       "scripts/",
       "src/",

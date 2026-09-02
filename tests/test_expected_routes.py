@@ -1,28 +1,17 @@
 import json
+import sys
 import unittest
 from pathlib import Path
 
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(REPO_ROOT / "src"))
+
+from liveks.scenarios import load_registry  # noqa: E402
+
+
 ROUTES_PATH = REPO_ROOT / "evals" / "expected_routes.yaml"
 RESPONSES_DIR = REPO_ROOT / "samples" / "responses"
-
-
-SAMPLE_CONTRACTS = {
-    "mcp-retrieve.sample.json": {
-        "query": "Find Microsoft Learn guidance for Azure AI Search knowledge sources.",
-    },
-    "fabric-airline-ops-retrieve.sample.json": {
-        "query": "Which airlines have the highest customer-care exposure this month?",
-    },
-    "combined-airline-ops-retrieve.sample.json": {
-        "query": (
-            "Using the Airline Ops ontology, identify the airline with the highest customer-care exposure this month. "
-            "Also cite Microsoft Learn guidance for how I should validate activity, references, and sourceData in the "
-            "Knowledge Base retrieve response."
-        ),
-    },
-}
 
 
 def parse_scalar(value):
@@ -120,6 +109,7 @@ class ExpectedRoutesContractTests(unittest.TestCase):
     def setUpClass(cls):
         cls.routes = load_expected_routes()
         cls.routes_by_query = {route["query"]: route for route in cls.routes}
+        cls.scenarios = load_registry(REPO_ROOT)["cases"].values()
 
     def test_expected_routes_are_well_formed(self):
         self.assertGreaterEqual(len(self.routes), 3)
@@ -138,9 +128,10 @@ class ExpectedRoutesContractTests(unittest.TestCase):
                 self.assertTrue(all(isinstance(source, str) and source for source in sources))
 
     def test_offline_sample_responses_match_expected_routes(self):
-        for sample_name, sample_contract in SAMPLE_CONTRACTS.items():
-            with self.subTest(sample=sample_name):
-                route = self.routes_by_query[sample_contract["query"]]
+        for scenario in self.scenarios:
+            sample_name = Path(scenario["fixture"]["path"]).name
+            with self.subTest(scenario=scenario["id"]):
+                route = self.routes_by_query[scenario["syntheticQuery"]]
                 response = json.loads((RESPONSES_DIR / sample_name).read_text(encoding="utf-8"))
                 activity = response.get("activity", [])
                 references = response.get("references", [])

@@ -11,19 +11,28 @@ Offline replay exposes the Foundry IQ retrieve response contract without Azure r
 ./liveks try --sample combined --details
 ```
 
-The default combined replay prints the answer before trace details and fails unless all four packaged assertions pass: known answer, required activity types, required reference types, and required Knowledge Source names. `--details` expands `activity`, `references`, and source-specific `sourceData`.
+The default combined replay prints the answer before trace details and fails unless all four manifest assertions pass: known facts, required activity types, required reference types, and the source identity plus `sourceData` contract. `--details` expands `activity`, `references`, and source-specific `sourceData` only on a passing synthetic replay. Failure output is redacted.
+
+The aliases resolve to versioned scenario IDs:
+
+| Alias | Scenario |
+| --- | --- |
+| `mcp` | `microsoft-learn-mcp.guidance-replay` |
+| `fabric` | `airline-ops.fabric-exposure-replay` |
+| `combined` | `airline-ops.combined-guidance-replay` |
 
 ## Evidence Capsule
 
 `--evidence-out` writes a machine-readable, ignored capsule for the exact first-success command. It includes:
 
+- scenario and pack IDs/versions,
 - repository revision and runtime,
-- fixture path and SHA-256 digest,
+- manifest and fixture paths plus SHA-256 digests,
 - activity and reference counts,
-- expected and observed source types and names,
-- assertion statuses and the explicit `offline-replay` boundary.
+- observed source types and sourceData count,
+- assertion IDs/status, profile, ownership class, cleanup expectation, and the explicit `offline-replay` boundary.
 
-The capsule excludes the answer, query, raw response, and credentials. The `Validate` workflow runs this entry point and uploads the resulting `first-success-evidence` artifact after the local gate passes.
+The capsule excludes the answer, query, expected terms, raw response, source identities, sourceData, resource identifiers, endpoints, tenant values, and credentials. The `Validate` workflow validates all packs, runs every case, and uploads the default `first-success-evidence` artifact after the local gate passes.
 
 ## Browser
 
@@ -46,8 +55,8 @@ For Fabric Ontology KS:
 - `sourceData.fabricAnswer`
 - `sourceData.fabricRawData`
 
-The three canonical fixtures live under `samples/responses/`. The CLI, Pages build, and managed API all reuse these files to prevent demo drift.
+The three canonical fixtures live under `samples/responses/`. Their scenario manifests pin fixture digests; the CLI, Pages build, and managed API reuse the same files to prevent demo drift.
 
 ## Boundary
 
-The responses use synthetic Airline Ops data and demonstrate trace shape and teaching flow. They do not prove that Azure AI Search called Microsoft Learn MCP, that a Fabric GraphModel was ready, or that delegated Fabric authorization worked. Use `liveks verify` and live E2E reports for those claims. Live E2E writes detailed ignored reports plus allowlist-sanitized JSON and Markdown evidence capsules; the capsule records assertion names and statuses without copying live messages or identifiers.
+The Airline Ops responses use one clearly labeled synthetic example domain; the MCP guidance pack is domain-neutral. They do not prove that Azure AI Search called Microsoft Learn MCP, that a Fabric GraphModel was ready, or that delegated Fabric authorization worked. Use `liveks verify` and live E2E reports for those claims. The current protected canary cannot consume these source combinations, so the protected scenario adapter is explicitly not implemented and **NOT RUN**. See [Scenario Packs](18-scenario-packs.md).

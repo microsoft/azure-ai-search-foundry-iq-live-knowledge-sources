@@ -84,7 +84,7 @@ Map equivalent entities to the sample contract:
 | Flight | `flights.csv` | `flight_id` | Flight has DelayEvent |
 | DelayEvent | `delay_events.csv` | `delay_event_id` | DelayEvent belongs to Flight |
 | PassengerCarePolicy | `passenger_care_policies.csv` | `policy_id` | Join by `applicable_delay_category` and trigger condition |
-| RegulatoryReference | `regulatory_references.csv` | `reference_id` | Optional search-index/semantic-join content |
+| RegulatoryReference | `regulatory_references.csv` | `reference_id` | Optional search-index or scenario-pack semantic-join content |
 
 The most important validation measures are:
 

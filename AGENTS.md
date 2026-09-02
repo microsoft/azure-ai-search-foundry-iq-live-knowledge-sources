@@ -34,6 +34,7 @@ Do not create cloud resources merely because credentials are available. `try`, `
 
 - `config/schema.yaml` defines supported fields, validation, azd projection, secrets, and legacy mappings.
 - `config/compatibility.yaml` defines supported runtime and tool requirements, CI-exercised combinations, API pins, and the documentation command contract.
+- `config/scenario-pack-schema.json` and `scenario-packs/*/manifest.json` define synthetic replay evidence without redefining deployment topology.
 - `profiles/offline.yaml`, `search-index.yaml`, `mcp-search-index.yaml`, `mcp-only.yaml`, `byo-fabric.yaml`, and `full.yaml` define executable defaults, resources, cost, and success criteria.
 - `.liveks/<environment>.yaml` is the ignored human-authored ledger.
 - `.liveks/<environment>.lock.json` is the ignored redacted resolution and ownership record.

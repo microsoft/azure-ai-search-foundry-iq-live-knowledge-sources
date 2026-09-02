@@ -23,6 +23,7 @@ The first command exits nonzero if the packaged known-answer, activity, referenc
 | Command | Cloud mutation | Purpose |
 | --- | --- | --- |
 | `try` | None | Print a checked-in answer and evidence trace. |
+| `scenarios` | None | List, inspect, validate, or replay versioned synthetic scenario packs. |
 | `init` | None | Write an ignored YAML environment ledger. |
 | `doctor` | None | Check tools, versions, sign-in, providers, and required fields. |
 | `plan` | None | Validate the selected profile's payload and ownership contract; preview profiles also build Bicep and the app. |
@@ -33,6 +34,17 @@ The first command exits nonzero if the packaged known-answer, activity, referenc
 | `e2e` | Yes | Run `up` and either clean up or explicitly retain resources. |
 
 `doctor` can issue read-only Azure CLI calls for live profiles. In `byo-fabric`, it also acquires a transient Fabric API token and confirms that the configured workspace and ontology are readable. The token is not serialized. `plan` writes local build and lock artifacts under ignored directories, but it does not run `azd env set`, `azd up`, or Fabric provisioning.
+
+Scenario commands are credential-free and emit redacted machine output:
+
+```bash
+./liveks scenarios list
+./liveks scenarios inspect combined --format json
+./liveks scenarios validate --run-all --format json
+./liveks scenarios run mcp --format json
+```
+
+See [Scenario Packs](18-scenario-packs.md). Scenario manifests select existing profiles but cannot bypass doctor, plan, ownership locks, or E2E cleanup.
 
 For `search-index` and `mcp-search-index`, `doctor` reads the existing index definition with an Azure AI Search bearer token. Their plans check payloads and generated-name collisions without Bicep, `azd`, npm, `PUT`, or `DELETE`. The combined profile uses GA GETs for the Search Index KS name and preview GETs for the MCP KS and KB names.
 
