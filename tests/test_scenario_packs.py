@@ -87,6 +87,18 @@ class ScenarioPackTests(unittest.TestCase):
         self.assertEqual(first["networkCalls"], 0)
         self.assertEqual(len(first["runs"]), 3)
 
+    def test_structured_fixture_digest_is_line_ending_independent(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            folder = Path(temp_dir)
+            lf = folder / "lf.json"
+            crlf = folder / "crlf.json"
+            lf.write_bytes(b'{\n  "value": true\n}\n')
+            crlf.write_bytes(b'{\r\n  "value": true\r\n}\r\n')
+            self.assertEqual(
+                scenarios.scenario_file_sha256(lf),
+                scenarios.scenario_file_sha256(crlf),
+            )
+
     def test_unknown_manifest_field_fails_closed(self):
         with tempfile.TemporaryDirectory() as temp_dir:
             root = self.copied_root(temp_dir)

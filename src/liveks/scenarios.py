@@ -11,7 +11,7 @@ import sys
 from pathlib import Path, PurePosixPath
 from typing import Any
 
-from .evidence import generated_at, repository_revision, runtime_summary, sha256_file, write_json
+from .evidence import generated_at, repository_revision, runtime_summary, write_json
 
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -38,6 +38,12 @@ SENSITIVE_VALUE_RE = re.compile(
 
 class ScenarioError(ValueError):
     """Raised when a scenario pack or replay violates its contract."""
+
+
+def scenario_file_sha256(path: Path) -> str:
+    """Hash structured text with canonical LF endings across Git platforms."""
+    payload = path.read_bytes().replace(b"\r\n", b"\n")
+    return hashlib.sha256(payload).hexdigest()
 
 
 def _load_json(path: Path, label: str) -> dict[str, Any]:
@@ -251,7 +257,7 @@ def _data_digest(folder: Path) -> str:
     for path in sorted(folder.glob("*.csv")):
         digest.update(path.name.encode("utf-8"))
         digest.update(b"\0")
-        digest.update(path.read_bytes())
+        digest.update(path.read_bytes().replace(b"\r\n", b"\n"))
         digest.update(b"\0")
     return digest.hexdigest()
 
@@ -271,7 +277,7 @@ def _validate_domain_contract(
         location=f"pack {pack['id']} domainContract.path",
         prefixes=("samples/ontology/",),
     )
-    actual_digest = sha256_file(path)
+    actual_digest = scenario_file_sha256(path)
     if actual_digest != contract["sha256"]:
         failures.append(
             f"pack {pack['id']} ontology digest is stale: expected "
@@ -524,7 +530,7 @@ def load_registry(root: Path = ROOT, *, deep: bool = False) -> dict[str, Any]:
         enriched_pack = {
             **pack,
             "manifestPath": relative_path,
-            "manifestSha256": sha256_file(path),
+            "manifestSha256": scenario_file_sha256(path),
         }
         if any(existing["id"] == pack["id"] for existing in packs):
             failures.append(f"duplicate scenario pack id: {pack['id']}")
@@ -545,7 +551,7 @@ def load_registry(root: Path = ROOT, *, deep: bool = False) -> dict[str, Any]:
                 location=f"scenario {case_id} fixture.path",
                 prefixes=("samples/responses/",),
             )
-            actual_fixture_digest = sha256_file(fixture_path)
+            actual_fixture_digest = scenario_file_sha256(fixture_path)
             if not sha_re.fullmatch(str(fixture["sha256"])):
                 failures.append(f"scenario {case_id} fixture.sha256 is invalid")
             elif actual_fixture_digest != fixture["sha256"]:
@@ -618,7 +624,7 @@ def load_registry(root: Path = ROOT, *, deep: bool = False) -> dict[str, Any]:
                 "packId": pack["id"],
                 "packVersion": pack["version"],
                 "manifestPath": relative_path,
-                "manifestSha256": sha256_file(path),
+                "manifestSha256": scenario_file_sha256(path),
                 "fixturePath": fixture_path,
             }
             cases[case_id] = enriched_case
@@ -781,7 +787,7 @@ def run_case(
         "manifestPath": case["manifestPath"],
         "manifestSha256": case["manifestSha256"],
         "fixturePath": case["fixture"]["path"],
-        "fixtureSha256": sha256_file(fixture_path),
+        "fixtureSha256": scenario_file_sha256(fixture_path),
         "sourceTypes": sorted(activity_types | reference_types),
         "sourceNames": source_names,
         "activityCount": len(activity),
