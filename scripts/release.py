@@ -236,6 +236,7 @@ def validate_workflow_policy(root: Path, release: dict[str, Any]) -> list[str]:
             f"github.repository == '{guard['repository']}'",
             f"github.event_name == '{guard['event']}'",
             f"startsWith(github.ref, '{guard['refPrefix']}')",
+            "ref: ${{ github.event.pull_request.head.sha || github.sha }}",
             "python scripts/release.py verify-tag",
             "actions/attest-build-provenance@",
             "gh release create",
