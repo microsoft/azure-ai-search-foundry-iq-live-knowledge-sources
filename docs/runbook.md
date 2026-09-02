@@ -34,7 +34,7 @@ Normally, do not author that optional token field at all. `verify` and `mcp` acq
 
 Expected: an answer naming Alpine Air, both `MCP Server KS` and `Fabric Ontology KS` evidence, and `Contract: PASS (4/4 assertions)`. No package install or cloud access is used.
 
-The ignored `.deployment/first-run-evidence.json` capsule contains only the source revision, runtime, fixture digest, source identities and counts, and assertion statuses. It excludes the answer, query, raw response, and credentials. Pull requests run the same command and retain this capsule as the `first-success-evidence` workflow artifact.
+The ignored `.deployment/first-run-evidence.json` capsule contains only scenario/pack versions, source revision, runtime, manifest and fixture digests, source types/counts, assertion statuses, ownership, and cleanup expectation. It excludes the answer, query, expected terms, raw response, source identities, sourceData, endpoints, tenant values, and credentials. Pull requests run the same command and retain this capsule as the `first-success-evidence` workflow artifact.
 
 Open the same response visually in the [interactive trace demo](https://microsoft.github.io/azure-ai-search-foundry-iq-live-knowledge-sources/demo/?demo=combined).
 

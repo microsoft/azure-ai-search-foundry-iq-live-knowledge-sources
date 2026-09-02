@@ -1,0 +1,97 @@
+{
+  "schemaVersion": 1,
+  "pack": {
+    "id": "airline-ops",
+    "version": "1.0.0",
+    "title": "Synthetic Airline Operations",
+    "description": "Synthetic example domain for Fabric Ontology and combined MCP evidence.",
+    "domain": "synthetic-airline-operations",
+    "synthetic": true,
+    "domainContract": {
+      "path": "samples/ontology/airline-ops/ontology-contract.yaml",
+      "sha256": "6cbcfc0d0c657133c6abc66d5ca6c058906012cae76347c129e9d060fa3a3164",
+      "dataDigest": "36dd6bf0b2df21895300cdcee76d0e0538e52cfab2223fc77e1a430ffd5fdb28"
+    }
+  },
+  "cases": [
+    {
+      "id": "airline-ops.fabric-exposure-replay",
+      "aliases": ["fabric"],
+      "title": "Fabric customer-care exposure replay",
+      "description": "Checks synthetic Airline Ops ontology evidence without Fabric access.",
+      "profile": "byo-fabric",
+      "fixture": {
+        "path": "samples/responses/fabric-airline-ops-retrieve.sample.json",
+        "sha256": "990655b304ef56f0eba576847c818fa9a566bf7209b626fe3cf6a902ad9be8fd"
+      },
+      "syntheticQuery": "Which airlines have the highest customer-care exposure this month?",
+      "expectedTerms": ["Alpine Air"],
+      "expectedSources": [
+        {
+          "type": "fabricOntology",
+          "identity": "fabric-ontology-ks",
+          "activity": true,
+          "references": true,
+          "sourceData": true
+        }
+      ],
+      "apiVersions": ["2026-05-01-preview"],
+      "ownershipClass": "generated-azure-reused-fabric",
+      "cleanupExpectation": "delete-generated-azure-preserve-reused-fabric",
+      "protectedLive": {
+        "supported": false,
+        "adapter": "none",
+        "reason": "The existing protected canary does not connect a Fabric Ontology source."
+      },
+      "assertions": [
+        {"id": "known-facts", "kind": "answerTerms"},
+        {"id": "activity-evidence", "kind": "activityTypes"},
+        {"id": "reference-evidence", "kind": "referenceTypes"},
+        {"id": "source-contract", "kind": "sourceContract"}
+      ]
+    },
+    {
+      "id": "airline-ops.combined-guidance-replay",
+      "aliases": ["combined", "semantic-join"],
+      "title": "Combined Fabric and MCP replay",
+      "description": "Checks the ideal synthetic trace shape for governed business evidence plus public implementation guidance.",
+      "profile": "byo-fabric",
+      "fixture": {
+        "path": "samples/responses/combined-airline-ops-retrieve.sample.json",
+        "sha256": "79d334a3e1c628afa1be47934aeb07d4b7f87e2ff76fd9c5a9b714f6dade4173"
+      },
+      "syntheticQuery": "Using the Airline Ops ontology, identify the airline with the highest customer-care exposure this month. Also cite Microsoft Learn guidance for how I should validate activity, references, and sourceData in the Knowledge Base retrieve response.",
+      "expectedTerms": ["Alpine Air"],
+      "expectedSources": [
+        {
+          "type": "fabricOntology",
+          "identity": "fabric-ontology-ks",
+          "activity": true,
+          "references": true,
+          "sourceData": true
+        },
+        {
+          "type": "mcpServer",
+          "identity": "microsoft-learn-mcp-ks",
+          "activity": true,
+          "references": true,
+          "sourceData": true
+        }
+      ],
+      "apiVersions": ["2026-05-01-preview"],
+      "ownershipClass": "generated-azure-reused-fabric",
+      "cleanupExpectation": "delete-generated-azure-preserve-reused-fabric",
+      "protectedLive": {
+        "supported": false,
+        "adapter": "none",
+        "reason": "The existing protected canary combines Search Index and MCP sources, not Fabric Ontology and MCP."
+      },
+      "assertions": [
+        {"id": "known-facts", "kind": "answerTerms"},
+        {"id": "activity-evidence", "kind": "activityTypes"},
+        {"id": "reference-evidence", "kind": "referenceTypes"},
+        {"id": "source-contract", "kind": "sourceContract"}
+      ]
+    }
+  ]
+}

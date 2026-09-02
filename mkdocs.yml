@@ -62,6 +62,7 @@ nav:
       - Overview: 00-overview.md
       - Choose a Pattern: 02-choose-a-pattern.md
       - Offline Replay: 09-offline-replay.md
+      - Scenario Packs: 18-scenario-packs.md
   - Live Paths:
       - Architecture: 01-architecture.md
       - Stable Search Index KS: 23-search-index-ks.md

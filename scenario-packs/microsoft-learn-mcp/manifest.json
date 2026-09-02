@@ -1,0 +1,49 @@
+{
+  "schemaVersion": 1,
+  "pack": {
+    "id": "microsoft-learn-mcp",
+    "version": "1.0.0",
+    "title": "Microsoft Learn MCP guidance",
+    "description": "Domain-neutral synthetic replay for public Microsoft Learn MCP guidance evidence.",
+    "domain": "public-microsoft-documentation",
+    "synthetic": true
+  },
+  "cases": [
+    {
+      "id": "microsoft-learn-mcp.guidance-replay",
+      "aliases": ["mcp"],
+      "title": "MCP guidance replay",
+      "description": "Checks the public MCP Server Knowledge Source response shape without network access.",
+      "profile": "mcp-only",
+      "fixture": {
+        "path": "samples/responses/mcp-retrieve.sample.json",
+        "sha256": "5b24860f22b8cc99f68fa40c015bfb316dbacb42de2e46b4c51e5fbd9370fbe8"
+      },
+      "syntheticQuery": "Find Microsoft Learn guidance for Azure AI Search knowledge sources.",
+      "expectedTerms": ["Azure AI Search"],
+      "expectedSources": [
+        {
+          "type": "mcpServer",
+          "identity": "microsoft-learn-mcp-ks",
+          "activity": true,
+          "references": true,
+          "sourceData": true
+        }
+      ],
+      "apiVersions": ["2026-05-01-preview"],
+      "ownershipClass": "generated-azure",
+      "cleanupExpectation": "delete-generated-azure",
+      "protectedLive": {
+        "supported": false,
+        "adapter": "none",
+        "reason": "The existing protected canary exercises mcp-search-index rather than the mcp-only profile."
+      },
+      "assertions": [
+        {"id": "known-facts", "kind": "answerTerms"},
+        {"id": "activity-evidence", "kind": "activityTypes"},
+        {"id": "reference-evidence", "kind": "referenceTypes"},
+        {"id": "source-contract", "kind": "sourceContract"}
+      ]
+    }
+  ]
+}

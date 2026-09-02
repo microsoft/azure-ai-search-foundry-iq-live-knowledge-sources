@@ -3526,10 +3526,34 @@ def build_parser() -> argparse.ArgumentParser:
 
     subparsers.add_parser("profiles", help="List executable profiles.").add_argument("--format", choices=["text", "json"], default="text")
     try_parser = subparsers.add_parser("try", help="Inspect a checked-in retrieve trace.")
-    try_parser.add_argument("--sample", choices=["mcp", "fabric", "combined"], default="combined")
+    try_parser.add_argument("--sample", default="combined")
     try_parser.add_argument("--details", action="store_true")
     try_parser.add_argument("--format", choices=["text", "json"], default="text")
     try_parser.add_argument("--evidence-out", type=Path)
+    scenarios_parser = subparsers.add_parser(
+        "scenarios",
+        help="List, inspect, validate, and replay declarative scenario packs.",
+    )
+    scenario_subparsers = scenarios_parser.add_subparsers(
+        dest="scenario_command",
+        required=True,
+    )
+    scenario_list = scenario_subparsers.add_parser("list")
+    scenario_list.add_argument("--format", choices=["text", "json"], default="text")
+    scenario_inspect = scenario_subparsers.add_parser("inspect")
+    scenario_inspect.add_argument("scenario")
+    scenario_inspect.add_argument("--format", choices=["text", "json"], default="text")
+    scenario_validate = scenario_subparsers.add_parser("validate")
+    scenario_validate.add_argument("--run-all", action="store_true")
+    scenario_validate.add_argument("--format", choices=["text", "json"], default="text")
+    scenario_run = scenario_subparsers.add_parser("run")
+    scenario_run.add_argument("scenario")
+    scenario_run.add_argument("--format", choices=["text", "json"], default="text")
+    scenario_run.add_argument("--evidence-out", type=Path)
+    scenario_catalog = scenario_subparsers.add_parser("catalog")
+    scenario_catalog_mode = scenario_catalog.add_mutually_exclusive_group(required=True)
+    scenario_catalog_mode.add_argument("--check", action="store_true")
+    scenario_catalog_mode.add_argument("--write", action="store_true")
 
     init_parser = subparsers.add_parser("init", help="Create an ignored YAML environment ledger.")
     init_parser.add_argument(
@@ -3640,6 +3664,25 @@ def main(argv: list[str] | None = None) -> int:
                 command.append("--details")
             if args.evidence_out:
                 command.extend(["--evidence-out", str(args.evidence_out)])
+            return subprocess.run(command, cwd=ROOT, check=False).returncode
+        if args.command == "scenarios":
+            command = [
+                sys.executable,
+                "tools/scenarios.py",
+                args.scenario_command,
+            ]
+            if hasattr(args, "scenario"):
+                command.append(args.scenario)
+            if getattr(args, "run_all", False):
+                command.append("--run-all")
+            if hasattr(args, "format"):
+                command.extend(["--format", args.format])
+            if getattr(args, "evidence_out", None):
+                command.extend(["--evidence-out", str(args.evidence_out)])
+            if getattr(args, "check", False):
+                command.append("--check")
+            if getattr(args, "write", False):
+                command.append("--write")
             return subprocess.run(command, cwd=ROOT, check=False).returncode
         if args.command == "init":
             destination = args.config or ROOT / ".liveks" / f"{args.environment}.yaml"

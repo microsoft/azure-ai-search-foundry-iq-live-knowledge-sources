@@ -192,6 +192,9 @@ validation_queries:
   - query: Which airlines have the highest customer-care exposure this month?
     expected_answer_shape: airline ranking with exposure totals
     expected_top_entity: Alpine Air
+  - query: Using the Airline Ops ontology, identify the airline with the highest customer-care exposure this month. Also cite Microsoft Learn guidance for how I should validate activity, references, and sourceData in the Knowledge Base retrieve response.
+    expected_answer_shape: airline ranking with exposure plus public implementation guidance
+    expected_top_entity: Alpine Air
   - query: Which routes have the most delayed flights over 15 minutes?
     expected_answer_shape: route ranking with delayed flight counts
   - query: Which delay categories are controllable and driving customer-care exposure?

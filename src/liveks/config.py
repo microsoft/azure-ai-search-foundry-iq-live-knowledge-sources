@@ -280,25 +280,29 @@ class ResolvedConfig:
         return result
 
     def ownership(self) -> dict[str, str]:
-        fabric_mode = self.get("fabric.mode")
-        ownership = {
-            "azure": "none" if self.profile == "offline" else "create",
-            "fabricCapacity": "create" if fabric_mode == "create" else "reuse" if fabric_mode == "byo" else "none",
-            "fabricWorkspace": "create" if fabric_mode == "create" else "reuse" if fabric_mode == "byo" else "none",
-            "fabricOntology": "create" if fabric_mode == "create" else "reuse" if fabric_mode == "byo" else "none",
-        }
-        if self.profile in {"search-index", "mcp-search-index"}:
-            ownership.update(
-                {
-                    "azure": "reuse",
-                    "searchService": "reuse",
-                    "searchIndex": "reuse",
-                    "azureOpenAI": "reuse" if self.profile == "mcp-search-index" else "none",
-                    "knowledgeSources": "create",
-                    "knowledgeBases": "create",
-                }
-            )
-        return ownership
+        return ownership_for_profile(self.profile, str(self.get("fabric.mode")))
+
+
+def ownership_for_profile(profile: str, fabric_mode: str) -> dict[str, str]:
+    """Return lifecycle ownership without requiring tenant-specific profile inputs."""
+    ownership = {
+        "azure": "none" if profile == "offline" else "create",
+        "fabricCapacity": "create" if fabric_mode == "create" else "reuse" if fabric_mode == "byo" else "none",
+        "fabricWorkspace": "create" if fabric_mode == "create" else "reuse" if fabric_mode == "byo" else "none",
+        "fabricOntology": "create" if fabric_mode == "create" else "reuse" if fabric_mode == "byo" else "none",
+    }
+    if profile in {"search-index", "mcp-search-index"}:
+        ownership.update(
+            {
+                "azure": "reuse",
+                "searchService": "reuse",
+                "searchIndex": "reuse",
+                "azureOpenAI": "reuse" if profile == "mcp-search-index" else "none",
+                "knowledgeSources": "create",
+                "knowledgeBases": "create",
+            }
+        )
+    return ownership
 
 
 def available_profiles() -> list[str]:

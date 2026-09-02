@@ -1,7 +1,7 @@
 schema_version: 2
 profile: offline
 kind: deployment
-purpose: Inspect checked-in retrieve responses without cloud resources, tenant access, or secrets.
+purpose: Inspect checked-in scenario-pack retrieve responses without cloud resources, tenant access, or secrets.
 default: true
 required_tools: [python3]
 estimated_duration: under 1 minute
@@ -15,6 +15,6 @@ defaults:
 required: []
 resources: []
 success_criteria:
-  - Combined replay prints an answer before trace details.
-  - MCP and Fabric source evidence is visible.
+  - The default combined scenario replay prints an answer before trace details.
+  - Every checked-in scenario manifest and replay assertion passes without network calls.
 cleanup: No cleanup required.

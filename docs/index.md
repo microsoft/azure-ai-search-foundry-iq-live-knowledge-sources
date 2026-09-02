@@ -39,7 +39,7 @@ Require `Contract: PASS (4/4 assertions)`. Python 3.11 or newer is the only depe
 !!! warning "Replay is not live"
     The replay proves a checked-in response and evidence contract. A realistic answer, `mcpServer` activity, or `fabricOntology` activity in this fixture does not prove that Azure called either source.
 
-The ignored evidence capsule retains revision, fixture digest, source identities, counts, and assertion status. It excludes query, answer, raw response, endpoints, and credentials. Pull-request validation executes the same entry point.
+The ignored evidence capsule retains scenario/pack versions, revision, manifest and fixture digests, source types/counts, assertion status, ownership, and cleanup expectation. It excludes query, expected terms, answer, raw response, source identities, sourceData, endpoints, tenant values, and credentials. Pull-request validation executes the same entry point.
 
 ## Lowest-Risk Live: Existing Search Index
 
