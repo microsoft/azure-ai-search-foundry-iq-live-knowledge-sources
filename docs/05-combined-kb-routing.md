@@ -1,11 +1,14 @@
 # Combined Knowledge Base Routing
 
-LiveKS includes two combined scenarios:
+LiveKS includes three combined paths:
 
 - `mcp-search-index`: a GA Search Index KS plus a preview MCP Server KS in one preview KB.
+- `three-source`: the same two sources plus a preview native Fabric Ontology KS over existing governed assets.
 - `byo-fabric` and `full`: Fabric Ontology KS plus MCP Server KS.
 
 Use [MCP + Search Index Knowledge Base](24-mcp-search-index-kb.md) for the data-plane-only existing-index lifecycle. It proves Search Index and MCP independently through the same combined KB before allowing both source parameters in the final query.
+
+Use [Preview Three-Source Knowledge Base](25-three-source-kb.md) to prove Search Index, MCP, and Fabric independently before offering all three to the planner.
 
 ## Validation Goal
 
@@ -20,7 +23,7 @@ Inspect:
 - `references`
 - `sourceData`
 
-The `mcp-search-index` profile claims combined routing only from those fields. It never infers routing from the synthesized answer.
+The direct combined profiles claim routing only from those fields. They never infer routing from the synthesized answer.
 
 ## REST Flow
 

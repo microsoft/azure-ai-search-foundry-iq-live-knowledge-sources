@@ -33,6 +33,20 @@
   expected_min_source_data_references: 2
   expected_source_data_rows: 5
 
+- query: "Correlate indexed policy evidence with the Airline Ops ontology to identify the highest customer-care exposure, then cite public guidance for validating all three Knowledge Sources."
+  expected_knowledge_sources:
+    - "three-source-search-index-ks"
+    - "microsoft-learn-mcp-ks"
+    - "fabric-ontology-ks"
+  expected_reference_source_data: true
+  expected_activity_sources:
+    - "searchIndex"
+    - "mcpServer"
+    - "fabricOntology"
+  expected_min_references: 3
+  expected_min_source_data_references: 3
+  expected_source_data_rows: 5
+
 - query: "Which passenger-care policies or regulation topics explain the risk for the highest-exposure airline?"
   expected_knowledge_source: "fabric-ontology-ks"
   expected_answer_hint: "delay category"

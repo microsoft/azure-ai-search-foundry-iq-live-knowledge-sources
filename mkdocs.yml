@@ -67,6 +67,7 @@ nav:
       - Architecture: 01-architecture.md
       - Stable Search Index KS: 23-search-index-ks.md
       - MCP + Search Index KB: 24-mcp-search-index-kb.md
+      - Preview Three-Source KB: 25-three-source-kb.md
       - MCP Server KS: 03-mcp-server-ks.md
       - Fabric Ontology KS: 04-fabric-ontology-ks.md
       - Fabric Prerequisites: fabric-ontology-prerequisites.md

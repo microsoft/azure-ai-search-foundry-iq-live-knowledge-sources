@@ -13,7 +13,7 @@ Return to [Overview](00-overview.md) to choose a repository path, or continue wi
 
 This sample uses Azure AI Search Knowledge Source APIs in `2026-05-01-preview`.
 
-LiveKS and the direct postprovision path reject other versions before cloud calls because the current MCP Server, Fabric Ontology, message-input, answer-synthesis, and reasoning payloads are a single preview contract. The `search-index` profile implements Azure AI Search `2026-04-01` for generally available minimal extractive retrieval. The `mcp-search-index` profile keeps its Search Index KS on that stable contract while pinning MCP KS, combined KB, and retrieve to `2026-05-01-preview`. See [API Compatibility](14-api-compatibility.md).
+LiveKS and the direct postprovision path reject other versions before cloud calls because the current MCP Server, Fabric Ontology, message-input, answer-synthesis, and reasoning payloads are a single preview contract. The `search-index` profile implements Azure AI Search `2026-04-01` for generally available minimal extractive retrieval. The `mcp-search-index` and `three-source` profiles keep Search Index KS on that stable contract while pinning MCP KS, native Fabric KS, combined KB, and retrieve to `2026-05-01-preview`. See [API Compatibility](14-api-compatibility.md).
 
 The machine-readable `config/compatibility.yaml` contract checks these pins across schema, profiles, generated examples, CLI behavior, infrastructure, samples, documentation, and CI. Ordinary compatibility validation is credential-free and records Azure and Fabric live execution as **NOT RUN**.
 
@@ -79,6 +79,7 @@ If the app has Fabric IDs but no delegated token, it should show offline replay 
 | --- | --- | --- |
 | `search-index` | Uses only the GA Search Index KS and extractive retrieve contract. | Lowest-risk existing-index proof without MCP. |
 | `mcp-search-index` | Reuses Search and Azure OpenAI assets but creates preview MCP/KB objects. | Protected canary target; no Fabric assets are created or deleted. |
+| `three-source` | Reuses Search/index, Azure OpenAI, Fabric workspace, and native ontology; creates only three KS objects and one KB. | No protected canary exists; delegated Fabric authorization and all three independent proofs are required. |
 | `mcp-only` | Fabric is intentionally skipped. | This proves MCP Server KS, app hosting, Search/OpenAI deployment, and trace inspection. |
 | `byo-fabric` | Requires existing Fabric workspace and ontology IDs. | This is the safest customer-facing live Fabric path when semantic assets already exist. |
 | `full` | Requires Fabric capacity quota, Fabric API readiness, GraphModel readiness, and delegated auth for live retrieve. | This is the platform story and greenfield demo path, not the fastest first run. |
@@ -108,7 +109,7 @@ Common failure causes:
 - GraphModel is not loaded or not refreshable yet,
 - delegated source authorization token is missing or expired.
 
-The recommended mitigation is simple: start with stable `search-index` when an agentic-ready index exists, add `mcp-search-index` only when the reused Azure OpenAI grant is ready, use `mcp-only` when infrastructure must be provisioned, move to `byo-fabric` when Fabric IDs are known, and use `full` only when quota and auth expectations are clear.
+The recommended mitigation is simple: start with stable `search-index` when an agentic-ready index exists, add `mcp-search-index` only when the reused Azure OpenAI grant is ready, use `three-source` only when existing native Fabric assets and delegated authorization are ready, use `mcp-only` when infrastructure must be provisioned, move to `byo-fabric` for a provisioned Azure stack over existing Fabric, and use `full` only when quota and auth expectations are clear.
 
 ## App And Token Caveats
 

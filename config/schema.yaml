@@ -4,7 +4,7 @@ environment_pattern: '^[A-Za-z][A-Za-z0-9-]{2,62}$'
 fields:
   deployment.mode:
     type: enum
-    values: [offline, search-index, mcp-search-index, mcp-only, byo-fabric, full]
+    values: [offline, search-index, mcp-search-index, three-source, mcp-only, byo-fabric, full]
     azd: DEPLOYMENT_MODE
   azure.location:
     type: string

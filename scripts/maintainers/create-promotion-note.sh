@@ -224,7 +224,7 @@ Reviewer asks:
 - Azure AI Search Knowledge Source terminology and REST shape
 - MCP Server KS request/response shape and trace wording
 - Fabric Ontology KS setup and delegated source authorization wording
-- Profile clarity: stable search-index; mixed-contract mcp-search-index; preview mcp-only, byo-fabric, full
+- Profile clarity: stable search-index; mixed-contract mcp-search-index and three-source; preview mcp-only, byo-fabric, full
 - Public-preview caveats and safe claims
 - Security posture for generated outputs and tokens
 

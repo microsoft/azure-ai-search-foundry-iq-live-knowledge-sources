@@ -33,7 +33,7 @@ The first command exits nonzero if the packaged known-answer, activity, referenc
 | `down` | Yes, after confirmation | Delete only assets owned by the environment. |
 | `e2e` | Yes | Run `up` and either clean up or explicitly retain resources. |
 
-`doctor` can issue read-only Azure CLI calls for live profiles. In `byo-fabric`, it also acquires a transient Fabric API token and confirms that the configured workspace and ontology are readable. The token is not serialized. `plan` writes local build and lock artifacts under ignored directories, but it does not run `azd env set`, `azd up`, or Fabric provisioning.
+`doctor` can issue read-only Azure CLI calls for live profiles. In `byo-fabric` and `three-source`, it also acquires a transient Fabric API token and confirms that the configured workspace and ontology are readable. The token is not serialized. `plan` writes local build and lock artifacts under ignored directories, but it does not run `azd env set`, `azd up`, or Fabric provisioning.
 
 Scenario commands are credential-free and emit redacted machine output:
 
@@ -46,7 +46,7 @@ Scenario commands are credential-free and emit redacted machine output:
 
 See [Scenario Packs](18-scenario-packs.md). Scenario manifests select existing profiles but cannot bypass doctor, plan, ownership locks, or E2E cleanup.
 
-For `search-index` and `mcp-search-index`, `doctor` reads the existing index definition with an Azure AI Search bearer token. Their plans check payloads and generated-name collisions without Bicep, `azd`, npm, `PUT`, or `DELETE`. The combined profile uses GA GETs for the Search Index KS name and preview GETs for the MCP KS and KB names.
+For `search-index`, `mcp-search-index`, and `three-source`, `doctor` reads the existing index definition with an Azure AI Search bearer token. Their plans check payloads and generated-name collisions without Bicep, `azd`, npm, `PUT`, or `DELETE`. Direct combined profiles use GA GETs for Search Index KS and preview GETs for MCP/Fabric KS and KB names.
 
 ## Standard Run
 
@@ -87,6 +87,19 @@ Existing Search index plus preview MCP lane:
 ./liveks down --env liveks-combined
 ```
 
+Existing Search plus MCP plus native Fabric lane:
+
+```bash
+./liveks init --profile three-source --env liveks-three
+# Fill existing Search, Azure OpenAI, Fabric workspace, and ontology values.
+./liveks doctor --env liveks-three
+./liveks plan --env liveks-three
+./liveks up --env liveks-three --query "<index question>" --expect-term "<known term>" --fabric-query "<ontology question>"
+./liveks verify --env liveks-three --query "<index question>" --expect-term "<known term>" --fabric-query "<ontology question>"
+./liveks mcp --env liveks-three --auth bearer --expect-term "<known term>"
+./liveks down --env liveks-three
+```
+
 Live commands require an environment name or a YAML path. When `--config` is omitted, LiveKS looks for `.liveks/<environment>.yaml`.
 
 Use JSON output when cleanup evidence will be reviewed:
@@ -95,11 +108,11 @@ Use JSON output when cleanup evidence will be reviewed:
 ./liveks down --env liveks-full --yes --format json
 ```
 
-Every provisioned preview profile must report `resource-group-absent=pass`. The data-plane-only `search-index` and `mcp-search-index` profiles instead require `search-index-preserved=pass`. A `full` run that created capacity must additionally report `fabric-capacity-absent=pass`. It must also report `fabric-capacity-resource-group-absent=pass` when the same run created that dedicated group, or `fabric-capacity-resource-group-preserved=pass` when the group predated the run. A missing summary or unresolved ownership produces partial cleanup instead of a deletion claim.
+Every provisioned preview profile must report `resource-group-absent=pass`. Data-plane-only `search-index`, `mcp-search-index`, and `three-source` instead require `search-index-preserved=pass`; `three-source` also requires `fabric-assets-preserved=pass`. A `full` run that created capacity must additionally report `fabric-capacity-absent=pass`. A missing summary or unresolved ownership produces partial cleanup instead of a deletion claim.
 
-For `byo-fabric` and `full`, `mcp` attaches delegated source authorization by default. It records text-block and expected-term counts but never persists the endpoint, query, response content, key, or token. A call without `--expect-term` can pass protocol checks but reports `grounding-content=warn`; use a known non-sensitive fact for source-content acceptance. See [Call the Knowledge Base Through MCP](22-knowledge-base-mcp.md).
+For `three-source`, `byo-fabric`, and `full`, `mcp` attaches delegated source authorization by default. It records text-block and expected-term counts but never persists the endpoint, query, response content, key, or token. A call without `--expect-term` can pass protocol checks but reports `grounding-content=warn`; use a known non-sensitive fact for source-content acceptance. See [Call the Knowledge Base Through MCP](22-knowledge-base-mcp.md).
 
-For `mcp-search-index`, native MCP uses the configured preview combined KB and requires `--auth bearer`. Source routing must already be proved by the ordered REST retrieve checks because native MCP output has a different response envelope.
+For `mcp-search-index` and `three-source`, native MCP uses the configured preview combined KB and requires `--auth bearer`. Source routing must already be proved by ordered REST checks because native MCP output has a different response envelope.
 
 ## Confirmation Rules
 

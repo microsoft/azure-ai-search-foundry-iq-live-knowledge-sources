@@ -1,0 +1,60 @@
+schema_version: 2
+profile: three-source
+kind: deployment
+purpose: Combine an existing Search index, Microsoft Learn MCP, and an existing native Fabric ontology in one preview Knowledge Base.
+default: false
+required_tools: [python3, az]
+estimated_duration: 10-20 minutes
+cost: Existing Azure AI Search retrieval, Azure OpenAI usage, the remote MCP service, and existing Fabric capacity can incur charges.
+defaults:
+  deployment:
+    mode: three-source
+  search:
+    index_api_version: '2026-04-01'
+    preview_api_version: 2026-05-01-preview
+    endpoint: ''
+    index_name: ''
+    semantic_configuration_name: ''
+    search_fields: []
+    source_data_fields: []
+    index_knowledge_source_name: ''
+    mcp_knowledge_source_name: ''
+    fabric_knowledge_source_name: ''
+    combined_knowledge_base_name: ''
+  mcp:
+    server_url: https://learn.microsoft.com/api/mcp
+    tool_name: microsoft_docs_search
+  openai:
+    endpoint: ''
+    deployment_name: ''
+    model_name: ''
+  fabric:
+    mode: byo
+    workspace_id: ''
+    ontology_id: ''
+  runtime:
+    telemetry_disabled: true
+    run_live_calls: false
+required:
+  - search.endpoint
+  - search.index_name
+  - search.semantic_configuration_name
+  - openai.endpoint
+  - openai.deployment_name
+  - openai.model_name
+  - fabric.workspace_id
+  - fabric.ontology_id
+resources:
+  - Existing Azure AI Search service (reused)
+  - Existing Azure AI Search index (reused)
+  - Existing Azure OpenAI deployment (reused)
+  - Existing Fabric workspace and native ontology (reused)
+  - Search Index Knowledge Source (generated with 2026-04-01)
+  - MCP Server Knowledge Source (generated with 2026-05-01-preview)
+  - Fabric Ontology Knowledge Source (generated with 2026-05-01-preview)
+  - Three-source Knowledge Base (generated with 2026-05-01-preview)
+success_criteria:
+  - The existing index, Fabric workspace, and native ontology pass read-only doctor checks.
+  - Search Index, MCP Server, and Fabric Ontology sources pass independent preview retrieve calls before the combined query.
+  - Combined routing is reported only from activity, references, or sourceData.
+cleanup: Delete the lock-proved combined Knowledge Base and three generated Knowledge Sources in dependency order; preserve Search, index, Azure OpenAI, workspace, and ontology.

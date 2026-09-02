@@ -9,7 +9,7 @@
     "synthetic": true,
     "domainContract": {
       "path": "samples/ontology/airline-ops/ontology-contract.yaml",
-      "sha256": "6cbcfc0d0c657133c6abc66d5ca6c058906012cae76347c129e9d060fa3a3164",
+      "sha256": "8ee707a7e778f6865dc24fd6e5204cbb46e81bbfc83fc109f34bc73e3e54d4e0",
       "dataDigest": "36dd6bf0b2df21895300cdcee76d0e0538e52cfab2223fc77e1a430ffd5fdb28"
     }
   },
@@ -85,6 +85,56 @@
         "supported": false,
         "adapter": "none",
         "reason": "The existing protected canary combines Search Index and MCP sources, not Fabric Ontology and MCP."
+      },
+      "assertions": [
+        {"id": "known-facts", "kind": "answerTerms"},
+        {"id": "activity-evidence", "kind": "activityTypes"},
+        {"id": "reference-evidence", "kind": "referenceTypes"},
+        {"id": "source-contract", "kind": "sourceContract"}
+      ]
+    },
+    {
+      "id": "airline-ops.three-source-replay",
+      "aliases": ["three-source"],
+      "title": "Search Index, MCP, and Fabric replay",
+      "description": "Checks the synthetic response shape for three independently identifiable Knowledge Sources.",
+      "profile": "three-source",
+      "fixture": {
+        "path": "samples/responses/three-source-airline-ops-retrieve.sample.json",
+        "sha256": "898022872f0ec6fa13fa5092c441176e89582fbf60c339c0f983fdf9c4ae2175"
+      },
+      "syntheticQuery": "Correlate indexed policy evidence with the Airline Ops ontology to identify the highest customer-care exposure, then cite public guidance for validating all three Knowledge Sources.",
+      "expectedTerms": ["Alpine Air"],
+      "expectedSources": [
+        {
+          "type": "searchIndex",
+          "identity": "three-source-search-index-ks",
+          "activity": true,
+          "references": true,
+          "sourceData": true
+        },
+        {
+          "type": "mcpServer",
+          "identity": "microsoft-learn-mcp-ks",
+          "activity": true,
+          "references": true,
+          "sourceData": true
+        },
+        {
+          "type": "fabricOntology",
+          "identity": "fabric-ontology-ks",
+          "activity": true,
+          "references": true,
+          "sourceData": true
+        }
+      ],
+      "apiVersions": ["2026-04-01", "2026-05-01-preview"],
+      "ownershipClass": "reused-azure-generated-search-objects",
+      "cleanupExpectation": "delete-generated-search-objects-preserve-reused-assets",
+      "protectedLive": {
+        "supported": false,
+        "adapter": "none",
+        "reason": "The existing protected canary does not connect a Fabric Ontology source."
       },
       "assertions": [
         {"id": "known-facts", "kind": "answerTerms"},

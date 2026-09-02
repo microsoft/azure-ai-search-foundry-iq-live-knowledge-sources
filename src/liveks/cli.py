@@ -63,11 +63,13 @@ from .search_index import (
 
 
 ROOT = Path(__file__).resolve().parents[2]
-LIVE_PROFILES = {"search-index", "mcp-search-index", "mcp-only", "byo-fabric", "full"}
-DIRECT_SEARCH_PROFILES = {"search-index", "mcp-search-index"}
+LIVE_PROFILES = {"search-index", "mcp-search-index", "three-source", "mcp-only", "byo-fabric", "full"}
+DIRECT_SEARCH_PROFILES = {"search-index", "mcp-search-index", "three-source"}
+DIRECT_COMBINED_PROFILES = {"mcp-search-index", "three-source"}
 MCP_SEARCH_INDEX_MANAGED_KEYS = {
     "searchIndexKnowledgeSource",
     "mcpKnowledgeSource",
+    "fabricKnowledgeSource",
     "combinedKnowledgeBase",
 }
 ACTIVE_OWNERSHIP_STATUSES = {
@@ -231,11 +233,20 @@ def _write_e2e_evidence_capsule(
             else {
                 "searchIndexKnowledgeSource": f"{STABLE_SEARCH_API_VERSION}-stable",
                 "mcpServerKnowledgeSource": PREVIEW_SEARCH_API_VERSION,
+                **(
+                    {
+                        "fabricOntologyKnowledgeSource": PREVIEW_SEARCH_API_VERSION,
+                        "existingFabricOwnership": "reuse",
+                        "delegatedFabricAuthorization": "required",
+                    }
+                    if config.profile == "three-source"
+                    else {}
+                ),
                 "knowledgeBase": PREVIEW_SEARCH_API_VERSION,
                 "existingIndexOwnership": "reuse",
                 "liveGrounding": "protected-integration",
             }
-            if config.profile == "mcp-search-index"
+            if config.profile in DIRECT_COMBINED_PROFILES
             else {
                 "mcpServerKnowledgeSourceTransport": "remote-https",
                 "knowledgeBaseMcpTransport": "stateless-json-rpc-http",
@@ -417,6 +428,96 @@ def _search_index_doctor_checks(
     return checks
 
 
+def _fabric_byo_doctor_checks(config: ResolvedConfig) -> list[dict[str, Any]]:
+    checks: list[dict[str, Any]] = []
+    if not shutil.which("az"):
+        return checks
+    runner = CommandRunner(root=ROOT, env=config.child_env(), quiet=True)
+    token_result = runner.run(
+        [
+            "az",
+            "account",
+            "get-access-token",
+            "--resource",
+            "https://api.fabric.microsoft.com",
+            "--query",
+            "accessToken",
+            "-o",
+            "tsv",
+        ],
+        sensitive_output=True,
+    )
+    fabric_token = token_result.stdout.strip()
+    checks.append(
+        _check(
+            "fabric-api-token",
+            "pass" if fabric_token else "fail",
+            "Fabric API token acquired transiently"
+            if fabric_token
+            else "Unable to acquire a Fabric API token for the configured tenant",
+        )
+    )
+    if not fabric_token:
+        return checks
+    fabric_base = "https://api.fabric.microsoft.com/v1"
+    fabric_headers = {"Authorization": f"Bearer {fabric_token}"}
+    fabric_reads = [
+        (
+            "fabric-workspace",
+            f"{fabric_base}/workspaces/{config.get('fabric.workspace_id')}",
+            None,
+        ),
+        (
+            "fabric-ontology",
+            f"{fabric_base}/workspaces/{config.get('fabric.workspace_id')}/items/{config.get('fabric.ontology_id')}",
+            "Ontology",
+        ),
+    ]
+    for check_name, url, expected_type in fabric_reads:
+        try:
+            status_code, payload = http_json(
+                url,
+                headers=fabric_headers,
+                attempts=2,
+                delay_seconds=2,
+                timeout=30,
+            )
+            type_matches = (
+                expected_type is None
+                or (
+                    isinstance(payload, dict)
+                    and str(payload.get("type", "")).casefold()
+                    == expected_type.casefold()
+                )
+            )
+            ready = status_code == 200 and type_matches
+            status = "pass" if ready else "warn" if status_code == 429 else "fail"
+            message = (
+                "Configured Fabric asset is readable"
+                if ready
+                else f"Configured Fabric item is not an {expected_type}"
+                if status_code == 200 and expected_type and not type_matches
+                else f"Fabric API returned HTTP {status_code}"
+            )
+        except Exception:
+            status = "fail"
+            message = "Fabric API read failed without exposing tenant details"
+        checks.append(_check(check_name, status, message))
+    return checks
+
+
+def _fabric_source_authorization(
+    config: ResolvedConfig,
+    runner: CommandRunner,
+) -> str:
+    token_reference = config.get("fabric.user_search_token")
+    if isinstance(token_reference, dict):
+        configured = config.child_env().get(str(token_reference.get("env", "")), "").strip()
+        if configured:
+            return configured.removeprefix("Bearer ").strip()
+    return acquire_search_bearer_token(runner)
+
+
 def doctor_report(config: ResolvedConfig, *, cloud: bool = True) -> dict[str, Any]:
     checks: list[dict[str, Any]] = []
     required_tools = list(config.manifest.get("required_tools", []))
@@ -453,12 +554,12 @@ def doctor_report(config: ResolvedConfig, *, cloud: bool = True) -> dict[str, An
                 config,
                 api_version=(
                     str(config.get("search.index_api_version"))
-                    if config.profile == "mcp-search-index"
+                    if config.profile in DIRECT_COMBINED_PROFILES
                     else None
                 ),
             )
         )
-        if config.profile == "mcp-search-index":
+        if config.profile in DIRECT_COMBINED_PROFILES:
             checks.append(
                 _check(
                     "openai-runtime-access",
@@ -466,6 +567,8 @@ def doctor_report(config: ResolvedConfig, *, cloud: bool = True) -> dict[str, An
                     "Search managed identity access to the reused Azure OpenAI deployment is proved only by live retrieve.",
                 )
             )
+        if config.profile == "three-source":
+            checks.extend(_fabric_byo_doctor_checks(config))
     elif config.profile in LIVE_PROFILES and cloud:
         runner = CommandRunner(root=ROOT, env=config.child_env(), quiet=True)
         account = runner.run(["az", "account", "show", "-o", "json"])
@@ -758,10 +861,14 @@ def _payload_is_subset(expected: Any, actual: Any) -> bool:
     return expected == actual
 
 
+def _direct_combined_has_fabric(config: ResolvedConfig) -> bool:
+    return config.profile == "three-source"
+
+
 def _mcp_search_index_contracts(config: ResolvedConfig) -> list[dict[str, str]]:
     stable = str(config.get("search.index_api_version"))
     preview = str(config.get("search.preview_api_version"))
-    return [
+    contracts = [
         {
             "kind": "searchIndex",
             "name": str(config.get("search.index_name")),
@@ -780,23 +887,54 @@ def _mcp_search_index_contracts(config: ResolvedConfig) -> list[dict[str, str]]:
             "apiVersion": preview,
             "ownership": "create",
         },
-        {
-            "kind": "knowledgeBase",
-            "name": str(config.get("search.combined_knowledge_base_name")),
-            "apiVersion": preview,
-            "ownership": "create",
-        },
-        {
-            "kind": "azureOpenAI",
-            "name": str(config.get("openai.deployment_name")),
-            "apiVersion": "external-existing-deployment",
-            "ownership": "reuse",
-        },
     ]
+    if _direct_combined_has_fabric(config):
+        contracts.append(
+            {
+                "kind": "fabricOntologyKnowledgeSource",
+                "name": str(config.get("search.fabric_knowledge_source_name")),
+                "apiVersion": preview,
+                "ownership": "create",
+            }
+        )
+    contracts.extend(
+        [
+            {
+                "kind": "knowledgeBase",
+                "name": str(config.get("search.combined_knowledge_base_name")),
+                "apiVersion": preview,
+                "ownership": "create",
+            },
+            {
+                "kind": "azureOpenAI",
+                "name": str(config.get("openai.deployment_name")),
+                "apiVersion": "external-existing-deployment",
+                "ownership": "reuse",
+            },
+        ]
+    )
+    if _direct_combined_has_fabric(config):
+        contracts.extend(
+            [
+                {
+                    "kind": "fabricWorkspace",
+                    "name": "redacted-existing-workspace",
+                    "apiVersion": "fabric-v1",
+                    "ownership": "reuse",
+                },
+                {
+                    "kind": "fabricOntology",
+                    "name": "redacted-existing-ontology",
+                    "apiVersion": "fabric-v1",
+                    "ownership": "reuse",
+                },
+            ]
+        )
+    return contracts
 
 
 def _mcp_search_index_cleanup_order(config: ResolvedConfig) -> list[dict[str, str]]:
-    return [
+    cleanup = [
         {
             "action": "delete",
             "kind": "knowledgeBase",
@@ -828,6 +966,33 @@ def _mcp_search_index_cleanup_order(config: ResolvedConfig) -> list[dict[str, st
             "apiVersion": "external-existing-deployment",
         },
     ]
+    if _direct_combined_has_fabric(config):
+        cleanup.insert(
+            1,
+            {
+                "action": "delete",
+                "kind": "fabricOntologyKnowledgeSource",
+                "name": str(config.get("search.fabric_knowledge_source_name")),
+                "apiVersion": str(config.get("search.preview_api_version")),
+            },
+        )
+        cleanup.extend(
+            [
+                {
+                    "action": "preserve",
+                    "kind": "fabricWorkspace",
+                    "name": "redacted-existing-workspace",
+                    "apiVersion": "fabric-v1",
+                },
+                {
+                    "action": "preserve",
+                    "kind": "fabricOntology",
+                    "name": "redacted-existing-ontology",
+                    "apiVersion": "fabric-v1",
+                },
+            ]
+        )
+    return cleanup
 
 
 def _search_index_plan_report(config: ResolvedConfig, checks: list[dict[str, Any]]) -> dict[str, Any]:
@@ -981,6 +1146,7 @@ def _mcp_search_index_plan_report(config: ResolvedConfig, checks: list[dict[str,
         config,
         index_query="Inspect the existing index.",
         mcp_query="Find current Azure AI Search Knowledge Base guidance.",
+        fabric_query="Inspect governed entities and relationships in the existing Fabric ontology.",
         combined_query="Use indexed domain evidence and current Microsoft Learn implementation guidance.",
     )
     knowledge_base = payloads["knowledgeBase"]
@@ -989,27 +1155,40 @@ def _mcp_search_index_plan_report(config: ResolvedConfig, checks: list[dict[str,
         for item in knowledge_base.get("knowledgeSources", [])
         if isinstance(item, dict) and item.get("name")
     }
+    expected_source_names = {
+        str(config.get("search.index_knowledge_source_name")),
+        str(config.get("search.mcp_knowledge_source_name")),
+    }
+    if _direct_combined_has_fabric(config):
+        expected_source_names.add(str(config.get("search.fabric_knowledge_source_name")))
     retrieve = payloads["retrieve"]
     payload_ready = (
         payloads["searchIndexKnowledgeSource"].get("kind") == "searchIndex"
         and payloads["mcpKnowledgeSource"].get("kind") == "mcpServer"
-        and source_names
-        == {
-            str(config.get("search.index_knowledge_source_name")),
-            str(config.get("search.mcp_knowledge_source_name")),
-        }
+        and (
+            payloads.get("fabricKnowledgeSource", {}).get("kind") == "fabricOntology"
+            if _direct_combined_has_fabric(config)
+            else "fabricKnowledgeSource" not in payloads
+        )
+        and source_names == expected_source_names
         and bool(knowledge_base.get("models"))
         and knowledge_base.get("outputMode") == "answerSynthesis"
         and knowledge_base.get("retrievalReasoningEffort") == {"kind": "low"}
         and all("messages" in request and "intents" not in request for request in retrieve.values())
         and retrieve["searchIndex"]["knowledgeSourceParams"][0]["kind"] == "searchIndex"
         and retrieve["mcp"]["knowledgeSourceParams"][0]["kind"] == "mcpServer"
+        and (
+            retrieve.get("fabric", {}).get("knowledgeSourceParams", [{}])[0].get("kind")
+            == "fabricOntology"
+            if _direct_combined_has_fabric(config)
+            else "fabric" not in retrieve
+        )
     )
     checks.append(
         _check(
             "version-separated-payload-contract",
             "pass" if payload_ready else "fail",
-            "GA Search Index KS and preview MCP/KB/retrieve request shapes remain separate."
+            "GA Search Index KS and preview MCP/Fabric/KB/retrieve request shapes remain separate."
             if payload_ready
             else "The combined profile payloads mix or omit required stable and preview properties.",
         )
@@ -1030,6 +1209,18 @@ def _mcp_search_index_plan_report(config: ResolvedConfig, checks: list[dict[str,
                 "knowledgesources",
                 str(config.get("search.mcp_knowledge_source_name")),
                 str(config.get("search.preview_api_version")),
+            ),
+            *(
+                [
+                    (
+                        "fabricKnowledgeSource",
+                        "knowledgesources",
+                        str(config.get("search.fabric_knowledge_source_name")),
+                        str(config.get("search.preview_api_version")),
+                    )
+                ]
+                if _direct_combined_has_fabric(config)
+                else []
             ),
             (
                 "combinedKnowledgeBase",
@@ -1077,7 +1268,11 @@ def _mcp_search_index_plan_report(config: ResolvedConfig, checks: list[dict[str,
 
     output_dir = ROOT / ".deployment" / config.environment
     output_dir.mkdir(parents=True, exist_ok=True)
-    payload_path = output_dir / "mcp-search-index-plan.json"
+    payload_path = output_dir / (
+        "three-source-plan.json"
+        if _direct_combined_has_fabric(config)
+        else "mcp-search-index-plan.json"
+    )
     write_json(
         payload_path,
         {
@@ -1168,7 +1363,7 @@ def plan_report(
 
     if config.profile == "search-index":
         return _search_index_plan_report(config, checks)
-    if config.profile == "mcp-search-index":
+    if config.profile in DIRECT_COMBINED_PROFILES:
         return _mcp_search_index_plan_report(config, checks)
 
     output_dir = ROOT / ".deployment" / config.environment
@@ -1473,7 +1668,8 @@ def _mcp_search_index_up_report(
     query: str | None,
     expected_terms: list[str] | None,
     mcp_query: str | None,
-    combined_query: str | None,
+    fabric_query: str | None = None,
+    combined_query: str | None = None,
 ) -> dict[str, Any]:
     if any(not str(term).strip() for term in expected_terms or []):
         return envelope(
@@ -1500,6 +1696,7 @@ def _mcp_search_index_up_report(
 
     effective_index_query = query or "What information is available in the existing search index?"
     effective_mcp_query = mcp_query or "What must be configured for an Azure AI Search MCP Server knowledge source?"
+    effective_fabric_query = fabric_query or "What governed entities and relationships are available in the Fabric ontology?"
     effective_combined_query = combined_query or (
         "Use the existing index for domain evidence and Microsoft Learn for guidance on validating Knowledge Base retrieval."
     )
@@ -1507,6 +1704,7 @@ def _mcp_search_index_up_report(
         config,
         index_query=effective_index_query,
         mcp_query=effective_mcp_query,
+        fabric_query=effective_fabric_query,
         combined_query=effective_combined_query,
     )
     runner = CommandRunner(root=ROOT, env=config.child_env(), quiet=quiet)
@@ -1527,6 +1725,19 @@ def _mcp_search_index_up_report(
                 str(config.get("search.mcp_knowledge_source_name")),
                 str(config.get("search.preview_api_version")),
                 payloads["mcpKnowledgeSource"],
+            ),
+            *(
+                [
+                    (
+                        "fabricKnowledgeSource",
+                        "knowledgesources",
+                        str(config.get("search.fabric_knowledge_source_name")),
+                        str(config.get("search.preview_api_version")),
+                        payloads["fabricKnowledgeSource"],
+                    )
+                ]
+                if _direct_combined_has_fabric(config)
+                else []
             ),
             (
                 "combinedKnowledgeBase",
@@ -1656,6 +1867,7 @@ def _mcp_search_index_up_report(
             query=effective_index_query,
             expected_terms=expected_terms,
             mcp_query=effective_mcp_query,
+            fabric_query=effective_fabric_query,
             combined_query=effective_combined_query,
         )
         checks.extend(verified.get("checks", []))
@@ -1725,6 +1937,7 @@ def up_report(
     query: str | None = None,
     expected_terms: list[str] | None = None,
     mcp_query: str | None = None,
+    fabric_query: str | None = None,
     combined_query: str | None = None,
     operation_locked: bool = False,
 ) -> dict[str, Any]:
@@ -1742,6 +1955,7 @@ def up_report(
                     query=query,
                     expected_terms=expected_terms,
                     mcp_query=mcp_query,
+                    fabric_query=fabric_query,
                     combined_query=combined_query,
                     operation_locked=True,
                 )
@@ -1761,7 +1975,7 @@ def up_report(
             query=query,
             expected_terms=expected_terms,
         )
-    if config.profile == "mcp-search-index":
+    if config.profile in DIRECT_COMBINED_PROFILES:
         return _mcp_search_index_up_report(
             config,
             yes=yes,
@@ -1769,6 +1983,7 @@ def up_report(
             query=query,
             expected_terms=expected_terms,
             mcp_query=mcp_query,
+            fabric_query=fabric_query,
             combined_query=combined_query,
         )
     plan = plan_report(
@@ -2004,7 +2219,7 @@ def mcp_report(
         return report
 
     runner = CommandRunner(root=ROOT, env=config.child_env(), quiet=True)
-    direct_combined = config.profile == "mcp-search-index"
+    direct_combined = config.profile in DIRECT_COMBINED_PROFILES
     if direct_combined:
         search_endpoint = str(config.get("search.endpoint")).rstrip("/")
         search_service = ""
@@ -2065,7 +2280,7 @@ def mcp_report(
                 _check(
                     "mcp-auth",
                     "fail",
-                    "The mcp-search-index profile reuses a BYO Search service; call liveks mcp with --auth bearer.",
+                    "This direct combined profile reuses a BYO Search service; call liveks mcp with --auth bearer.",
                 )
             )
             report = envelope("mcp", "fail", profile=config.profile, environment=config.environment, checks=checks)
@@ -2095,12 +2310,29 @@ def mcp_report(
             headers["api-key"] = service_credential
             checks.append(_check("mcp-auth", "pass", "Using the sample deployment's transient Search admin key; no key is printed or persisted."))
 
-    needs_source_authorization = config.profile in {"byo-fabric", "full"}
+    needs_source_authorization = config.profile in {"three-source", "byo-fabric", "full"}
     if needs_source_authorization and not omit_source_authorization:
-        source_result = runner.run(
-            ["az", "account", "get-access-token", "--scope", "https://search.azure.com/.default", "--query", "accessToken", "-o", "tsv"]
-        )
-        source_token = source_result.stdout.strip()
+        if config.profile == "three-source":
+            try:
+                source_token = _fabric_source_authorization(config, runner)
+            except Exception:
+                source_token = ""
+        else:
+            source_result = runner.run(
+                [
+                    "az",
+                    "account",
+                    "get-access-token",
+                    "--scope",
+                    "https://search.azure.com/.default",
+                    "--query",
+                    "accessToken",
+                    "-o",
+                    "tsv",
+                ],
+                sensitive_output=True,
+            )
+            source_token = source_result.stdout.strip()
         if not source_token:
             checks.append(_check("source-authorization", "fail", "Unable to acquire delegated source authorization."))
         else:
@@ -2367,6 +2599,11 @@ def _search_index_verify_report(
 
 def _mcp_search_index_retrieve_failure(status_code: int, source: str) -> str:
     if status_code in {401, 403}:
+        if source == "Fabric Ontology":
+            return (
+                f"{source} retrieve was unauthorized (HTTP {status_code}); verify delegated "
+                "x-ms-query-source-authorization and Fabric permissions."
+            )
         return (
             f"{source} retrieve was unauthorized (HTTP {status_code}); verify Search data permissions and "
             "the Search managed identity's Azure OpenAI role."
@@ -2387,7 +2624,8 @@ def _mcp_search_index_verify_report(
     query: str | None,
     expected_terms: list[str] | None,
     mcp_query: str | None,
-    combined_query: str | None,
+    fabric_query: str | None = None,
+    combined_query: str | None = None,
 ) -> dict[str, Any]:
     if any(not str(term).strip() for term in expected_terms or []):
         return envelope(
@@ -2426,6 +2664,18 @@ def _mcp_search_index_verify_report(
             str(config.get("search.mcp_knowledge_source_name")),
             preview,
         ),
+        *(
+            [
+                (
+                    "fabric-knowledge-source",
+                    "knowledgesources",
+                    str(config.get("search.fabric_knowledge_source_name")),
+                    preview,
+                )
+            ]
+            if _direct_combined_has_fabric(config)
+            else []
+        ),
         (
             "combined-knowledge-base",
             "knowledgebases",
@@ -2454,6 +2704,29 @@ def _mcp_search_index_verify_report(
                 f"Object is readable through {api_version}."
                 if status_code == 200
                 else f"Object read failed through {api_version} (HTTP {status_code or 'unavailable'}).",
+            )
+        )
+
+    if _direct_combined_has_fabric(config):
+        fabric_source = objects.get("fabric-knowledge-source")
+        fabric_parameters = (
+            fabric_source.get("fabricOntologyParameters", {})
+            if isinstance(fabric_source, dict)
+            else {}
+        )
+        fabric_source_matches = (
+            isinstance(fabric_source, dict)
+            and fabric_source.get("kind") == "fabricOntology"
+            and fabric_parameters.get("workspaceId") == config.get("fabric.workspace_id")
+            and fabric_parameters.get("ontologyId") == config.get("fabric.ontology_id")
+        )
+        checks.append(
+            _check(
+                "fabric-source-contract",
+                "pass" if fabric_source_matches else "fail",
+                "Preview native Fabric Ontology KS references the configured existing workspace and ontology."
+                if fabric_source_matches
+                else "Fabric Ontology KS does not match the pinned preview native source contract.",
             )
         )
 
@@ -2510,12 +2783,16 @@ def _mcp_search_index_verify_report(
         if models and isinstance(models[0], dict)
         else {}
     )
+    expected_knowledge_source_names = {
+        str(config.get("search.index_knowledge_source_name")),
+        str(config.get("search.mcp_knowledge_source_name")),
+    }
+    if _direct_combined_has_fabric(config):
+        expected_knowledge_source_names.add(
+            str(config.get("search.fabric_knowledge_source_name"))
+        )
     knowledge_base_matches = (
-        knowledge_source_names
-        == {
-            str(config.get("search.index_knowledge_source_name")),
-            str(config.get("search.mcp_knowledge_source_name")),
-        }
+        knowledge_source_names == expected_knowledge_source_names
         and knowledge_base.get("outputMode") == "answerSynthesis"
         and knowledge_base.get("retrievalReasoningEffort") == {"kind": "low"}
         and model_parameters.get("resourceUri") == config.get("openai.endpoint")
@@ -2526,7 +2803,7 @@ def _mcp_search_index_verify_report(
         _check(
             "combined-knowledge-base-contract",
             "pass" if knowledge_base_matches else "fail",
-            "Preview Knowledge Base references both sources and the reused Azure OpenAI deployment."
+            "Preview Knowledge Base references every configured source and the reused Azure OpenAI deployment."
             if knowledge_base_matches
             else "Combined Knowledge Base does not match the pinned preview source and model contract.",
         )
@@ -2534,6 +2811,7 @@ def _mcp_search_index_verify_report(
 
     effective_index_query = query or "What information is available in the existing search index?"
     effective_mcp_query = mcp_query or "What must be configured for an Azure AI Search MCP Server knowledge source?"
+    effective_fabric_query = fabric_query or "What governed entities and relationships are available in the Fabric ontology?"
     effective_combined_query = combined_query or (
         "Use the existing index for domain evidence and Microsoft Learn for guidance on validating Knowledge Base retrieval."
     )
@@ -2541,12 +2819,42 @@ def _mcp_search_index_verify_report(
         config,
         index_query=effective_index_query,
         mcp_query=effective_mcp_query,
+        fabric_query=effective_fabric_query,
         combined_query=effective_combined_query,
     )
     kb_path = f"{search_object_path('knowledgebases', str(config.get('search.combined_knowledge_base_name')))}/retrieve"
 
+    fabric_headers: dict[str, str] | None = None
+    fabric_authorization_ok = True
+    if _direct_combined_has_fabric(config):
+        try:
+            source_token = _fabric_source_authorization(config, runner)
+            fabric_headers = {"x-ms-query-source-authorization": source_token}
+            checks.append(
+                _check(
+                    "fabric-source-authorization",
+                    "pass",
+                    "Delegated Fabric source authorization was acquired transiently.",
+                )
+            )
+        except Exception:
+            fabric_authorization_ok = False
+            checks.append(
+                _check(
+                    "fabric-source-authorization",
+                    "fail",
+                    "Delegated Fabric source authorization could not be acquired.",
+                )
+            )
+
     retrieve_results: dict[str, tuple[int, Any]] = {}
-    for label in ("searchIndex", "mcp"):
+    independent_labels = ["searchIndex", "mcp"]
+    if _direct_combined_has_fabric(config):
+        independent_labels.append("fabric")
+    for label in independent_labels:
+        if label == "fabric" and not fabric_authorization_ok:
+            retrieve_results[label] = (0, {})
+            continue
         try:
             retrieve_results[label] = search_index_request(
                 config,
@@ -2555,6 +2863,7 @@ def _mcp_search_index_verify_report(
                 path=kb_path,
                 api_version=preview,
                 body=payloads["retrieve"][label],
+                headers=fabric_headers if label == "fabric" else None,
                 attempts=3,
                 retry_mode="read",
             )
@@ -2602,7 +2911,31 @@ def _mcp_search_index_verify_report(
         )
     )
 
-    independent_sources_passed = index_ok and index_grounding_ok and mcp_ok
+    fabric_ok = True
+    if _direct_combined_has_fabric(config):
+        fabric_code, fabric_payload = retrieve_results["fabric"]
+        fabric_ok = (
+            fabric_authorization_ok
+            and fabric_code == 200
+            and _response_has_evidence(fabric_payload, "fabricOntology")
+        )
+        checks.append(
+            _check(
+                "fabric-retrieve",
+                "pass" if fabric_ok else "fail",
+                "Independent preview retrieve returned fabricOntology activity, references, or sourceData evidence."
+                if fabric_ok
+                else _mcp_search_index_retrieve_failure(
+                    fabric_code,
+                    "Fabric Ontology",
+                ),
+                evidenceCount=_evidence_count(fabric_payload, "fabricOntology"),
+            )
+        )
+
+    independent_sources_passed = (
+        index_ok and index_grounding_ok and mcp_ok and fabric_ok
+    )
     combined_code = 0
     combined_payload: Any = {}
     if independent_sources_passed:
@@ -2614,6 +2947,7 @@ def _mcp_search_index_verify_report(
                 path=kb_path,
                 api_version=preview,
                 body=payloads["retrieve"]["combined"],
+                headers=fabric_headers if _direct_combined_has_fabric(config) else None,
                 attempts=3,
                 retry_mode="read",
             )
@@ -2623,7 +2957,7 @@ def _mcp_search_index_verify_report(
         [
             item
             for item in _evidence_types(combined_payload)
-            if item in {"searchIndex", "mcpServer"}
+            if item in {"searchIndex", "mcpServer", "fabricOntology"}
         ]
         if independent_sources_passed
         else []
@@ -2672,6 +3006,7 @@ def verify_report(
     query: str | None = None,
     expected_terms: list[str] | None = None,
     mcp_query: str | None = None,
+    fabric_query: str | None = None,
     combined_query: str | None = None,
 ) -> dict[str, Any]:
     if any(not str(term).strip() for term in expected_terms or []):
@@ -2692,13 +3027,14 @@ def verify_report(
             query=query,
             expected_terms=expected_terms,
         )
-    if config.profile == "mcp-search-index":
+    if config.profile in DIRECT_COMBINED_PROFILES:
         return _mcp_search_index_verify_report(
             config,
             quiet=quiet,
             query=query,
             expected_terms=expected_terms,
             mcp_query=mcp_query,
+            fabric_query=fabric_query,
             combined_query=combined_query,
         )
 
@@ -3077,11 +3413,17 @@ def _mcp_search_index_down_report(config: ResolvedConfig, *, yes: bool, quiet: b
         config,
         index_query="cleanup-reconciliation",
         mcp_query="cleanup-reconciliation",
+        fabric_query="cleanup-reconciliation",
         combined_query="cleanup-reconciliation",
     )
     expected_objects = {
         "combinedKnowledgeBase": expected_payloads["knowledgeBase"],
         "mcpKnowledgeSource": expected_payloads["mcpKnowledgeSource"],
+        **(
+            {"fabricKnowledgeSource": expected_payloads["fabricKnowledgeSource"]}
+            if _direct_combined_has_fabric(config)
+            else {}
+        ),
         "searchIndexKnowledgeSource": expected_payloads["searchIndexKnowledgeSource"],
     }
     delete_contracts = [
@@ -3089,6 +3431,17 @@ def _mcp_search_index_down_report(config: ResolvedConfig, *, yes: bool, quiet: b
             "combinedKnowledgeBase",
             "knowledgebases",
             str(config.get("search.preview_api_version")),
+        ),
+        *(
+            [
+                (
+                    "fabricKnowledgeSource",
+                    "knowledgesources",
+                    str(config.get("search.preview_api_version")),
+                )
+            ]
+            if _direct_combined_has_fabric(config)
+            else []
         ),
         (
             "mcpKnowledgeSource",
@@ -3193,6 +3546,14 @@ def _mcp_search_index_down_report(config: ResolvedConfig, *, yes: bool, quiet: b
             "Cleanup issues no delete request for the reused Azure OpenAI deployment.",
         )
     )
+    if _direct_combined_has_fabric(config):
+        checks.append(
+            _check(
+                "fabric-assets-preserved",
+                "pass",
+                "Cleanup issues no delete request for the reused Fabric workspace or ontology.",
+            )
+        )
 
     status = "pass" if not remaining and all(check["status"] != "fail" for check in checks) else "cleanup-incomplete"
     lock = write_lock(
@@ -3243,7 +3604,7 @@ def down_report(
             )
     if config.profile == "search-index":
         return _search_index_down_report(config, yes=yes, quiet=quiet)
-    if config.profile == "mcp-search-index":
+    if config.profile in DIRECT_COMBINED_PROFILES:
         return _mcp_search_index_down_report(config, yes=yes, quiet=quiet)
     cleanup_lock, cleanup_lock_error = _generic_cleanup_lock(config)
     if cleanup_lock_error:
@@ -3578,13 +3939,15 @@ def build_parser() -> argparse.ArgumentParser:
     up_parser.add_argument("--skip-dry-run", action="store_true", help=argparse.SUPPRESS)
     up_parser.add_argument("--postprovision-only", action="store_true", help=argparse.SUPPRESS)
     up_parser.add_argument("--query", help="Runtime acceptance query for a direct Search Index source.")
-    up_parser.add_argument("--mcp-query", help="MCP-only retrieve query for the mcp-search-index profile.")
-    up_parser.add_argument("--combined-query", help="Combined retrieve query for the mcp-search-index profile.")
+    up_parser.add_argument("--mcp-query", help="MCP-only retrieve query for a direct combined profile.")
+    up_parser.add_argument("--fabric-query", help="Fabric-only retrieve query for the three-source profile.")
+    up_parser.add_argument("--combined-query", help="Combined retrieve query for a direct combined profile.")
     up_parser.add_argument("--expect-term", action="append", default=[], help="Expected non-sensitive term in Search Index reference sourceData; repeatable.")
     verify_parser = subparsers.add_parser("verify", help="Verify deployed resources and retrieve evidence.")
     _common_config_args(verify_parser, require_env=False)
     verify_parser.add_argument("--query")
     verify_parser.add_argument("--mcp-query")
+    verify_parser.add_argument("--fabric-query")
     verify_parser.add_argument("--combined-query")
     verify_parser.add_argument("--expect-term", action="append", default=[])
     mcp_parser = subparsers.add_parser("mcp", help="Call a deployed Knowledge Base through its MCP endpoint.")
@@ -3605,8 +3968,9 @@ def build_parser() -> argparse.ArgumentParser:
     e2e_parser.add_argument("--yes", action="store_true")
     e2e_parser.add_argument("--accept-fabric-capacity", action="store_true")
     e2e_parser.add_argument("--query", help="Runtime acceptance query for a direct Search Index source.")
-    e2e_parser.add_argument("--mcp-query", help="MCP-only retrieve query for the mcp-search-index profile.")
-    e2e_parser.add_argument("--combined-query", help="Combined retrieve query for the mcp-search-index profile.")
+    e2e_parser.add_argument("--mcp-query", help="MCP-only retrieve query for a direct combined profile.")
+    e2e_parser.add_argument("--fabric-query", help="Fabric-only retrieve query for the three-source profile.")
+    e2e_parser.add_argument("--combined-query", help="Combined retrieve query for a direct combined profile.")
     e2e_parser.add_argument("--expect-term", action="append", default=[], help="Expected non-sensitive term in Search Index reference sourceData; repeatable.")
     return parser
 
@@ -3719,6 +4083,7 @@ def main(argv: list[str] | None = None) -> int:
                 query=args.query,
                 expected_terms=args.expect_term,
                 mcp_query=args.mcp_query,
+                fabric_query=args.fabric_query,
                 combined_query=args.combined_query,
             )
         elif args.command == "verify":
@@ -3728,6 +4093,7 @@ def main(argv: list[str] | None = None) -> int:
                 query=args.query,
                 expected_terms=args.expect_term,
                 mcp_query=args.mcp_query,
+                fabric_query=args.fabric_query,
                 combined_query=args.combined_query,
             )
         elif args.command == "mcp":
@@ -3756,6 +4122,7 @@ def main(argv: list[str] | None = None) -> int:
                         query=args.query,
                         expected_terms=args.expect_term,
                         mcp_query=args.mcp_query,
+                        fabric_query=args.fabric_query,
                         combined_query=args.combined_query,
                         operation_locked=True,
                     )

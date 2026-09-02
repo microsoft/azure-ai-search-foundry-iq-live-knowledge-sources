@@ -291,13 +291,13 @@ def ownership_for_profile(profile: str, fabric_mode: str) -> dict[str, str]:
         "fabricWorkspace": "create" if fabric_mode == "create" else "reuse" if fabric_mode == "byo" else "none",
         "fabricOntology": "create" if fabric_mode == "create" else "reuse" if fabric_mode == "byo" else "none",
     }
-    if profile in {"search-index", "mcp-search-index"}:
+    if profile in {"search-index", "mcp-search-index", "three-source"}:
         ownership.update(
             {
                 "azure": "reuse",
                 "searchService": "reuse",
                 "searchIndex": "reuse",
-                "azureOpenAI": "reuse" if profile == "mcp-search-index" else "none",
+                "azureOpenAI": "reuse" if profile in {"mcp-search-index", "three-source"} else "none",
                 "knowledgeSources": "create",
                 "knowledgeBases": "create",
             }
@@ -311,7 +311,7 @@ def available_profiles() -> list[str]:
         data = load_yaml(path)
         if data.get("kind", "deployment") == "deployment":
             names.append(str(data.get("profile", path.stem)))
-    preferred = ["offline", "search-index", "mcp-search-index", "mcp-only", "byo-fabric", "full"]
+    preferred = ["offline", "search-index", "mcp-search-index", "three-source", "mcp-only", "byo-fabric", "full"]
     return [name for name in preferred if name in names] + sorted(set(names) - set(preferred))
 
 
@@ -392,7 +392,7 @@ def resolve_config(
         values.setdefault("fabric.capacity_resource_group", f"rg-{environment}-fabric")
         sources.setdefault("fabric.capacity_name", "derived")
         sources.setdefault("fabric.capacity_resource_group", "derived")
-    if profile in {"search-index", "mcp-search-index"}:
+    if profile in {"search-index", "mcp-search-index", "three-source"}:
         if is_placeholder(values.get("search.index_knowledge_source_name")):
             values["search.index_knowledge_source_name"] = f"{environment.lower()}-search-index-ks"
             sources["search.index_knowledge_source_name"] = "derived"
@@ -400,13 +400,16 @@ def resolve_config(
         if is_placeholder(values.get("search.index_knowledge_base_name")):
             values["search.index_knowledge_base_name"] = f"{environment.lower()}-search-index-kb"
             sources["search.index_knowledge_base_name"] = "derived"
-    if profile == "mcp-search-index":
+    if profile in {"mcp-search-index", "three-source"}:
         if is_placeholder(values.get("search.mcp_knowledge_source_name")):
             values["search.mcp_knowledge_source_name"] = f"{environment.lower()}-mcp-server-ks"
             sources["search.mcp_knowledge_source_name"] = "derived"
         if is_placeholder(values.get("search.combined_knowledge_base_name")):
             values["search.combined_knowledge_base_name"] = f"{environment.lower()}-combined-kb"
             sources["search.combined_knowledge_base_name"] = "derived"
+        if profile == "three-source" and is_placeholder(values.get("search.fabric_knowledge_source_name")):
+            values["search.fabric_knowledge_source_name"] = f"{environment.lower()}-fabric-ontology-ks"
+            sources["search.fabric_knowledge_source_name"] = "derived"
 
     unknown = sorted(set(values) - set(fields))
     if unknown:
@@ -426,23 +429,28 @@ def resolve_config(
         )
     if profile in {"mcp-only", "byo-fabric", "full"} and api_version != PREVIEW_SEARCH_API_VERSION:
         raise ConfigError(f"{profile} profile requires the {PREVIEW_SEARCH_API_VERSION} API contract.")
-    if profile == "mcp-search-index":
+    if profile in {"mcp-search-index", "three-source"}:
         if values.get("search.index_api_version") != STABLE_SEARCH_API_VERSION:
             raise ConfigError(
-                f"mcp-search-index requires Search Index KS API version {STABLE_SEARCH_API_VERSION}."
+                f"{profile} requires Search Index KS API version {STABLE_SEARCH_API_VERSION}."
             )
         if values.get("search.preview_api_version") != PREVIEW_SEARCH_API_VERSION:
             raise ConfigError(
-                "mcp-search-index requires MCP Server KS and Knowledge Base API version "
-                f"{PREVIEW_SEARCH_API_VERSION}."
+                f"{profile} requires MCP Server KS, Fabric Ontology KS when configured, "
+                f"and Knowledge Base API version {PREVIEW_SEARCH_API_VERSION}."
             )
         managed_names = [
             str(values.get("search.index_knowledge_source_name")),
             str(values.get("search.mcp_knowledge_source_name")),
+            *(
+                [str(values.get("search.fabric_knowledge_source_name"))]
+                if profile == "three-source"
+                else []
+            ),
             str(values.get("search.combined_knowledge_base_name")),
         ]
         if len(set(managed_names)) != len(managed_names):
-            raise ConfigError("mcp-search-index generated Knowledge Source and Knowledge Base names must be distinct.")
+            raise ConfigError(f"{profile} generated Knowledge Source and Knowledge Base names must be distinct.")
     if profile == "full" and (values.get("fabric.workspace_id") or values.get("fabric.ontology_id")):
         raise ConfigError("full profile must not include BYO Fabric IDs; use byo-fabric instead.")
 
@@ -476,7 +484,7 @@ def write_user_config(path: Path, *, profile: str, environment: str) -> None:
             "search_fields": [],
             "source_data_fields": [],
         }
-    elif profile == "mcp-search-index":
+    elif profile in {"mcp-search-index", "three-source"}:
         data["search"] = {
             "endpoint": "",
             "index_name": "",
@@ -489,6 +497,12 @@ def write_user_config(path: Path, *, profile: str, environment: str) -> None:
             "deployment_name": "",
             "model_name": "",
         }
+        if profile == "three-source":
+            data["fabric"] = {
+                "workspace_id": "",
+                "ontology_id": "",
+                "user_search_token": {"env": "FABRIC_USER_SEARCH_TOKEN"},
+            }
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(yaml.safe_dump(data, sort_keys=False), encoding="utf-8")
     path.chmod(0o600)
