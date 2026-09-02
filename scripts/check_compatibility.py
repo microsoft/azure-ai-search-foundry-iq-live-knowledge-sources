@@ -100,7 +100,7 @@ def validate_contract(root: Path, contract: dict[str, Any]) -> list[str]:
             actual = nested_value(load_yaml(profile_path), f"defaults.{selector}")
             if str(actual) != version:
                 failures.append(
-                    f"{profile_path.relative_to(root)} defaults.{selector} must be {version} "
+                    f"{profile_path.relative_to(root).as_posix()} defaults.{selector} must be {version} "
                     f"for api_contracts.{contract_name}"
                 )
         for relative_path, key in api.get("generated_env", {}).items():
@@ -205,6 +205,12 @@ def validate_contract(root: Path, contract: dict[str, Any]) -> list[str]:
         failures.append(f"liveks.ps1 must enforce Python {contract['runtimes']['python']['minimum']} or newer")
     if "--no-input" not in wrapper or "--no-input" not in powershell_wrapper:
         failures.append("liveks bootstrap must keep pip noninteractive with --no-input on both launchers")
+    if "for candidate in python3 python python3.14" not in wrapper:
+        failures.append("liveks must prefer the workflow-selected Python from PATH before versioned fallbacks")
+    generic_python = powershell_wrapper.find('foreach ($candidate in @("python3", "python"))')
+    py_launcher = powershell_wrapper.find("if (Get-Command py")
+    if generic_python < 0 or py_launcher < 0 or generic_python > py_launcher:
+        failures.append("liveks.ps1 must prefer the workflow-selected Python from PATH before py launcher fallbacks")
 
     validate_workflow = load_yaml(root / ".github/workflows/validate.yml")
     if validate_workflow.get("permissions") != {"contents": "read"}:

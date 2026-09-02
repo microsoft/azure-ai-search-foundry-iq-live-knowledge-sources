@@ -6,16 +6,16 @@ $CommandName = if ($args.Count -gt 0) { $args[0] } else { "help" }
 $Remaining = if ($args.Count -gt 1) { $args[1..($args.Count - 1)] } else { @() }
 
 function Find-LiveKsPython {
-    if (Get-Command py -ErrorAction SilentlyContinue) {
-        foreach ($version in @("3.14", "3.13", "3.12", "3.11")) {
-            & py "-$version" -c "import sys; raise SystemExit(0 if sys.version_info >= (3, 11) else 1)" 2>$null
-            if ($LASTEXITCODE -eq 0) { return @("py", "-$version") }
-        }
-    }
     foreach ($candidate in @("python3", "python")) {
         if (Get-Command $candidate -ErrorAction SilentlyContinue) {
             & $candidate -c "import sys; raise SystemExit(0 if sys.version_info >= (3, 11) else 1)" 2>$null
             if ($LASTEXITCODE -eq 0) { return @($candidate) }
+        }
+    }
+    if (Get-Command py -ErrorAction SilentlyContinue) {
+        foreach ($version in @("3.14", "3.13", "3.12", "3.11")) {
+            & py "-$version" -c "import sys; raise SystemExit(0 if sys.version_info >= (3, 11) else 1)" 2>$null
+            if ($LASTEXITCODE -eq 0) { return @("py", "-$version") }
         }
     }
     throw "Python 3.11 or newer is required."
