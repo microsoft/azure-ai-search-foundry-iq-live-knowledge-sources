@@ -34,8 +34,8 @@ jobs:
       - name: Install LiveKS CLI dependencies
         run: python -m pip install --disable-pip-version-check -r requirements-liveks.txt
 
-      - name: Run local validation gate
-        run: bash scripts/validate-local.sh --no-color
+      - name: Run documented first path
+        run: python scripts/check_compatibility.py --run-commands posix
 
       - name: Upload first-success evidence
         uses: actions/upload-artifact@v7
@@ -52,7 +52,7 @@ jobs:
   cli-windows:
     name: LiveKS CLI on Windows
     runs-on: windows-latest
-    timeout-minutes: 10
+    timeout-minutes: 20
 
     steps:
       - name: Check out repository
@@ -63,11 +63,15 @@ jobs:
         with:
           python-version: "3.11"
 
-      - name: Bootstrap and run the Windows launcher
-        shell: pwsh
-        run: |
-          .\liveks.ps1 try --format json --evidence-out .deployment/windows-first-run-evidence.json
-          .\liveks.ps1 bootstrap
-          .\liveks.ps1 profiles --format json
-          .\liveks.ps1 doctor --profile offline --format json
-          .\.liveks\venv\Scripts\python.exe -m unittest tests.test_liveks_config tests.test_mcp_invocation tests.test_mcp_search_index_profile
+      - name: Set up Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: static-app/package-lock.json
+
+      - name: Install contract checker dependencies
+        run: python -m pip install --disable-pip-version-check -r requirements-liveks.txt
+
+      - name: Run documented Windows first path
+        run: python scripts/check_compatibility.py --run-commands windows

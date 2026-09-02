@@ -15,6 +15,8 @@ This sample uses Azure AI Search Knowledge Source APIs in `2026-05-01-preview`.
 
 LiveKS and the direct postprovision path reject other versions before cloud calls because the current MCP Server, Fabric Ontology, message-input, answer-synthesis, and reasoning payloads are a single preview contract. The `search-index` profile implements Azure AI Search `2026-04-01` for generally available minimal extractive retrieval. The `mcp-search-index` profile keeps its Search Index KS on that stable contract while pinning MCP KS, combined KB, and retrieve to `2026-05-01-preview`. See [API Compatibility](14-api-compatibility.md).
 
+The machine-readable `config/compatibility.yaml` contract checks these pins across schema, profiles, generated examples, CLI behavior, infrastructure, samples, documentation, and CI. Ordinary compatibility validation is credential-free and records Azure and Fabric live execution as **NOT RUN**.
+
 Treat these as preview-sensitive:
 
 - request and response schemas,

@@ -363,14 +363,19 @@ docs/                  Execution manual, concepts, troubleshooting, and operatio
 
 Generated configuration, locks, deployment evidence, app builds, and logs stay under ignored `.liveks/`, `.deployment/`, `deployments/`, and build directories.
 
-## Local Validation
+## Compatibility And Local Validation
 
+<!-- compatibility-command-contract:start -->
 ```bash
+./liveks try
+./liveks bootstrap
+./liveks profiles
+./liveks doctor --profile offline --format json
 bash scripts/validate-local.sh
-git diff --check
 ```
+<!-- compatibility-command-contract:end -->
 
-The gate checks configuration and CLI contracts, safe dev container behavior, notebooks, links, sample and repository hygiene, secrets, the Pages demo build, Windows launcher behavior, and Bicep.
+The machine-readable authority is [`config/compatibility.yaml`](config/compatibility.yaml). The gate checks its runtime, tool, API, generated catalog, command, workflow, and manual bindings before the existing configuration, CLI, safety, notebook, link, sample, secret, app, and Bicep checks. See the [compatibility matrix](docs/14-api-compatibility.md) for exactly what CI exercises and what remains unverified.
 
 ## Official Microsoft Manuals
 

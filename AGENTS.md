@@ -16,6 +16,7 @@ offline -> search-index -> mcp-search-index -> mcp-only -> byo-fabric
 
 From a fresh clone:
 
+<!-- compatibility-command-contract:start -->
 ```bash
 ./liveks try
 ./liveks bootstrap
@@ -23,14 +24,16 @@ From a fresh clone:
 ./liveks doctor --profile offline --format json
 bash scripts/validate-local.sh
 ```
+<!-- compatibility-command-contract:end -->
 
-On Windows PowerShell, replace `./liveks` with `./liveks.ps1`.
+On Windows PowerShell, replace `./liveks` with `./liveks.ps1` and run `.\scripts\validate-local.ps1` for the final gate.
 
 Do not create cloud resources merely because credentials are available. `try`, `doctor`, and `plan` are the inspection path. `up`, `down`, and `e2e` mutate cloud state.
 
 ## Configuration Authority
 
 - `config/schema.yaml` defines supported fields, validation, azd projection, secrets, and legacy mappings.
+- `config/compatibility.yaml` defines supported runtime and tool requirements, CI-exercised combinations, API pins, and the documentation command contract.
 - `profiles/offline.yaml`, `search-index.yaml`, `mcp-search-index.yaml`, `mcp-only.yaml`, `byo-fabric.yaml`, and `full.yaml` define executable defaults, resources, cost, and success criteria.
 - `.liveks/<environment>.yaml` is the ignored human-authored ledger.
 - `.liveks/<environment>.lock.json` is the ignored redacted resolution and ownership record.

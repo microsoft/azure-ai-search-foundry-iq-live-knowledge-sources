@@ -9,7 +9,7 @@ fi
 
 find_python() {
   local candidate
-  for candidate in python3.14 python3.13 python3.12 python3.11 python3; do
+  for candidate in python3 python python3.14 python3.13 python3.12 python3.11; do
     if command -v "$candidate" >/dev/null 2>&1 && "$candidate" -c 'import sys; raise SystemExit(0 if sys.version_info >= (3, 11) else 1)' >/dev/null 2>&1; then
       command -v "$candidate"
       return 0
@@ -39,7 +39,7 @@ if [[ "$command_name" == "bootstrap" ]]; then
   fi
   mkdir -p "$ROOT/.liveks"
   "$python_bin" -m venv "$VENV"
-  "$VENV/bin/python" -m pip install --disable-pip-version-check -r "$ROOT/requirements-liveks.txt" "$@"
+  "$VENV/bin/python" -m pip install --disable-pip-version-check --no-input -r "$ROOT/requirements-liveks.txt" "$@"
   echo "LiveKS CLI environment ready: $VENV"
   exit 0
 fi
