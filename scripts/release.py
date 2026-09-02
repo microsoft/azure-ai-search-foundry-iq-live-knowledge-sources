@@ -490,7 +490,7 @@ def build_spdx(
         "dataLicense": "CC0-1.0",
         "documentNamespace": (
             f"https://github.com/{product['repository']}/releases/tag/{product['tag']}"
-            f"#spdx-{source_revision}"
+            f"/spdx-{source_revision}"
         ),
         "name": archive_name,
         "packages": [
