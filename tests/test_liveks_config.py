@@ -19,7 +19,7 @@ class LiveKsConfigTests(unittest.TestCase):
     def test_profiles_are_ordered_and_include_full(self):
         self.assertEqual(
             available_profiles(),
-            ["offline", "search-index", "mcp-search-index", "mcp-only", "byo-fabric", "full"],
+            ["offline", "search-index", "mcp-search-index", "three-source", "mcp-only", "byo-fabric", "full"],
         )
 
     def test_mcp_profile_resolves_to_azd_values(self):

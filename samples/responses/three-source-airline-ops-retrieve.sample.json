@@ -1,0 +1,61 @@
+{
+  "response": [
+    {
+      "role": "assistant",
+      "content": [
+        {
+          "type": "text",
+          "text": "The synthetic evidence links Alpine Air customer-care exposure from the existing index and Fabric ontology with public Microsoft Learn guidance for validating the three-source Knowledge Base trace."
+        }
+      ]
+    }
+  ],
+  "activity": [
+    {
+      "type": "searchIndex",
+      "knowledgeSourceName": "three-source-search-index-ks",
+      "count": 2
+    },
+    {
+      "type": "mcpServer",
+      "knowledgeSourceName": "microsoft-learn-mcp-ks",
+      "toolName": "microsoft_docs_search",
+      "count": 1
+    },
+    {
+      "type": "fabricOntology",
+      "knowledgeSourceName": "fabric-ontology-ks",
+      "count": 5
+    }
+  ],
+  "references": [
+    {
+      "type": "searchIndex",
+      "knowledgeSourceName": "three-source-search-index-ks",
+      "title": "Synthetic customer-care policy index evidence",
+      "sourceData": {
+        "title": "Synthetic customer-care policy index evidence",
+        "content": "Alpine Air has indexed synthetic passenger-care and delay-policy evidence."
+      }
+    },
+    {
+      "type": "mcpServer",
+      "knowledgeSourceName": "microsoft-learn-mcp-ks",
+      "toolName": "microsoft_docs_search",
+      "title": "Query a knowledge base",
+      "sourceData": {
+        "title": "Query a knowledge base",
+        "content": "Synthetic public-documentation excerpt for inspecting activity, references, and sourceData."
+      }
+    },
+    {
+      "type": "fabricOntology",
+      "knowledgeSourceName": "fabric-ontology-ks",
+      "title": "Synthetic Airline Ops ontology evidence",
+      "sourceData": {
+        "fabricAnswer": "Alpine Air ranks first in synthetic customer-care exposure.",
+        "fabricRawData": "airline_code,airline_name,customer_care_exposure_usd\nALP,Alpine Air,6800\nNEX,Nexus Airways,4200\nTCA,TransCoast Air,2700\nCAS,Cascade Airways,2100\nOVR,Overland Air,0"
+      }
+    }
+  ]
+}

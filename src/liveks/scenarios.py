@@ -354,9 +354,9 @@ def _profile_source_contract(
     fabric = defaults.get("fabric", {})
     source_types: set[str] = set()
     source_names: set[str] = set()
-    if profile in {"search-index", "mcp-search-index"}:
+    if profile in {"search-index", "mcp-search-index", "three-source"}:
         source_types.add("searchIndex")
-    if search.get("mcp_knowledge_source_name") is not None or profile == "mcp-search-index":
+    if search.get("mcp_knowledge_source_name") is not None or profile in {"mcp-search-index", "three-source"}:
         source_types.add("mcpServer")
         if search.get("mcp_knowledge_source_name"):
             source_names.add(str(search["mcp_knowledge_source_name"]))

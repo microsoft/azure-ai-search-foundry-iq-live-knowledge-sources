@@ -40,6 +40,7 @@ class ScenarioPackTests(unittest.TestCase):
             [
                 "airline-ops.combined-guidance-replay",
                 "airline-ops.fabric-exposure-replay",
+                "airline-ops.three-source-replay",
                 "microsoft-learn-mcp.guidance-replay",
             ],
         )
@@ -50,6 +51,7 @@ class ScenarioPackTests(unittest.TestCase):
                 "fabric": "airline-ops.fabric-exposure-replay",
                 "mcp": "microsoft-learn-mcp.guidance-replay",
                 "semantic-join": "airline-ops.combined-guidance-replay",
+                "three-source": "airline-ops.three-source-replay",
             },
         )
 
@@ -85,7 +87,7 @@ class ScenarioPackTests(unittest.TestCase):
         self.assertEqual(first, second)
         self.assertEqual(first["status"], "pass")
         self.assertEqual(first["networkCalls"], 0)
-        self.assertEqual(len(first["runs"]), 3)
+        self.assertEqual(len(first["runs"]), 4)
 
     def test_structured_fixture_digest_is_line_ending_independent(self):
         with tempfile.TemporaryDirectory() as temp_dir:

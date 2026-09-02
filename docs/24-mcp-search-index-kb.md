@@ -2,6 +2,8 @@
 
 Use `mcp-search-index` when an agentic-ready Azure AI Search index and an Azure OpenAI deployment already exist and you want one preview Knowledge Base that can route between indexed domain content and a remote MCP tool.
 
+When an existing native Fabric ontology should join the same data-plane-only composition, use [Preview Three-Source Knowledge Base](25-three-source-kb.md).
+
 This profile creates no resource group, Search service, index, Azure OpenAI deployment, hosting, or Fabric asset. It creates only:
 
 1. a Search Index Knowledge Source through GA `2026-04-01`,

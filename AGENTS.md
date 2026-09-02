@@ -7,7 +7,7 @@ This public accelerator demonstrates Foundry IQ composition across Azure AI Sear
 Follow this progression unless the user explicitly requests another profile:
 
 ```text
-offline -> search-index -> mcp-search-index -> mcp-only -> byo-fabric
+offline -> search-index -> mcp-search-index -> three-source -> mcp-only -> byo-fabric
 ```
 
 `full` is a greenfield demo profile. It creates a billable Fabric F2 capacity and generated Fabric assets, so it requires explicit user intent and `--accept-fabric-capacity`.
@@ -35,7 +35,7 @@ Do not create cloud resources merely because credentials are available. `try`, `
 - `config/schema.yaml` defines supported fields, validation, azd projection, secrets, and legacy mappings.
 - `config/compatibility.yaml` defines supported runtime and tool requirements, CI-exercised combinations, API pins, and the documentation command contract.
 - `config/scenario-pack-schema.json` and `scenario-packs/*/manifest.json` define synthetic replay evidence without redefining deployment topology.
-- `profiles/offline.yaml`, `search-index.yaml`, `mcp-search-index.yaml`, `mcp-only.yaml`, `byo-fabric.yaml`, and `full.yaml` define executable defaults, resources, cost, and success criteria.
+- `profiles/offline.yaml`, `search-index.yaml`, `mcp-search-index.yaml`, `three-source.yaml`, `mcp-only.yaml`, `byo-fabric.yaml`, and `full.yaml` define executable defaults, resources, cost, and success criteria.
 - `.liveks/<environment>.yaml` is the ignored human-authored ledger.
 - `.liveks/<environment>.lock.json` is the ignored redacted resolution and ownership record.
 - `azd env` is generated deployment state, not the v2 authoring source.
@@ -81,6 +81,18 @@ Existing-index plus MCP composition lane:
 ./liveks down --env liveks-combined
 ```
 
+Existing Search plus MCP plus native Fabric composition lane:
+
+```bash
+./liveks init --profile three-source --env liveks-three
+# Fill existing Search, Azure OpenAI, Fabric workspace, and ontology values.
+./liveks doctor --env liveks-three
+./liveks plan --env liveks-three
+./liveks up --env liveks-three --query "<index question>" --expect-term "<known term>" --fabric-query "<ontology question>"
+./liveks verify --env liveks-three --query "<index question>" --expect-term "<known term>" --fabric-query "<ontology question>"
+./liveks down --env liveks-three
+```
+
 Rules:
 
 - Never bypass a failed doctor or plan.
@@ -96,6 +108,7 @@ Rules:
 
 - `search-index`: Search service and index are reused and must be preserved; only a matching lock can authorize deletion of the generated KS and KB.
 - `mcp-search-index`: Search service, index, and Azure OpenAI deployment are reused; only a matching lock can authorize deletion of the generated combined KB and its two KS objects.
+- `three-source`: Search service/index, Azure OpenAI, and Fabric workspace/ontology are reused; only a matching lock can authorize deletion of the generated combined KB and its three KS objects.
 - `mcp-only`: generated Azure assets may be deleted; no Fabric assets are owned.
 - `byo-fabric`: generated Azure assets may be deleted; Fabric capacity, workspace, and ontology must be preserved.
 - `full`: generated Azure and Fabric assets may be deleted.
@@ -115,6 +128,7 @@ Use the evidence that matches the claim:
 | Stable Search Index path is live | `liveks verify` reports `search-index-retrieve=pass`; use `--expect-term` for content acceptance |
 | Existing Search index survived cleanup | `liveks down` reports `search-index-preserved=pass` |
 | MCP + Search Index path is live | Independent `search-index-retrieve` and `mcp-retrieve` checks pass before `combined-retrieve`; the combined check reports only activity, references, or sourceData evidence |
+| Three-source path is live | Independent Search Index, MCP, and Fabric checks pass with delegated Fabric authorization before combined planner evidence |
 | Protected lifecycle canary is live | An approved manual run completes guarded E2E cleanup and uploads only `canary-evidence.json`; repository tests prove contract shape, not live execution |
 | Deployment is ready | Passing `liveks doctor` and `liveks plan` |
 | MCP path is live | MCP activity or references from `liveks verify` |
@@ -143,6 +157,6 @@ The supported Fabric pattern is native Fabric Ontology Knowledge Source. The che
 
 ## Source Of Truth
 
-The Search Index KS contract is generally available and pinned to `2026-04-01`. MCP Server KS, combined KB, and Fabric Ontology contracts are public preview and pinned to `2026-05-01-preview`. The `mcp-search-index` profile carries both versions explicitly and never substitutes one for the other. Keep the official Microsoft Learn articles for Search Index KS, MCP Server KS, Fabric Ontology KS, Knowledge Base creation, and retrieve behavior as the API source of truth.
+The Search Index KS contract is generally available and pinned to `2026-04-01`. MCP Server KS, combined KB, and Fabric Ontology contracts are public preview and pinned to `2026-05-01-preview`. The `mcp-search-index` and `three-source` profiles carry both versions explicitly and never substitute one for the other. Keep the official Microsoft Learn articles for Search Index KS, MCP Server KS, Fabric Ontology KS, Knowledge Base creation, and retrieve behavior as the API source of truth.
 
 When live behavior differs from replay, state that replay demonstrates response shape only. Summarize live evidence using sanitized status, source names, counts, and cleanup outcome.

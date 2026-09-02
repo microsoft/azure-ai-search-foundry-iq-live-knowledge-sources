@@ -16,6 +16,7 @@
 
 - [ ] `search-index` (stable existing-index path)
 - [ ] `mcp-search-index` (GA Search Index KS + preview MCP/KB path)
+- [ ] `three-source` (GA Search Index KS + preview MCP/Fabric/KB path)
 - [ ] `mcp-only`
 - [ ] `byo-fabric`
 - [ ] `full`
@@ -57,5 +58,5 @@ Suggested reviewer asks:
 - Azure AI Search Knowledge Source terminology and REST shape
 - MCP Server KS request/response shape and trace wording
 - Fabric Ontology KS setup and delegated source authorization wording
-- profile clarity: stable `search-index`; mixed-contract `mcp-search-index`; preview `mcp-only`, `byo-fabric`, `full`
+- profile clarity: stable `search-index`; mixed-contract `mcp-search-index` and `three-source`; preview `mcp-only`, `byo-fabric`, `full`
 - public-preview caveats

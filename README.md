@@ -21,13 +21,14 @@
   />
 </p>
 
-This accelerator is for five successive jobs:
+This accelerator is for six successive jobs:
 
 | You are here | Finish this | Path |
 | --- | --- | --- |
 | **Evaluator** | Inspect the answer, activity, references, and source identities without cloud access. | `./liveks try` |
 | **Search implementer** | Wrap and prove an existing agentic-ready Search index without transferring ownership. | `search-index` |
 | **Knowledge composer** | Add Microsoft Learn MCP to an existing Search index without provisioning a new service. | `mcp-search-index` |
+| **Three-source composer** | Add a native existing Fabric ontology to the reused Search + MCP path. | `three-source` |
 | **Azure implementer** | Deploy and prove one preview MCP Server KS without Fabric. | `mcp-only` |
 | **Fabric implementer** | Add an existing or greenfield ontology and prove both source paths. | `byo-fabric` or `full` |
 
@@ -100,6 +101,26 @@ This profile creates only a GA `2026-04-01` Search Index KS, a `2026-05-01-previ
 `verify` first forces the existing index, then forces MCP, then offers both sources to the combined planner. Require `search-index-retrieve=pass`, `mcp-retrieve=pass`, and `combined-retrieve=pass`. The combined check reports only source evidence found in `activity`, `references`, or `sourceData`; answer text never proves routing.
 
 Cleanup deletes the lock-owned combined KB, MCP KS, and Search Index KS in dependency order, then requires `search-index-preserved=pass`. It never deletes the Search service, index, Azure OpenAI deployment, resource group, or Fabric. Read the [MCP + Search Index execution contract](docs/24-mcp-search-index-kb.md).
+
+## Compose Search, MCP, And Native Fabric
+
+When the same tenant also has an existing Fabric workspace and ontology, extend the data-plane-only path without provisioning infrastructure:
+
+```bash
+./liveks init --profile three-source --env liveks-three
+# Fill existing Search, Azure OpenAI, Fabric workspace, and ontology values.
+./liveks doctor --env liveks-three
+./liveks plan --env liveks-three
+./liveks up \
+  --env liveks-three \
+  --query "<index question>" \
+  --expect-term "<known indexed term>" \
+  --mcp-query "<Microsoft Learn question>" \
+  --fabric-query "<ontology question>" \
+  --combined-query "<three-source question>"
+```
+
+This creates only a GA Search Index KS plus preview MCP KS, native Fabric Ontology KS, and three-source KB. Verification proves Search, MCP, and Fabric independently before combined planner evidence. Cleanup deletes only those four lock/ETag-owned Search objects and preserves the Search/index, Azure OpenAI deployment, Fabric workspace, ontology, and capacity. [Follow the three-source execution contract](docs/25-three-source-kb.md).
 
 ### Protected Lifecycle Canary
 
@@ -222,6 +243,7 @@ The verifier checks each source independently before combined planner routing:
 | --- | --- |
 | `search-index` | Stable retrieve returns extracted text and `searchIndex` activity or references; optional expected terms match. |
 | `mcp-search-index` | Independent Search Index and MCP retrieves pass before combined routing evidence is inspected. |
+| `three-source` | Independent Search Index, MCP, and delegated Fabric retrieves pass before combined routing evidence is inspected. |
 | `mcp-only` | `mcpServer` activity or references from the MCP-only Knowledge Base. |
 | `byo-fabric` | MCP evidence plus `fabricOntology` evidence from the Fabric-only Knowledge Base. |
 | `full` | Both source checks, generated Fabric readiness, app status, and ownership evidence. |
@@ -269,7 +291,7 @@ Omitting `--expect-term` proves the MCP protocol surface only and leaves groundi
 
 Read [Call the Knowledge Base Through MCP](docs/22-knowledge-base-mcp.md) for authentication, delegated Fabric authorization, and controlled failure handling.
 
-The native `liveks mcp` client targets preview Knowledge Bases. The stable `search-index` profile uses its documented REST retrieve assertion; `mcp-search-index` supports the native endpoint with `--auth bearer` only after the three-step REST source proof.
+The native `liveks mcp` client targets preview Knowledge Bases. The stable `search-index` profile uses its documented REST retrieve assertion; direct combined profiles support the native endpoint with `--auth bearer` only after ordered REST source proof.
 
 ## Configuration And Compatibility
 
@@ -280,11 +302,12 @@ The native `liveks mcp` client targets preview Knowledge Bases. The stable `sear
 | `offline` | None | None |
 | `search-index` | Generated KS and KB only; service and index reused | Existing endpoint, index, semantic configuration, and Search permissions |
 | `mcp-search-index` | Generated combined KB and two KS objects only | Existing Search index, Azure OpenAI deployment, Search managed identity model access, and Search permissions |
+| `three-source` | Generated combined KB and three KS objects only | Existing Search index, Azure OpenAI deployment, native Fabric ontology, delegated authorization, and Search permissions |
 | `mcp-only` | Generated Azure resources | Azure sign-in; profile defaults are otherwise runnable |
 | `byo-fabric` | Generated Azure resources only | Existing Fabric workspace and ontology IDs |
 | `full` | Generated Azure and Fabric resources | Fabric quota and explicit capacity acceptance |
 
-The `search-index` profile is pinned to generally available `2026-04-01` and uses `intents` plus minimal extractive retrieval. `mcp-search-index` explicitly keeps its Search Index KS on `2026-04-01` while using `2026-05-01-preview` for MCP KS, the combined KB, and all three `messages` retrieve calls. The other MCP and Fabric profiles remain preview-only. LiveKS rejects cross-lane API overrides.
+The `search-index` profile is pinned to generally available `2026-04-01` and uses `intents` plus minimal extractive retrieval. `mcp-search-index` and `three-source` keep Search Index KS on `2026-04-01` while using `2026-05-01-preview` for MCP/Fabric KS, combined KB, and `messages` retrieve. Other MCP and Fabric profiles remain preview-only. LiveKS rejects cross-lane API overrides.
 
 Read the [stable vs preview compatibility matrix](docs/14-api-compatibility.md).
 
@@ -330,7 +353,7 @@ Before cleanup for a preview deployment, open the App URL in `deployments/<envir
 ./liveks down --env <environment>
 ```
 
-For `search-index` and `mcp-search-index`, require `search-index-preserved=pass`. For provisioned preview deployments, require `resource-group-absent=pass`. A `full` run that generated Fabric capacity must also report `fabric-capacity-absent`, plus either `fabric-capacity-resource-group-absent` for a generated group or `fabric-capacity-resource-group-preserved` for a pre-existing group.
+For `search-index`, `mcp-search-index`, and `three-source`, require `search-index-preserved=pass`; three-source also requires `fabric-assets-preserved=pass`. For provisioned preview deployments, require `resource-group-absent=pass`. A `full` run that generated Fabric capacity must also report its capacity and group outcome.
 
 For a controlled end-to-end rehearsal:
 

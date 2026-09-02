@@ -88,7 +88,14 @@ ZERO_GUID_KEYS = (
     "EXTERNAL_TENANT_ID",
 )
 
-EXPECTED_DEPLOYMENT_MODES = {"search-index", "mcp-search-index", "mcp-only", "byo-fabric", "full"}
+EXPECTED_DEPLOYMENT_MODES = {
+    "search-index",
+    "mcp-search-index",
+    "three-source",
+    "mcp-only",
+    "byo-fabric",
+    "full",
+}
 LIVE_PROOF_PATH = Path("samples/evidence/mcp-only-live-proof.sample.json")
 
 

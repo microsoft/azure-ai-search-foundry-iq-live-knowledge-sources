@@ -12,6 +12,7 @@ The canonical input is an ignored `.liveks/<environment>.yaml` ledger. It is not
 | --- | --- | --- | --- |
 | `search-index` | Existing Search endpoint, index name, and semantic configuration; optional field lists. | Azure CLI sign-in with Search data-plane permissions. | Search Index KS and minimal extractive KB; the existing service and index are preserved. |
 | `mcp-search-index` | Existing Search inputs plus Azure OpenAI endpoint, deployment, and model. | Azure CLI sign-in; Search managed identity must access Azure OpenAI. | GA Search Index KS, preview MCP Server KS, and preview combined KB; all underlying assets are preserved. |
+| `three-source` | Existing Search/OpenAI inputs plus Fabric workspace and ontology IDs. | Azure CLI sign-in, model access, Fabric API access, and delegated Search token. | GA Search Index KS, preview MCP/Fabric KS objects, and preview three-source KB; all underlying assets are preserved. |
 | `mcp-only` | None beyond the generated profile and environment. | Azure CLI and Azure Developer CLI sign-in. | Azure resources, MCP Server KS, MCP-only KB, and app. |
 | `byo-fabric` | `fabric.workspace_id` and `fabric.ontology_id`. | Azure sign-in plus a transient delegated Search token during Fabric calls. | Generated Azure resources and a Fabric-only validation KB; the existing Fabric assets are preserved. |
 | `full` | No existing Fabric IDs; optional Fabric location and SKU overrides. | Azure and Fabric access, available quota, and `--accept-fabric-capacity`. | Generated Azure resources and a billable Fabric F2 sample stack. |
@@ -64,12 +65,13 @@ Other choices:
 
 ```bash
 ./liveks init --profile mcp-search-index --env liveks-combined
+./liveks init --profile three-source --env liveks-three
 ./liveks init --profile mcp-only --env liveks-mcp
 ./liveks init --profile byo-fabric --env liveks-byo
 ./liveks init --profile full --env liveks-full
 ```
 
-Review `.liveks/<environment>.yaml`. For `search-index`, add the existing Search endpoint, index, semantic configuration, and optional field lists. For `mcp-search-index`, add those values plus the existing Azure OpenAI endpoint, deployment, and model. For `byo-fabric`, replace the blank Fabric workspace and ontology IDs. For external tenants, add `azure.tenant_id`, `azure.subscription_id`, and `azure.cli_config_dir`. See [Configuration](21-configuration.md).
+Review `.liveks/<environment>.yaml`. For `search-index`, add existing Search values. For `mcp-search-index`, add Search plus Azure OpenAI. For `three-source`, add those values plus Fabric workspace and ontology IDs. For `byo-fabric`, replace the blank Fabric IDs. See [Configuration](21-configuration.md).
 
 ## 4. Sign In
 
@@ -77,7 +79,7 @@ Review `.liveks/<environment>.yaml`. For `search-index`, add the existing Search
 az login --tenant <tenant-guid>
 ```
 
-For `mcp-only`, `byo-fabric`, and `full`, also run `azd auth login`. The data-plane-only `search-index` and `mcp-search-index` profiles never use `azd`. Use the same target tenant and subscription for both tools when both are required. `doctor` fails on a configured tenant or subscription mismatch.
+For `mcp-only`, `byo-fabric`, and `full`, also run `azd auth login`. Data-plane-only `search-index`, `mcp-search-index`, and `three-source` never use `azd`.
 
 ## 5. Doctor
 
@@ -87,7 +89,7 @@ For `mcp-only`, `byo-fabric`, and `full`, also run `azd auth login`. The data-pl
 
 Resolve all failures. Warnings about Search preview availability or unknown Fabric quota require human review but do not claim that a deployment will fail.
 
-For `search-index` and `mcp-search-index`, doctor reads the existing index and verifies the semantic configuration and requested field capabilities with a transient bearer token. It does not read documents or mutate Search objects. The combined profile reports Search managed identity access to Azure OpenAI as unknown until live retrieve proves it.
+For `search-index`, `mcp-search-index`, and `three-source`, doctor reads the existing index without reading documents. `three-source` also reads the existing Fabric workspace and ontology. Direct combined profiles report model runtime access as unknown until retrieve proves it.
 
 Minimum versions are Python 3.11, Azure Developer CLI 1.27.0, and Node.js 22. Azure CLI is also required.
 
@@ -100,6 +102,8 @@ Minimum versions are Python 3.11, Azure Developer CLI 1.27.0, and Node.js 22. Az
 For `search-index`, the plan serializes the stable KS, extractive KB, and `intents` retrieve payloads and checks names for unowned collisions. It does not run Bicep, `azd`, npm, or any data-plane write.
 
 For `mcp-search-index`, the plan serializes a GA Search Index KS, preview MCP Server KS, preview combined KB, and three preview `messages` retrieve requests. It performs GET-only collision checks using the API version pinned to each object and lists ownership, costs, and dependency-ordered cleanup.
+
+For `three-source`, plan adds preview native Fabric KS and a fourth independent/combined retrieve payload. It redacts Fabric IDs and lists every reused asset and generated object.
 
 For preview deployment profiles, use their environment name instead. The plan:
 
@@ -136,6 +140,8 @@ For existing-index composition:
 
 Type `create liveks-combined`. This creates only the two KS objects and combined KB.
 
+For three-source composition, use `liveks-three` and add `--fabric-query "<ontology question>"`. Type `create liveks-three`; only three KS objects and one KB are created.
+
 For full greenfield:
 
 ```bash
@@ -148,6 +154,7 @@ Expected evidence:
 | --- | --- |
 | `search-index` | Existing index remains readable; stable retrieve includes `searchIndex` activity or references and extracted text. |
 | `mcp-search-index` | Independent `searchIndex` then `mcpServer` evidence passes before combined planner evidence. |
+| `three-source` | Independent `searchIndex`, `mcpServer`, and delegated `fabricOntology` evidence passes before combined planner evidence. |
 | `mcp-only` | Resource group and app exist; MCP retrieve includes MCP activity or references. |
 | `byo-fabric` | MCP evidence plus live Fabric and combined evidence using delegated Search authorization. |
 | `full` | Generated Fabric GraphModel is ready, separate checks prove both sources, and all Azure assets pass. |
@@ -208,7 +215,7 @@ For an Airline Ops `byo-fabric` or `full` environment:
 
 Expected: `tools/list` publishes `knowledge_base_retrieve`, `tools/call` returns at least one text block, and `grounding-content` matches every expected term. The command keeps raw MCP content in memory and records only sanitized counts. Without `--expect-term`, protocol checks can pass but grounding remains a warning.
 
-This command applies to preview Knowledge Bases. Use `./liveks mcp --env liveks-combined --auth bearer` for `mcp-search-index` after REST has proved both sources independently. The stable `search-index` profile continues to use its documented REST retrieve contract.
+This command applies to preview Knowledge Bases. Use bearer auth for `mcp-search-index` or `three-source` only after REST has proved every source independently. The stable `search-index` profile continues to use its documented REST retrieve contract.
 
 Use [Call the Knowledge Base Through MCP](22-knowledge-base-mcp.md) for bearer authentication, a controlled missing-authorization failure, and the complete acceptance contract.
 
@@ -223,6 +230,7 @@ Type `delete <environment>`. For `search-index`, the command deletes only the re
 - `mcp-only` deletes generated Azure resources.
 - `search-index` deletes only the lock-owned Knowledge Base and Knowledge Source, then proves the reused index remains readable.
 - `mcp-search-index` deletes the lock-owned combined KB, MCP KS, and Search Index KS in that order, then proves the reused index remains readable; it never deletes Azure OpenAI or Fabric.
+- `three-source` deletes the lock-owned combined KB, Fabric KS, MCP KS, and Search Index KS, then proves the reused index remains readable; it never deletes Azure OpenAI or Fabric assets.
 - `byo-fabric` deletes generated Azure resources and preserves the existing Fabric workspace and ontology.
 - `full` deletes generated Fabric assets first, continues with Azure cleanup if Fabric reports a partial failure, and returns a nonzero partial-cleanup status.
 

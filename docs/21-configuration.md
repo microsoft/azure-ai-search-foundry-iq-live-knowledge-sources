@@ -7,6 +7,7 @@ LiveKS v2 uses one ignored YAML file as the human-managed deployment ledger. Pro
 ```bash
 ./liveks init --profile search-index --env liveks-index
 ./liveks init --profile mcp-search-index --env liveks-combined
+./liveks init --profile three-source --env liveks-three
 ./liveks init --profile mcp-only --env liveks-mcp
 ./liveks init --profile byo-fabric --env liveks-byo
 ./liveks init --profile full --env liveks-full
@@ -56,6 +57,29 @@ openai:
 ```
 
 This profile reuses the Search service, index, and Azure OpenAI deployment. Its defaults pin `search.index_api_version` to GA `2026-04-01` and `search.preview_api_version` to `2026-05-01-preview`. The generated Search Index KS, MCP KS, and combined KB names are derived from the environment unless explicitly overridden.
+
+## Three-Source Example
+
+```yaml
+version: 2
+profile: three-source
+environment: liveks-three
+search:
+  endpoint: https://<search-service>.search.windows.net
+  index_name: <existing-index-name>
+  semantic_configuration_name: <semantic-configuration-name>
+openai:
+  endpoint: https://<azure-openai-resource>.openai.azure.com
+  deployment_name: <existing-chat-deployment>
+  model_name: <model-name>
+fabric:
+  workspace_id: <existing-workspace-guid>
+  ontology_id: <existing-ontology-guid>
+  user_search_token:
+    env: FABRIC_USER_SEARCH_TOKEN
+```
+
+This profile extends the same separate GA/preview contract with a generated native Fabric Ontology KS. Search, index, Azure OpenAI, Fabric workspace, ontology, and capacity remain reused assets. Four generated Search object names are derived from the environment.
 
 ## MCP-only Example
 
@@ -154,9 +178,9 @@ Lowest to highest precedence:
 
 The final redacted result and the source of each value are written to `.liveks/<environment>.lock.json` by `plan` and later lifecycle commands.
 
-`azd env` is a deployment projection, not the authored source of truth. Preview deployment profiles select or create the named `azd` environment and write resolved non-secret values immediately before preview and provisioning. The stable `search-index` profile is data-plane-only and does not create or read an `azd` environment.
+`azd env` is a deployment projection, not the authored source of truth. Provisioned preview profiles select or create the named `azd` environment and write resolved non-secret values immediately before preview and provisioning. The `search-index`, `mcp-search-index`, and `three-source` profiles are data-plane-only and do not create or read an `azd` environment.
 
-`search.api_version` fails closed by single-lane profile: `search-index` requires generally available `2026-04-01`, while `mcp-only`, `byo-fabric`, and `full` require `2026-05-01-preview`. `mcp-search-index` omits that ambiguous field and requires both `search.index_api_version=2026-04-01` and `search.preview_api_version=2026-05-01-preview`. Source kinds and retrieve shapes cannot be substituted across those contracts. See [API Compatibility](14-api-compatibility.md).
+`search.api_version` fails closed by single-lane profile: `search-index` requires generally available `2026-04-01`, while `mcp-only`, `byo-fabric`, and `full` require `2026-05-01-preview`. `mcp-search-index` and `three-source` omit that ambiguous field and require both `search.index_api_version=2026-04-01` and `search.preview_api_version=2026-05-01-preview`. Source kinds and retrieve shapes cannot be substituted across those contracts. See [API Compatibility](14-api-compatibility.md).
 
 ## Legacy Dotenv Migration
 
@@ -187,7 +211,7 @@ The generated MCP report contains counts and normalized statuses only. It does n
 
 `--query` and repeatable `--expect-term` values are runtime acceptance inputs, not deployment configuration. Supply a known non-sensitive fact when validating Fabric-backed MCP content. Without an expected term, the command validates protocol execution and reports grounding as unverified.
 
-The same runtime inputs are accepted by `liveks verify` for `search-index` and `mcp-search-index`. The combined profile also accepts `--mcp-query` and `--combined-query`; its expected terms are matched only against Search Index reference `sourceData`. Reports record only match counts, source types, and normalized status, not questions, terms, answers, source data, or endpoints.
+The same runtime inputs are accepted by `liveks verify` for `search-index`, `mcp-search-index`, and `three-source`. Direct combined profiles also accept `--mcp-query` and `--combined-query`; `three-source` adds `--fabric-query`. Expected terms match only Search Index reference `sourceData`. Reports record only match counts, source types, and normalized status, not questions, terms, answers, source data, IDs, or endpoints.
 
 ## Safe Review
 

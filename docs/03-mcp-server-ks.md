@@ -23,7 +23,7 @@ https://learn.microsoft.com/api/mcp
 
 ## One MCP Execution Contract
 
-Use `mcp-only` for the smallest end-to-end provisioned deployment. Use `mcp-search-index` when the Search service, agentic-ready index, and Azure OpenAI deployment already exist and only the two KS objects plus combined KB should be created. Both use the public Microsoft Learn MCP endpoint, so no Fabric workspace or ontology is required. The sequence below moves from local payload evidence to live source evidence; `up` is the first command that mutates cloud state.
+Use `mcp-only` for the smallest end-to-end provisioned deployment. Use `mcp-search-index` when Search, an agentic-ready index, and Azure OpenAI already exist. Use `three-source` when an existing native Fabric ontology should join that reused path. All use the public Microsoft Learn MCP endpoint; only three-source requires Fabric. The sequence below moves from local payload evidence to live source evidence; `up` is the first command that mutates cloud state.
 
 Use [Codespaces First Live](15-codespaces-first-live.md) when you want the supported Python, Node.js, Azure CLI, Bicep, and Azure Developer CLI versions preinstalled. Container creation does not authenticate or provision.
 

@@ -1,6 +1,6 @@
 # API Compatibility
 
-LiveKS has two deliberately separate API contracts. `search-index` uses generally available Azure AI Search `2026-04-01` with an existing index and minimal extractive retrieval. `mcp-only`, `byo-fabric`, and `full` remain pinned to `2026-05-01-preview`. `mcp-search-index` carries both contracts explicitly: only Search Index KS operations use GA, while MCP KS, combined KB, and retrieve operations use preview.
+LiveKS has two deliberately separate API contracts. `search-index` uses generally available Azure AI Search `2026-04-01` with an existing index and minimal extractive retrieval. `mcp-only`, `byo-fabric`, and `full` remain pinned to `2026-05-01-preview`. `mcp-search-index` and `three-source` carry both contracts explicitly: only Search Index KS operations use GA, while MCP KS, native Fabric KS, combined KB, and retrieve operations use preview.
 
 Changing only `search.api_version` never converts one lane into the other. The combined profile uses separate `search.index_api_version` and `search.preview_api_version` fields so no request can silently inherit the wrong shape. Configuration resolution rejects a profile/version mismatch before `plan` or any data-plane write.
 
@@ -31,8 +31,8 @@ The exact continuously exercised combinations are:
 
 | Lane | Version and status | Bound profiles and operations | Checked authority |
 | --- | --- | --- | --- |
-| Search Index KS | `2026-04-01` (generally available) | `search-index`, `mcp-search-index`: Search Index KS creation and standalone minimal extractive retrieval. | config/schema.yaml and the search-index and mcp-search-index profiles. |
-| MCP Server, Fabric Ontology, and preview KB | `2026-05-01-preview` (public preview) | `mcp-search-index`, `mcp-only`, `byo-fabric`, `full`: MCP Server KS, Fabric Ontology KS, combined KB, messages retrieve, and Knowledge Base MCP. | config/schema.yaml, preview profiles, generated examples, infrastructure, app, REST samples, and notebooks. |
+| Search Index KS | `2026-04-01` (generally available) | `search-index`, `mcp-search-index`, `three-source`: Search Index KS creation; the standalone stable profile also uses minimal extractive retrieval. | config/schema.yaml and the search-index, mcp-search-index, and three-source profiles. |
+| MCP Server, Fabric Ontology, and preview KB | `2026-05-01-preview` (public preview) | `mcp-search-index`, `three-source`, `mcp-only`, `byo-fabric`, `full`: MCP Server KS, Fabric Ontology KS, combined KB, messages retrieve, and Knowledge Base MCP. | config/schema.yaml, preview profiles, generated examples, infrastructure, app, REST samples, and notebooks. |
 
 MCP Server KS and Fabric Ontology KS remain public preview. Their request and response behavior can change; review the official Microsoft Learn links below before changing either pin. This accelerator is not a production-readiness claim.
 
@@ -73,11 +73,11 @@ Each command must exit `0`. The runner also checks replay assertions, bootstrap 
 | Knowledge Source kinds | Search index, Azure Blob, indexed OneLake, and Web. | Stable kinds plus preview kinds, including MCP Server and Fabric Ontology. | `search-index` wraps a BYO index; other live profiles use MCP Server and optional Fabric Ontology. |
 | Retrieve input | `intents`. | `intents` and `messages`. | `search-index` uses `intents`; preview profiles use `messages`. |
 | Retrieval behavior | Minimal, extractive retrieval. | Query planning, answer synthesis, and configurable reasoning effort. | Stable lane is extractive; preview lane uses answer synthesis and `low` reasoning effort. |
-| MCP Server KS | Not accepted. | Supported in preview. | Required by `mcp-search-index`, `mcp-only`, `byo-fabric`, and `full`. |
-| Fabric Ontology KS | Not accepted. | Supported in preview. | Required by `byo-fabric` and `full`; intentionally absent from `mcp-only`. |
+| MCP Server KS | Not accepted. | Supported in preview. | Required by `mcp-search-index`, `three-source`, `mcp-only`, `byo-fabric`, and `full`. |
+| Fabric Ontology KS | Not accepted. | Supported in preview. | Required by `three-source`, `byo-fabric`, and `full`; intentionally absent from `mcp-only`. |
 | Search authentication | API key or Microsoft Entra bearer token. | API key or Microsoft Entra bearer token. | `search-index` uses a transient bearer token; preview sample deployments read their generated admin key transiently. |
 | Source authorization | Depends on the selected generally available source. | Fabric calls additionally require delegated `x-ms-query-source-authorization`. | Fabric verification acquires and passes the raw delegated Search token transiently. |
-| Supported LiveKS profiles | `search-index`; Search Index KS operations in `mcp-search-index`. | MCP KS, combined KB, and retrieve operations in `mcp-search-index`; all operations in `mcp-only`, `byo-fabric`, and `full`. | Every profile/version pairing fails closed during YAML validation. |
+| Supported LiveKS profiles | `search-index`; Search Index KS operations in `mcp-search-index` and `three-source`. | MCP/KB/retrieve operations in both combined profiles, Fabric KS in `three-source`, and all operations in `mcp-only`, `byo-fabric`, and `full`. | Every profile/version pairing fails closed during YAML validation. |
 
 ## What The Pin Protects
 
@@ -85,7 +85,7 @@ The preview builders create `mcpServer` and `fabricOntology` payloads. Their Kno
 
 The stable builder creates `searchIndex`, requires a semantic configuration, omits models and preview-only Knowledge Base properties, and sends `intents`. It also treats the Search service and index as reused assets. Substituting the preview API would silently change the lane's availability and evidence contract, so LiveKS rejects it.
 
-The combined builder does not send one payload family through both versions. It creates the Search Index KS through `2026-04-01`, then creates MCP KS and the LLM-backed two-source KB through `2026-05-01-preview`. Its independent and combined calls all use preview `messages`; the stable `intents` body remains confined to the standalone `search-index` profile.
+The combined builder does not send one payload family through both versions. It creates Search Index KS through `2026-04-01`, then creates MCP KS, optional native Fabric Ontology KS, and the LLM-backed combined KB through `2026-05-01-preview`. Independent and combined calls all use preview `messages`; stable `intents` remains confined to standalone `search-index`.
 
 ## Upgrade Checklist
 

@@ -8,6 +8,7 @@ All notable changes to this accelerator are documented here.
 
 ### Added
 
+- A data-plane-only `three-source` profile that combines GA Search Index KS with preview MCP Server KS, native Fabric Ontology KS, and one preview Knowledge Base; verifies each source independently with delegated Fabric authorization; and deletes only four lock/ETag-owned Search objects while preserving every BYO asset. Credential-free tests and synthetic replay cover contract shape; Azure/Fabric live execution is **NOT RUN**.
 - Strict versioned synthetic scenario packs for domain-neutral MCP guidance and the Airline Ops Fabric/combined examples, with legacy replay aliases, profile/API/ownership/cleanup validation, fixture and ontology/data drift detection, redacted evidence capsules, deterministic list/inspect/validate/run commands, and a generated manual catalog. Azure, Fabric, and protected scenario live execution remain **NOT RUN**.
 - A single product release authority, deterministic allowlisted source archive, SHA-256 manifest, SPDX 2.3 SBOM validation, guarded tag workflow, full-commit-SHA Action pins, and least-privilege workflow policy checks. No tag, GitHub Release, registry package, installer, or production attestation was published.
 - A machine-readable compatibility authority with generated public runtime/API/command matrices, executable POSIX and PowerShell first-path contracts, actionable cross-surface drift checks, and focused positive/negative tests. Ordinary CI remains credential-free; Azure and Fabric live validation are explicitly **NOT RUN**.
@@ -32,7 +33,7 @@ All notable changes to this accelerator are documented here.
 - Dedicated Fabric-only Knowledge Base configuration through `FABRIC_ONLY_KNOWLEDGE_BASE_NAME` so Fabric Ontology grounding can be verified independently of combined planner routing.
 - Traceable Langflow benchmark adaptation record that separates observable README and workflow patterns from out-of-scope implementation details and documents independent implementation and license handling.
 - Cross-platform `liveks` and `liveks.ps1` lifecycle entry points with dependency-free offline replay.
-- Canonical v2 YAML schema and executable `offline`, `search-index`, `mcp-search-index`, `mcp-only`, `byo-fabric`, and `full` profiles.
+- Canonical v2 YAML schema and executable `offline`, `search-index`, `mcp-search-index`, `three-source`, `mcp-only`, `byo-fabric`, and `full` profiles.
 - Plan-first `init`, `doctor`, `plan`, `up`, `verify`, `down`, and `e2e` commands with JSON output.
 - Redacted configuration locks, explicit resource ownership, BYO-preserving cleanup, and full-capacity acknowledgement.
 - GitHub Pages interactive offline replay backed by the same canonical fixtures as the CLI and managed API.

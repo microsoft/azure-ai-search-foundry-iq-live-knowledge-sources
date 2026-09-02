@@ -11,6 +11,7 @@ Manifests use strict JSON so the pre-bootstrap `./liveks try` path remains stand
 | --- | --- | --- | --- | --- | --- |
 | `airline-ops.combined-guidance-replay` | `1.0.0` | `combined`, `semantic-join` | `byo-fabric` | `fabricOntology`, `mcpServer` | not implemented |
 | `airline-ops.fabric-exposure-replay` | `1.0.0` | `fabric` | `byo-fabric` | `fabricOntology` | not implemented |
+| `airline-ops.three-source-replay` | `1.0.0` | `three-source` | `three-source` | `fabricOntology`, `mcpServer`, `searchIndex` | not implemented |
 | `microsoft-learn-mcp.guidance-replay` | `1.0.0` | `mcp` | `mcp-only` | `mcpServer` | not implemented |
 
 All checked-in cases are synthetic. Ordinary validation runs every case with zero network calls.
@@ -27,6 +28,8 @@ All checked-in cases are synthetic. Ordinary validation runs every case with zer
 ```
 
 `mcp`, `fabric`, and `combined` remain explicit aliases for the existing `./liveks try --sample ...` commands. `semantic-join` now aliases the combined Airline Ops case; the former non-deployment file under `profiles/` has moved into the scenario authority.
+
+`three-source` demonstrates the expected Search Index + MCP Server + Fabric Ontology response shape. It is replay evidence only and does not prove live routing or delegated authorization.
 
 A successful scenario run reports the exact scenario version and four assertion IDs. A failure reports the violated assertion ID and a safe diagnostic, but omits the query, expected facts, answer, source identities, `sourceData`, endpoint, tenant values, and credentials.
 

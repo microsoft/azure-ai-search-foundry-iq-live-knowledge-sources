@@ -180,7 +180,7 @@ The stable lane intentionally uses:
 - Microsoft Entra bearer authentication,
 - BYO ownership for the Search service and index.
 
-Use `mcp-search-index` to keep this GA Search Index KS contract while attaching it to a preview MCP Server KS and combined Knowledge Base. Use `mcp-only`, `byo-fabric`, or `full` when the accelerator should provision the preview stack. The preview objects and retrieve calls remain pinned to `2026-05-01-preview`.
+Use `mcp-search-index` to keep this GA Search Index KS contract while attaching it to a preview MCP Server KS and combined Knowledge Base. Use `three-source` to add a native existing Fabric ontology without provisioning. Use `mcp-only`, `byo-fabric`, or `full` when the accelerator should provision the preview stack. Preview objects and retrieve calls remain pinned to `2026-05-01-preview`.
 
 ## Microsoft Sources Of Truth
 

@@ -55,7 +55,7 @@ For Fabric Ontology KS:
 - `sourceData.fabricAnswer`
 - `sourceData.fabricRawData`
 
-The three canonical fixtures live under `samples/responses/`. Their scenario manifests pin fixture digests; the CLI, Pages build, and managed API reuse the same files to prevent demo drift.
+The four canonical fixtures live under `samples/responses/`. Their scenario manifests pin fixture digests; the CLI and scenario validator reuse the same files to prevent demo drift.
 
 ## Boundary
 

@@ -8,7 +8,7 @@ runtimes:
     requirement: Python 3.11 or newer is required by every profile and both launchers.
     continuous_evidence: GitHub Actions runs the documented command contract on Python 3.11 for ubuntu-latest and windows-latest.
     unverified: Python 3.12 through 3.14 are accepted by the launchers but are not continuously exercised by this repository.
-    required_profiles: [offline, search-index, mcp-search-index, mcp-only, byo-fabric, full]
+    required_profiles: [offline, search-index, mcp-search-index, three-source, mcp-only, byo-fabric, full]
   runner_os:
     label: Runner OS
     minimum: not-applicable
@@ -25,7 +25,7 @@ tools:
     requirement: Required by every live profile; the repository enforces presence but does not declare a supported version range.
     continuous_evidence: The dev container pin is checked at 2.86.0; validate-local exercises the hosted runner's unpinned Azure CLI and Bicep capability.
     unverified: Azure CLI versions other than the dev container pin are not compatibility claims.
-    required_profiles: [search-index, mcp-search-index, mcp-only, byo-fabric, full]
+    required_profiles: [search-index, mcp-search-index, three-source, mcp-only, byo-fabric, full]
   azd:
     label: Azure Developer CLI
     command: azd
@@ -101,14 +101,16 @@ api_contracts:
     label: Search Index KS
     version: '2026-04-01'
     release_status: generally available
-    operations: Search Index KS creation and standalone minimal extractive retrieval.
+    operations: Search Index KS creation; the standalone stable profile also uses minimal extractive retrieval.
     profile_fields:
       search-index: search.api_version
       mcp-search-index: search.index_api_version
+      three-source: search.index_api_version
     generated_env:
       env/search-index.env.example: AZURE_SEARCH_API_VERSION
       env/mcp-search-index.env.example: SEARCH_INDEX_API_VERSION
-    evidence: config/schema.yaml and the search-index and mcp-search-index profiles.
+      env/three-source.env.example: SEARCH_INDEX_API_VERSION
+    evidence: config/schema.yaml and the search-index, mcp-search-index, and three-source profiles.
   preview:
     label: MCP Server, Fabric Ontology, and preview KB
     version: 2026-05-01-preview
@@ -116,12 +118,14 @@ api_contracts:
     operations: MCP Server KS, Fabric Ontology KS, combined KB, messages retrieve, and Knowledge Base MCP.
     profile_fields:
       mcp-search-index: search.preview_api_version
+      three-source: search.preview_api_version
       mcp-only: search.api_version
       byo-fabric: search.api_version
       full: search.api_version
     generated_env:
       .env.sample: AZURE_SEARCH_API_VERSION
       env/mcp-search-index.env.example: SEARCH_PREVIEW_API_VERSION
+      env/three-source.env.example: SEARCH_PREVIEW_API_VERSION
       env/mcp-only.env.example: AZURE_SEARCH_API_VERSION
       env/byo-fabric.env.example: AZURE_SEARCH_API_VERSION
       env/full.env.example: AZURE_SEARCH_API_VERSION
