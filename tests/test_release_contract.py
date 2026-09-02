@@ -1,11 +1,19 @@
 import importlib.util
 import json
+import sys
 import tempfile
 import unittest
 from pathlib import Path
 
 
 ROOT = Path(__file__).resolve().parents[1]
+sys_path = str(ROOT / "src")
+if sys_path not in sys.path:
+    sys.path.insert(0, sys_path)
+
+from liveks import __version__  # noqa: E402
+
+
 SCRIPT_PATH = ROOT / "scripts/release.py"
 SPEC = importlib.util.spec_from_file_location("release_contract", SCRIPT_PATH)
 assert SPEC and SPEC.loader
@@ -25,6 +33,7 @@ class ReleaseContractTests(unittest.TestCase):
             release_contract.validate_release_contract(ROOT, self.release),
             [],
         )
+        self.assertEqual(__version__, self.release["product"]["version"])
 
     def test_version_drift_names_the_changelog_and_azd_bindings(self):
         changed = self.clone_release()
@@ -125,6 +134,13 @@ class ReleaseContractTests(unittest.TestCase):
         binding_paths = json.dumps(self.release["bindings"], sort_keys=True)
         for component in self.release["independentComponents"]:
             self.assertNotIn(component["path"], binding_paths)
+
+    def test_tag_publication_is_blocked_while_release_is_unreleased(self):
+        with self.assertRaisesRegex(
+            release_contract.ReleaseError,
+            "product.status is ready",
+        ):
+            release_contract.verify_tag(ROOT, self.release)
 
 
 if __name__ == "__main__":

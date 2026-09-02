@@ -826,7 +826,7 @@ def main() -> int:
         verify_tag(ROOT, release)
         print("Release tag guard: PASS")
         return 0
-    except (OSError, ReleaseError, subprocess.SubprocessError) as error:
+    except (KeyError, OSError, ReleaseError, TypeError, subprocess.SubprocessError) as error:
         return report_failure(error)
 
 
