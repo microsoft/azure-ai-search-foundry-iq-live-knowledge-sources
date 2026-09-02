@@ -486,7 +486,6 @@ def build_spdx(
         "creationInfo": {
             "created": created,
             "creators": ["Tool: liveks-release-builder/1"],
-            "licenseListVersion": "3.27.0",
         },
         "dataLicense": "CC0-1.0",
         "documentNamespace": (
