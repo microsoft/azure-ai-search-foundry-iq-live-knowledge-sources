@@ -79,6 +79,7 @@ nav:
       - Security and Governance: 06-security-governance.md
       - External Tenant Login: external-tenant-login.md
       - Repo Boundaries: 12-repo-boundaries.md
+      - Release and Supply Chain: 17-release-supply-chain.md
       - Preview Limitations: 13-public-preview-limitations.md
       - API Compatibility: 14-api-compatibility.md
       - FAQ: 19-faq.md

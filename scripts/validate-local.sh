@@ -96,7 +96,7 @@ if [[ -z "$PYTHON_BIN" ]]; then
   exit 2
 fi
 
-TOTAL=18
+TOTAL=19
 CURRENT=0
 FAILED=false
 SKIPPED=0
@@ -174,6 +174,9 @@ run_required "LiveKS CLI profiles" \
 run_required "Compatibility and documentation contract" \
   "$PYTHON_BIN" scripts/check_compatibility.py --check
 
+run_required "Release and workflow policy contract" \
+  "$PYTHON_BIN" scripts/release.py check
+
 run_required "Dev container contract" \
   "$PYTHON_BIN" scripts/check-devcontainer.py
 
@@ -191,6 +194,7 @@ run_required "Python compile" \
     scripts/deploy_static_webapp_api.py \
     scripts/generate_env_examples.py \
     scripts/check_compatibility.py \
+    scripts/release.py \
     scripts/protected_canary.py \
     scripts/maintainers/summarize-e2e-evidence.py \
     scripts/maintainers/extract-review-evidence.py \

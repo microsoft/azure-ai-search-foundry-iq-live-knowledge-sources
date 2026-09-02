@@ -2,10 +2,13 @@
 
 All notable changes to this accelerator are documented here.
 
-## Unreleased
+## [Unreleased]
+
+## [2.0.0] - Unreleased
 
 ### Added
 
+- A single product release authority, deterministic allowlisted source archive, SHA-256 manifest, SPDX 2.3 SBOM validation, guarded tag workflow, full-commit-SHA Action pins, and least-privilege workflow policy checks. No tag, GitHub Release, registry package, installer, or production attestation was published.
 - A machine-readable compatibility authority with generated public runtime/API/command matrices, executable POSIX and PowerShell first-path contracts, actionable cross-surface drift checks, and focused positive/negative tests. Ordinary CI remains credential-free; Azure and Fabric live validation are explicitly **NOT RUN**.
 - A manual, GitHub Environment-gated `mcp-search-index` lifecycle canary with generated per-run environments, fixed concurrency, finite timeouts, explicit secret-name preflight, real `e2e --cleanup` execution, always-run guarded cleanup, and allowlist-only uploaded evidence.
 - Bounded retry classification for network timeouts and HTTP `408`, `429`, `500`, `502`, `503`, and `504`, including capped `Retry-After`, exponential backoff, deterministic failure boundaries, conditional-write idempotency checks, and sanitized retry telemetry. See the official [Azure AI Search HTTP status codes](https://learn.microsoft.com/rest/api/searchservice/http-status-codes).
