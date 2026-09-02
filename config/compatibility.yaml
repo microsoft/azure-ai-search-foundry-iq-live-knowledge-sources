@@ -149,7 +149,7 @@ dependencies:
   requirements-liveks.txt:
     - PyYAML==6.0.3
   requirements-docs.txt:
-    - mkdocs-material==9.*
+    - mkdocs-material==9.7.7
 
 command_sets:
   posix:

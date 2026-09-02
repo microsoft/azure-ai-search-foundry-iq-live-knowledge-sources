@@ -377,6 +377,17 @@ bash scripts/validate-local.sh
 
 The machine-readable authority is [`config/compatibility.yaml`](config/compatibility.yaml). The gate checks its runtime, tool, API, generated catalog, command, workflow, and manual bindings before the existing configuration, CLI, safety, notebook, link, sample, secret, app, and Bicep checks. See the [compatibility matrix](docs/14-api-compatibility.md) for exactly what CI exercises and what remains unverified.
 
+## Versioned Release Dry Run
+
+`config/release.json` is the accelerator product release authority. It preserves `walkthrough-v1` as a media/documentation release and treats private package versions as independent component metadata.
+
+```bash
+python -m pip install --disable-pip-version-check --no-input -r requirements-release.txt
+python scripts/release.py dry-run --output-dir .release/dry-run
+```
+
+The command creates deterministic, checksummed source artifacts and a validated SPDX 2.3 SBOM under ignored `.release/` only. It never publishes a tag, GitHub Release, registry package, installer, production artifact, or production attestation. See [Release and Supply-Chain Contract](docs/17-release-supply-chain.md).
+
 ## Official Microsoft Manuals
 
 - [Agentic retrieval overview](https://learn.microsoft.com/azure/search/search-agentic-retrieval-concept)

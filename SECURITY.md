@@ -29,7 +29,16 @@ You should receive a response within 24 hours. If for some reason you do not, pl
 - Validate Fabric workspace, ontology, and tenant permissions before running retrieve requests.
 - Vet MCP servers before connecting them to a Knowledge Base.
 
+## Workflow And Release Baseline
+
+- External GitHub Actions are pinned to verified full commit SHAs and retain major-version comments for Dependabot.
+- Workflows declare explicit least-privilege permissions and concurrency.
+- Documentation build jobs do not receive Pages write or OIDC permissions.
+- Azure OIDC is limited to the protected live canary; release attestation OIDC is limited to the trusted tag publish job.
+- Pull requests execute only the credential-free release dry run. Publication requires an exact product tag on the same commit reachable from Microsoft `main`.
+- Release archives use a tracked-file allowlist and exclude local state, dotenv files, generated builds, tenant data, raw live responses, and protected-canary details.
+- No long-lived release credential is configured; trusted publication uses the job-scoped `GITHUB_TOKEN` and OIDC.
+
 ## Preview Features
 
 Fabric Ontology Knowledge Source and MCP Server Knowledge Source capabilities use preview APIs. Review product terms, data residency, compliance, and tenant governance requirements before using regulated or customer data.
-

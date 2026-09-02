@@ -10,6 +10,7 @@
 deployments/
 .deployment/
 .liveks/
+.release/
 deployment-summary.md
 deployment-summary.*.md
 

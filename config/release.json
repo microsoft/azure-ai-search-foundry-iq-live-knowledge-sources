@@ -1,0 +1,224 @@
+{
+  "schemaVersion": 1,
+  "product": {
+    "name": "Foundry IQ Live Knowledge Sources Accelerator",
+    "slug": "azure-ai-search-foundry-iq-live-knowledge-sources",
+    "version": "2.0.0",
+    "status": "unreleased",
+    "releaseDate": null,
+    "tag": "v2.0.0",
+    "repository": "microsoft/azure-ai-search-foundry-iq-live-knowledge-sources"
+  },
+  "history": {
+    "versionBasis": "LiveKS v2 introduced product and azd template version 2.0.0 in commit 974186b.",
+    "walkthroughRelease": {
+      "tag": "walkthrough-v1",
+      "kind": "media-documentation",
+      "preserve": true
+    }
+  },
+  "bindings": {
+    "changelog": {
+      "path": "CHANGELOG.md",
+      "heading": "## [2.0.0] - Unreleased"
+    },
+    "releaseNotes": {
+      "path": "docs/releases/v2.0.0.md",
+      "heading": "# Foundry IQ Live Knowledge Sources Accelerator v2.0.0"
+    },
+    "azdTemplate": {
+      "path": "azure.yaml",
+      "valueTemplate": "azure-ai-search-foundry-iq-live-knowledge-sources@{version}"
+    },
+    "compatibility": {
+      "path": "config/compatibility.yaml"
+    }
+  },
+  "artifacts": {
+    "archive": "{slug}-v{version}.tar.gz",
+    "manifest": "{slug}-v{version}-manifest.json",
+    "checksums": "{slug}-v{version}-SHA256SUMS.txt",
+    "sbom": "{slug}-v{version}-sbom.spdx.json",
+    "archiveRoot": "{slug}-v{version}"
+  },
+  "archive": {
+    "includeExact": [
+      ".gitignore",
+      "AGENTS.md",
+      "CHANGELOG.md",
+      "CODE_OF_CONDUCT.md",
+      "CONTRIBUTING.md",
+      "LICENSE",
+      "README.md",
+      "SECURITY.md",
+      "SUPPORT.md",
+      "azure.yaml",
+      "liveks",
+      "liveks.ps1",
+      "mkdocs.yml",
+      "requirements-docs.txt",
+      "requirements-liveks.txt",
+      "requirements-release.txt",
+      ".github/PULL_REQUEST_TEMPLATE.md",
+      ".github/dependabot.yml",
+      ".github/workflows/pages.yml",
+      ".github/workflows/release.yml",
+      ".github/workflows/validate.yml"
+    ],
+    "includePrefixes": [
+      ".devcontainer/",
+      "assets/",
+      "config/",
+      "docs/",
+      "evals/",
+      "infra/",
+      "notebooks/",
+      "profiles/",
+      "samples/",
+      "scripts/",
+      "src/",
+      "static-app/",
+      "tests/",
+      "tools/"
+    ],
+    "excludeExact": [
+      ".github/workflows/protected-mcp-search-index.yml",
+      "scripts/protected_canary.py",
+      "src/liveks/canary.py",
+      "tests/test_mcp_search_index_live_contract.py",
+      "tests/test_protected_canary.py"
+    ],
+    "excludePrefixes": [
+      "docs/maintainers/",
+      "scripts/maintainers/",
+      "tools/concept-anim/"
+    ],
+    "forbiddenPrefixes": [
+      ".azure/",
+      ".deployment/",
+      ".liveks/",
+      ".release/",
+      "deployments/",
+      "dist/",
+      "build/",
+      "_site/",
+      "site/",
+      "video-guide/"
+    ],
+    "forbiddenSegments": [
+      "node_modules",
+      "__pycache__",
+      ".git"
+    ],
+    "forbiddenNames": [
+      ".env",
+      ".env.sample"
+    ],
+    "forbiddenSuffixes": [
+      ".env",
+      ".env.example",
+      ".local.md",
+      ".log",
+      ".tmp"
+    ],
+    "allowedSyntheticResponsePrefix": "samples/responses/"
+  },
+  "sbom": {
+    "format": "SPDX-2.3",
+    "validator": "spdx-tools==0.8.5",
+    "command": "pyspdxtools"
+  },
+  "independentComponents": [
+    {
+      "path": "static-app/package.json",
+      "private": true,
+      "reason": "Private static demo component metadata; not the accelerator product version."
+    },
+    {
+      "path": "static-app/api/package.json",
+      "private": true,
+      "reason": "Private managed API component metadata; not the accelerator product version."
+    },
+    {
+      "path": "tools/concept-anim/package.json",
+      "private": true,
+      "reason": "Private development-tool metadata; excluded from the product archive."
+    }
+  ],
+  "workflowPolicy": {
+    "allowedActionOwners": [
+      "actions",
+      "azure"
+    ],
+    "requireFullCommitSha": true,
+    "requireVersionComment": true,
+    "maximumArtifactRetentionDays": 14,
+    "workflows": {
+      ".github/workflows/validate.yml": {
+        "permissions": {
+          "contents": "read"
+        },
+        "concurrencyGroup": "validate-${{ github.event.pull_request.number || github.ref }}",
+        "cancelInProgress": "${{ github.event_name == 'pull_request' }}"
+      },
+      ".github/workflows/pages.yml": {
+        "permissions": {
+          "contents": "read"
+        },
+        "concurrencyGroup": "pages-${{ github.event.pull_request.number || github.ref }}",
+        "cancelInProgress": "${{ github.event_name == 'pull_request' }}",
+        "jobPermissions": {
+          "deploy": {
+            "id-token": "write",
+            "pages": "write"
+          }
+        }
+      },
+      ".github/workflows/protected-mcp-search-index.yml": {
+        "permissions": {
+          "contents": "read"
+        },
+        "concurrencyGroup": "protected-mcp-search-index-live",
+        "cancelInProgress": false,
+        "jobPermissions": {
+          "live-canary": {
+            "contents": "read",
+            "id-token": "write"
+          }
+        }
+      },
+      ".github/workflows/release.yml": {
+        "permissions": {
+          "contents": "read"
+        },
+        "concurrencyGroup": "release-${{ github.event.pull_request.number || github.ref }}",
+        "cancelInProgress": "${{ github.event_name == 'pull_request' }}",
+        "jobPermissions": {
+          "publish": {
+            "attestations": "write",
+            "contents": "write",
+            "id-token": "write"
+          }
+        }
+      }
+    },
+    "oidcJobs": [
+      ".github/workflows/pages.yml:deploy",
+      ".github/workflows/protected-mcp-search-index.yml:live-canary",
+      ".github/workflows/release.yml:publish"
+    ],
+    "releaseGuard": {
+      "repository": "microsoft/azure-ai-search-foundry-iq-live-knowledge-sources",
+      "event": "push",
+      "refPrefix": "refs/tags/v",
+      "requireTagOnMain": true
+    }
+  },
+  "publication": {
+    "performedByDryRun": false,
+    "requiresReadyStatus": true,
+    "requiresReleaseDate": true,
+    "registryPublishing": false,
+    "installerPublishing": false
+  }
+}

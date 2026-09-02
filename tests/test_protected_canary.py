@@ -257,6 +257,10 @@ class ProtectedCanaryWorkflowTests(unittest.TestCase):
         self.assertNotIn("schedule:", self.text)
         self.assertEqual(
             self.workflow["permissions"],
+            {"contents": "read"},
+        )
+        self.assertEqual(
+            self.job["permissions"],
             {"contents": "read", "id-token": "write"},
         )
         self.assertEqual(
@@ -272,7 +276,10 @@ class ProtectedCanaryWorkflowTests(unittest.TestCase):
     def test_untrusted_contexts_cannot_enter_credentialed_job(self):
         condition = self.job["if"]
         self.assertIn("github.event_name == 'workflow_dispatch'", condition)
-        self.assertIn("github.repository_owner == 'microsoft'", condition)
+        self.assertIn(
+            "github.repository == 'microsoft/azure-ai-search-foundry-iq-live-knowledge-sources'",
+            condition,
+        )
         self.assertIn("github.ref == 'refs/heads/main'", condition)
         self.assertIn("inputs.confirmation == 'run-with-cleanup'", condition)
         self.assertNotIn("pull_request", set(self.workflow["on"]))
