@@ -33,6 +33,7 @@ class ReleaseContractTests(unittest.TestCase):
 
         failures = release_contract.validate_release_contract(ROOT, changed)
 
+        self.assertTrue(any("bindings.changelog.heading" in failure for failure in failures))
         self.assertTrue(any("metadata.template" in failure for failure in failures))
         self.assertTrue(any("must name release value" in failure for failure in failures))
 

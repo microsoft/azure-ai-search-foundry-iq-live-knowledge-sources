@@ -313,6 +313,24 @@ def validate_release_contract(root: Path, release: dict[str, Any]) -> list[str]:
             failures.append(f"artifacts.{key} must be a safe filename, found {name!r}")
 
     bindings = release["bindings"]
+    release_label = (
+        "Unreleased"
+        if product.get("status") == "unreleased"
+        else product.get("releaseDate")
+    )
+    expected_changelog_heading = f"## [{version}] - {release_label}"
+    expected_notes_path = f"docs/releases/v{version}.md"
+    expected_notes_heading = f"# {product.get('name')} v{version}"
+    if bindings["changelog"]["heading"] != expected_changelog_heading:
+        failures.append(
+            f"bindings.changelog.heading must be {expected_changelog_heading!r}"
+        )
+    if bindings["releaseNotes"]["path"] != expected_notes_path:
+        failures.append(f"bindings.releaseNotes.path must be {expected_notes_path!r}")
+    if bindings["releaseNotes"]["heading"] != expected_notes_heading:
+        failures.append(
+            f"bindings.releaseNotes.heading must be {expected_notes_heading!r}"
+        )
     changelog = root / bindings["changelog"]["path"]
     notes = root / bindings["releaseNotes"]["path"]
     if not changelog.is_file():
