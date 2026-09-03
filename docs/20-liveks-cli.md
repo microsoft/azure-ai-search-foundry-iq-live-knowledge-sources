@@ -35,6 +35,8 @@ The first command exits nonzero if the packaged known-answer, activity, referenc
 
 `doctor` can issue read-only Azure CLI calls for live profiles. In `byo-fabric` and `three-source`, it also acquires a transient Fabric API token and confirms that the configured workspace and ontology are readable. The token is not serialized. `plan` writes local build and lock artifacts under ignored directories, but it does not run `azd env set`, `azd up`, or Fabric provisioning.
 
+The standalone Knowledge Base MCP consumer is intentionally not a LiveKS lifecycle command. See [Knowledge Base MCP Client](22-knowledge-base-mcp.md) for its environment-only POSIX and Windows contract.
+
 Scenario commands are credential-free and emit redacted machine output:
 
 ```bash

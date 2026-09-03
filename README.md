@@ -293,6 +293,8 @@ Read [Call the Knowledge Base Through MCP](docs/22-knowledge-base-mcp.md) for au
 
 The native `liveks mcp` client targets preview Knowledge Bases. The stable `search-index` profile uses its documented REST retrieve assertion; direct combined profiles support the native endpoint with `--auth bearer` only after ordered REST source proof.
 
+The same guide contains the canonical, independently runnable Python consumer. It uses environment-only inputs and the neutral MCP transport directly; it never calls or wraps a LiveKS lifecycle command.
+
 ## Configuration And Compatibility
 
 `.liveks/<environment>.yaml` is the canonical human-authored ledger. `azd env` is generated deployment state. Secret fields use `{env: VARIABLE_NAME}` references; raw values never belong in YAML.

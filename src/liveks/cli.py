@@ -61,6 +61,14 @@ from .mcp_search_index import (
     build_payloads as build_mcp_search_index_payloads,
     redacted_payloads as redact_mcp_search_index_payloads,
 )
+from .mcp_client import (
+    KNOWLEDGE_BASE_RETRIEVE_TOOL,
+    mcp_has_tool,
+    mcp_text_blocks as _mcp_text_blocks,
+    mcp_tool_error,
+    tools_call_request,
+    tools_list_request,
+)
 from .runtime import (
     CommandRunner,
     EnvironmentOperationLock,
@@ -2007,18 +2015,6 @@ def up_report(
             runner.run(["azd", "env", "set", "FABRIC_CAPACITY_MODE", str(config.get("fabric.mode"))])
 
 
-def _mcp_text_blocks(payload: Any) -> list[str]:
-    if not isinstance(payload, dict):
-        return []
-    result = payload.get("result")
-    if not isinstance(result, dict):
-        return []
-    content = result.get("content")
-    if not isinstance(content, list):
-        return []
-    return [str(item.get("text", "")) for item in content if isinstance(item, dict) and item.get("type") == "text"]
-
-
 def _mcp_failure_message(status_code: int, payload: Any) -> str:
     if status_code in {401, 403}:
         return f"Azure AI Search rejected MCP authentication (HTTP {status_code})."
@@ -2028,7 +2024,7 @@ def _mcp_failure_message(status_code: int, payload: Any) -> str:
         return f"The Knowledge Base or one of its sources failed (HTTP {status_code})."
     if isinstance(payload, dict) and payload.get("error"):
         return "The MCP endpoint returned a JSON-RPC error."
-    if isinstance(payload, dict) and isinstance(payload.get("result"), dict) and payload["result"].get("isError"):
+    if mcp_tool_error(payload):
         return "knowledge_base_retrieve returned a tool error; check source authorization and source readiness."
     return f"The MCP call did not return usable grounding content (HTTP {status_code})."
 
@@ -2225,7 +2221,7 @@ def mcp_report(
     try:
         list_code, list_payload = http_mcp_json(
             mcp_url,
-            body={"jsonrpc": "2.0", "id": 1, "method": "tools/list"},
+            body=tools_list_request(),
             headers=headers,
             attempts=3,
             delay_seconds=3,
@@ -2238,8 +2234,7 @@ def mcp_report(
         if persist:
             _persist_mcp_report(config, report)
         return report
-    tools = list_payload.get("result", {}).get("tools", []) if isinstance(list_payload, dict) else []
-    has_retrieve_tool = any(isinstance(tool, dict) and tool.get("name") == "knowledge_base_retrieve" for tool in tools)
+    has_retrieve_tool = mcp_has_tool(list_payload)
     if list_code != 200 or not has_retrieve_tool:
         failure = _mcp_failure_message(list_code, list_payload)
         checks.append(_check("tools-list", "fail", failure))
@@ -2257,12 +2252,7 @@ def mcp_report(
     try:
         call_code, call_payload = http_mcp_json(
             mcp_url,
-            body={
-                "jsonrpc": "2.0",
-                "id": 2,
-                "method": "tools/call",
-                "params": {"name": "knowledge_base_retrieve", "arguments": {"queries": [effective_query]}},
-            },
+            body=tools_call_request(effective_query),
             headers=headers,
             attempts=3,
             delay_seconds=3,
@@ -2276,7 +2266,7 @@ def mcp_report(
             _persist_mcp_report(config, report)
         return report
     text_blocks = _mcp_text_blocks(call_payload)
-    tool_error = isinstance(call_payload, dict) and isinstance(call_payload.get("result"), dict) and bool(call_payload["result"].get("isError"))
+    tool_error = mcp_tool_error(call_payload)
     terms = expected_terms or []
     combined_text = "\n".join(text_blocks).casefold()
     matched_terms = sum(1 for term in terms if term.casefold() in combined_text)
@@ -2292,7 +2282,7 @@ def mcp_report(
             _check(
                 "tools-call",
                 "pass",
-                f"knowledge_base_retrieve returned {len(text_blocks)} text block(s).",
+                f"{KNOWLEDGE_BASE_RETRIEVE_TOOL} returned {len(text_blocks)} text block(s).",
                 contentBlocks=len(text_blocks),
             )
         )

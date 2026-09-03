@@ -206,10 +206,12 @@ run_required "Python compile" \
     tools/try_offline.py \
     tools/scenarios.py \
     samples/python/build_payloads.py \
+    samples/python/knowledge_base_mcp_consumer.py \
     samples/python/inspect_retrieve_response.py \
     src/liveks/runtime.py \
     src/liveks/compatibility.py \
     src/liveks/evidence.py \
+    src/liveks/mcp_client.py \
     src/liveks/canary.py \
     src/liveks/providers/__init__.py \
     src/liveks/providers/data_plane.py \

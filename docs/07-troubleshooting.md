@@ -56,8 +56,13 @@ Start with machine-readable diagnostics:
 ## Knowledge Base MCP Client Fails
 
 - Run `./liveks verify --env <environment>` first. The MCP client is not a substitute for source readiness checks.
+- For the independent consumer, confirm `AZURE_SEARCH_MCP_ENDPOINT`, `AZURE_SEARCH_MCP_QUERY`, and `AZURE_SEARCH_MCP_EXPECT_TERM` are set in the current process. The endpoint must contain the repository's pinned API version.
+- Exit `2` is a local configuration/authentication-readiness failure; exit `1` is a normalized transport, MCP, tool, text, or expected-term failure.
 - HTTP `401` or `403`: for `--auth bearer`, assign **Search Index Data Reader** and reacquire the token; for the sample admin-key path, confirm Azure CLI can read the Search service keys.
 - HTTP `404`: confirm the selected `azd` environment contains the current Search endpoint, Knowledge Base name, and API version.
+- `throttling-exhausted`, `request-timeout-exhausted`, or `service-error`: the independent client exhausted its bounded transient retries. Deterministic authentication, schema, tool, and content failures are not retried.
+- `malformed-response`: the endpoint returned neither a valid JSON response nor a JSON SSE data event.
+- `missing-tool`, `tool-call-error`, or `missing-text-content`: inspect Knowledge Base readiness through the lifecycle verification path; raw external error bodies are intentionally omitted.
 - A normalized tool error on a Fabric profile usually means delegated source authorization is missing, expired, or not permitted to query the ontology.
 - An expected-term mismatch means content returned but the known fact was absent. Check the question and connected ontology rather than treating the transport as failed.
 - The count-only report is `deployments/<environment>/mcp-call-report.json`. Raw MCP responses are intentionally not stored.

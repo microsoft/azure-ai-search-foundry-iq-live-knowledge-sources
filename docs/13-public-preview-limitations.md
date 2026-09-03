@@ -58,6 +58,8 @@ The northbound Knowledge Base MCP endpoint has a different evidence shape from t
 
 Use `./liveks mcp --expect-term <known-non-sensitive-fact>` for count-only content evidence and normalized failures; do not publish raw MCP content. A run without `--expect-term` intentionally reports grounding as unverified.
 
+The independent Python consumer requires the expected term and rejects a missing value before network access. Current Microsoft Learn guidance also describes a newer preview MCP API version, but this repository remains pinned to its continuously checked `2026-05-01-preview` deployment contract until a separate migration validates payload and live-service parity.
+
 ## Fabric Ontology KS Caveats
 
 Fabric Ontology KS is the strongest semantic-grounding path, but it has more setup requirements:

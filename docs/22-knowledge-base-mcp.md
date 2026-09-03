@@ -14,9 +14,101 @@ https://<search-service>.search.windows.net/knowledgebases/<knowledge-base>/mcp?
 
 The endpoint publishes one tool named `knowledge_base_retrieve`. The repository client sends stateless JSON-RPC 2.0 requests over HTTP and accepts either JSON or server-sent event responses.
 
-The implementation follows the current [Microsoft Learn retrieve and MCP contract](https://learn.microsoft.com/en-us/azure/search/agentic-retrieval-how-to-retrieve). Preview behavior can change; that article remains authoritative.
+The implementation follows the endpoint, authentication, and tool shape in the current [Microsoft Learn retrieve and MCP contract](https://learn.microsoft.com/en-us/azure/search/agentic-retrieval-how-to-retrieve). That article now also documents a newer preview API. This repository's deployed preview profiles and consumer remain pinned to `2026-05-01-preview`; the standalone consumer rejects a different version instead of silently claiming compatibility.
 
-## Run A Live Call
+## Independent Consumer
+
+[`samples/python/knowledge_base_mcp_consumer.py`](https://github.com/microsoft/azure-ai-search-foundry-iq-live-knowledge-sources/blob/main/samples/python/knowledge_base_mcp_consumer.py) proves the northbound MCP surface without importing or invoking the lifecycle CLI. It uses the lifecycle-neutral JSON/SSE transport and protocol helpers in `src/liveks/mcp_client.py`.
+
+Run `./liveks bootstrap` first. Then supply configuration through process environment variables so credentials never appear in command arguments or generated files.
+
+| Variable | Requirement |
+| --- | --- |
+| `AZURE_SEARCH_MCP_ENDPOINT` | Full HTTPS Knowledge Base MCP endpoint, including this repository's `api-version=2026-05-01-preview`. |
+| `AZURE_SEARCH_MCP_QUERY` | A non-sensitive question suitable for the deployed Knowledge Base. |
+| `AZURE_SEARCH_MCP_EXPECT_TERM` | One known, non-sensitive fact that must occur in returned text. This is mandatory. |
+| `AZURE_SEARCH_MCP_AUTH_MODE` | Optional: `bearer` (default and recommended) or `admin-key`. |
+| `AZURE_SEARCH_MCP_BEARER_TOKEN` | Required for `bearer`; a Search-scoped token whose identity has **Search Index Data Reader**. |
+| `AZURE_SEARCH_ADMIN_KEY` | Required for `admin-key`; use only for sample development because it grants broad Search access. |
+| `AZURE_SEARCH_MCP_SOURCE_AUTHORIZATION` | Optional raw user Search token for a Knowledge Base whose source enforces delegated access. Do not add a `Bearer` prefix. |
+
+The endpoint must use `https://<service>.search.windows.net/knowledgebases/<name>/mcp` with exactly the pinned API query parameter. The consumer never prints the endpoint, Knowledge Base name, query, expected term, headers, token, response body, content, or source identity.
+
+**POSIX**
+
+```bash
+export AZURE_SEARCH_MCP_ENDPOINT='https://<service>.search.windows.net/knowledgebases/<knowledge-base>/mcp?api-version=2026-05-01-preview'
+export AZURE_SEARCH_MCP_AUTH_MODE='bearer'
+export AZURE_SEARCH_MCP_QUERY='<non-sensitive question>'
+export AZURE_SEARCH_MCP_EXPECT_TERM='<known non-sensitive fact>'
+read -rsp 'Search bearer token: ' AZURE_SEARCH_MCP_BEARER_TOKEN && echo
+export AZURE_SEARCH_MCP_BEARER_TOKEN
+.liveks/venv/bin/python samples/python/knowledge_base_mcp_consumer.py --format json
+unset AZURE_SEARCH_MCP_BEARER_TOKEN
+```
+
+**Windows PowerShell**
+
+```powershell
+$env:AZURE_SEARCH_MCP_ENDPOINT = 'https://<service>.search.windows.net/knowledgebases/<knowledge-base>/mcp?api-version=2026-05-01-preview'
+$env:AZURE_SEARCH_MCP_AUTH_MODE = 'bearer'
+$env:AZURE_SEARCH_MCP_QUERY = '<non-sensitive question>'
+$env:AZURE_SEARCH_MCP_EXPECT_TERM = '<known non-sensitive fact>'
+$env:AZURE_SEARCH_MCP_BEARER_TOKEN = Read-Host 'Search bearer token' -MaskInput
+.\.liveks\venv\Scripts\python.exe samples\python\knowledge_base_mcp_consumer.py --format json
+Remove-Item Env:AZURE_SEARCH_MCP_BEARER_TOKEN
+```
+
+For an admin-key development call, set `AZURE_SEARCH_MCP_AUTH_MODE=admin-key` and securely populate `AZURE_SEARCH_ADMIN_KEY` instead. If delegated source access is required, securely populate `AZURE_SEARCH_MCP_SOURCE_AUTHORIZATION` for the same process.
+
+The sample executes `tools/list`, requires `knowledge_base_retrieve`, and then sends `tools/call` with exactly `{"queries": ["<question>"]}`. Its JSON output is allowlist-only:
+
+```json
+{
+  "checks": [
+    {"name": "endpoint-configuration", "status": "pass"},
+    {"headerCount": 1, "name": "authentication-readiness", "status": "pass"},
+    {"name": "tools-list", "status": "pass", "toolCount": 1},
+    {"name": "tools-call", "status": "pass"},
+    {"contentBlockCount": 1, "name": "text-content", "status": "pass"},
+    {
+      "expectedTermCount": 1,
+      "matchedExpectedTermCount": 1,
+      "name": "grounding-content",
+      "status": "pass"
+    }
+  ],
+  "command": "knowledge-base-mcp-consumer",
+  "mode": {
+    "apiVersion": "2026-05-01-preview",
+    "authentication": "bearer",
+    "responseFormats": ["json", "sse"],
+    "sourceAuthorization": "absent",
+    "transport": "stateless-json-rpc-2.0-over-https"
+  },
+  "schemaVersion": 1,
+  "status": "pass"
+}
+```
+
+Exit code `0` means every check passed. Exit code `2` means local configuration or credential readiness failed before network access. Exit code `1` means endpoint, protocol, tool, text, or expected-term validation failed. `--format text` emits only check names, status, and normalized error categories.
+
+| Error category | Meaning |
+| --- | --- |
+| `missing-configuration`, `invalid-endpoint`, `unsupported-api-version` | Required endpoint, query, expected term, or pinned endpoint shape is missing or invalid. |
+| `unsupported-auth-mode`, `missing-credential`, `invalid-credential` | Authentication input is not one of the two supported environment-only modes. |
+| `authentication-rejected` | Azure AI Search returned HTTP 401 or 403. |
+| `endpoint-not-found` | The Knowledge Base MCP endpoint returned HTTP 404. |
+| `request-timeout-exhausted`, `throttling-exhausted`, `service-error` | A classified transient or service response remained after bounded retries. |
+| `network-timeout-exhausted`, `network-error`, `malformed-response` | The transport failed or returned invalid JSON/SSE. |
+| `json-rpc-error`, `missing-tool`, `tool-call-error` | MCP discovery or invocation failed. |
+| `missing-text-content`, `expected-term-mismatch` | Protocol execution returned no usable text or omitted the required known fact. |
+
+Only already classified transient HTTP/network failures are retried, at most three attempts. Authentication, endpoint, schema, tool, and content failures are deterministic and are not retried.
+
+The consumer's text-content check proves MCP protocol content only. It does not expose REST `activity`, `references`, or `sourceData`. Run source-specific `./liveks verify` first and inspect its sanitized evidence before naming which Knowledge Source ran.
+
+## Lifecycle-Bound Client
 
 Prerequisites:
 
@@ -163,3 +255,7 @@ Accept the scenario only when:
 - no raw response or secret appears in tracked files.
 
 For an arbitrary BYO ontology, replace both the question and `--expect-term` with a known, non-sensitive domain fact. A fluent no-data answer, a text block without an expectation, or `grounding-content=warn` is not an accepted Fabric-through-MCP result.
+
+## Optional Foundry Agent Decision
+
+No Foundry Agent sample is included in this change. The current public [Foundry Agent connection guide](https://learn.microsoft.com/azure/foundry/agents/how-to/foundry-iq-connect) requires a Foundry project, model deployment, RBAC, a project MCP connection, the preview `azure-ai-projects` dependency, and a newer preview API contract. Creating or exercising those resources would violate this sample's credential-free, no-cloud-mutation validation boundary and add installer complexity unrelated to the standalone consumer. Use the official guide as the source of truth for an explicitly approved future integration; this accelerator makes no production-readiness claim for that path.

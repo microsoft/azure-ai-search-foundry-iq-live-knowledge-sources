@@ -155,6 +155,32 @@ dependencies:
   requirements-docs.txt:
     - mkdocs-material==9.7.7
 
+independent_mcp_consumer:
+  entrypoint: samples/python/knowledge_base_mcp_consumer.py
+  implementation: src/liveks/mcp_client.py
+  test_contract: tests/test_independent_mcp_consumer.py
+  canonical_documentation: docs/22-knowledge-base-mcp.md
+  api_version: 2026-05-01-preview
+  transport: stateless-json-rpc-2.0-over-https
+  response_formats: [json, sse]
+  tool: knowledge_base_retrieve
+  tool_arguments: [queries]
+  authentication_modes:
+    bearer: AZURE_SEARCH_MCP_BEARER_TOKEN
+    admin-key: AZURE_SEARCH_ADMIN_KEY
+  required_environment:
+    - AZURE_SEARCH_MCP_ENDPOINT
+    - AZURE_SEARCH_MCP_QUERY
+    - AZURE_SEARCH_MCP_EXPECT_TERM
+  optional_environment:
+    - AZURE_SEARCH_MCP_AUTH_MODE
+    - AZURE_SEARCH_MCP_SOURCE_AUTHORIZATION
+  commands:
+    posix: .liveks/venv/bin/python samples/python/knowledge_base_mcp_consumer.py --format json
+    windows: .\.liveks\venv\Scripts\python.exe samples\python\knowledge_base_mcp_consumer.py --format json
+  continuous_evidence: tests/test_independent_mcp_consumer.py runs credential-free JSON, SSE, authentication, request-shape, redaction, failure, retry, exit-code, and LiveKS parity checks on Ubuntu and Windows.
+  unverified: Azure AI Search, Fabric, and Foundry Agent live execution are not performed by ordinary CI.
+
 command_sets:
   posix:
     label: macOS and Linux
