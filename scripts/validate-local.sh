@@ -211,6 +211,9 @@ run_required "Python compile" \
     src/liveks/compatibility.py \
     src/liveks/evidence.py \
     src/liveks/canary.py \
+    src/liveks/providers/__init__.py \
+    src/liveks/providers/data_plane.py \
+    src/liveks/providers/sources.py \
     src/liveks/search_index.py \
     src/liveks/mcp_search_index.py \
     src/liveks/scenarios.py \
