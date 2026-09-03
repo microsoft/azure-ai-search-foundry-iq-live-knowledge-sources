@@ -219,6 +219,8 @@ This command applies to preview Knowledge Bases. Use bearer auth for `mcp-search
 
 Use [Call the Knowledge Base Through MCP](22-knowledge-base-mcp.md) for bearer authentication, a controlled missing-authorization failure, and the complete acceptance contract.
 
+That page is also the canonical command contract for the independent Python consumer. Use it when endpoint proof must not depend on lifecycle configuration or invoke `liveks mcp`; do not copy its credential-bearing environment setup into tracked files.
+
 ## 9. Clean Up
 
 ```bash

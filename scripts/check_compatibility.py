@@ -196,6 +196,90 @@ def validate_contract(root: Path, contract: dict[str, Any]) -> list[str]:
             if name not in text:
                 failures.append(f"{relative_path} must consume {name} from config/compatibility.yaml")
 
+    consumer = contract["independent_mcp_consumer"]
+    if str(consumer["api_version"]) != preview:
+        failures.append(
+            "independent_mcp_consumer.api_version must match "
+            f"api_contracts.preview.version {preview}"
+        )
+    if consumer["transport"] != "stateless-json-rpc-2.0-over-https":
+        failures.append(
+            "independent_mcp_consumer.transport must remain stateless-json-rpc-2.0-over-https"
+        )
+    if consumer["response_formats"] != ["json", "sse"]:
+        failures.append(
+            "independent_mcp_consumer.response_formats must remain [json, sse]"
+        )
+    if consumer["tool"] != "knowledge_base_retrieve" or consumer["tool_arguments"] != ["queries"]:
+        failures.append(
+            "independent_mcp_consumer must call knowledge_base_retrieve with only the queries argument"
+        )
+    if consumer["authentication_modes"] != {
+        "bearer": "AZURE_SEARCH_MCP_BEARER_TOKEN",
+        "admin-key": "AZURE_SEARCH_ADMIN_KEY",
+    }:
+        failures.append(
+            "independent_mcp_consumer authentication modes must remain bearer and admin-key with environment-only credentials"
+        )
+    expected_consumer_environment = [
+        "AZURE_SEARCH_MCP_ENDPOINT",
+        "AZURE_SEARCH_MCP_QUERY",
+        "AZURE_SEARCH_MCP_EXPECT_TERM",
+    ]
+    if consumer["required_environment"] != expected_consumer_environment:
+        failures.append(
+            "independent_mcp_consumer.required_environment must require endpoint, query, and expected term"
+        )
+    for selector in (
+        "entrypoint",
+        "implementation",
+        "test_contract",
+        "canonical_documentation",
+    ):
+        path = root / str(consumer[selector])
+        if not path.is_file():
+            failures.append(
+                f"independent_mcp_consumer.{selector} must name an existing file"
+            )
+    consumer_source = (root / str(consumer["implementation"])).read_text(
+        encoding="utf-8"
+    )
+    for binding in (
+        "PREVIEW_SEARCH_API_VERSION",
+        "tools/list",
+        "tools/call",
+        "knowledge_base_retrieve",
+    ):
+        if binding not in consumer_source:
+            failures.append(
+                f"{consumer['implementation']} must contain the consumer contract binding {binding}"
+            )
+    consumer_docs = (
+        root / str(consumer["canonical_documentation"])
+    ).read_text(encoding="utf-8")
+    for command in consumer["commands"].values():
+        if str(command) not in consumer_docs:
+            failures.append(
+                f"{consumer['canonical_documentation']} must contain the independent consumer command `{command}`"
+            )
+    for variable in (
+        list(consumer["required_environment"])
+        + list(consumer["optional_environment"])
+        + list(consumer["authentication_modes"].values())
+    ):
+        if str(variable) not in consumer_docs:
+            failures.append(
+                f"{consumer['canonical_documentation']} must document {variable}"
+            )
+    release = json.loads((root / "config/release.json").read_text(encoding="utf-8"))
+    release_prefixes = set(release["archive"]["includePrefixes"])
+    for selector in ("entrypoint", "implementation", "test_contract"):
+        top_level = f"{str(consumer[selector]).split('/', 1)[0]}/"
+        if top_level not in release_prefixes:
+            failures.append(
+                f"config/release.json archive.includePrefixes must include {top_level} for the independent MCP consumer"
+            )
+
     wrapper = (root / "liveks").read_text(encoding="utf-8")
     powershell_wrapper = (root / "liveks.ps1").read_text(encoding="utf-8")
     python_minor = str(PYTHON_MINIMUM[1])
@@ -369,6 +453,16 @@ def render_full_contract(contract: dict[str, Any]) -> str:
             command_block(contract, "windows"),
             "",
             "Each command must exit `0`. The runner also checks replay assertions, bootstrap completion, profile output, the offline doctor JSON envelope, and the final local-validation pass signal.",
+            "",
+            "## Independent Knowledge Base MCP Consumer",
+            "",
+            "The credentialed consumer is intentionally separate from the no-cloud first path. After bootstrap, run the canonical sample with environment-only endpoint, query, expected-term, and credential inputs:",
+            "",
+            f"**POSIX:** `{contract['independent_mcp_consumer']['commands']['posix']}`",
+            "",
+            f"**Windows:** `{contract['independent_mcp_consumer']['commands']['windows']}`",
+            "",
+            f"{contract['independent_mcp_consumer']['continuous_evidence']} {contract['independent_mcp_consumer']['unverified']}",
             "",
             "**Azure live validation: NOT RUN. Fabric live validation: NOT RUN.** Ordinary compatibility CI is credential-free and non-mutating.",
         ]

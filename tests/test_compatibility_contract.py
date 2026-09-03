@@ -49,6 +49,28 @@ class CompatibilityContractTests(unittest.TestCase):
         )
         self.assertTrue(any("profiles/search-index.yaml" in failure for failure in failures))
 
+    def test_independent_consumer_api_and_auth_drift_are_actionable(self):
+        changed = json.loads(json.dumps(self.contract))
+        changed["independent_mcp_consumer"]["api_version"] = "2099-01-01"
+        changed["independent_mcp_consumer"]["authentication_modes"] = {
+            "token": "UNSAFE_TOKEN"
+        }
+
+        failures = compatibility.validate_contract(ROOT, changed)
+
+        self.assertTrue(
+            any(
+                "independent_mcp_consumer.api_version" in failure
+                for failure in failures
+            )
+        )
+        self.assertTrue(
+            any(
+                "authentication modes must remain bearer and admin-key" in failure
+                for failure in failures
+            )
+        )
+
     def test_generator_replaces_only_designated_block(self):
         with tempfile.TemporaryDirectory() as temp_dir:
             path = Path(temp_dir) / "README.md"

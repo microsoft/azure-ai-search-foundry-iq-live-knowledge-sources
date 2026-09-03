@@ -62,6 +62,16 @@ bash scripts/validate-local.sh
 
 Each command must exit `0`. The runner also checks replay assertions, bootstrap completion, profile output, the offline doctor JSON envelope, and the final local-validation pass signal.
 
+## Independent Knowledge Base MCP Consumer
+
+The credentialed consumer is intentionally separate from the no-cloud first path. After bootstrap, run the canonical sample with environment-only endpoint, query, expected-term, and credential inputs:
+
+**POSIX:** `.liveks/venv/bin/python samples/python/knowledge_base_mcp_consumer.py --format json`
+
+**Windows:** `.\.liveks\venv\Scripts\python.exe samples\python\knowledge_base_mcp_consumer.py --format json`
+
+tests/test_independent_mcp_consumer.py runs credential-free JSON, SSE, authentication, request-shape, redaction, failure, retry, exit-code, and LiveKS parity checks on Ubuntu and Windows. Azure AI Search, Fabric, and Foundry Agent live execution are not performed by ordinary CI.
+
 **Azure live validation: NOT RUN. Fabric live validation: NOT RUN.** Ordinary compatibility CI is credential-free and non-mutating.
 <!-- compatibility-contract:end -->
 
