@@ -36,7 +36,27 @@ from .config import (
     write_lock,
     write_user_config,
 )
-from .evidence import generated_at, repository_revision, runtime_summary, sha256_file, write_json
+from .evidence import (
+    evidence_count as _evidence_count,
+    evidence_types as _evidence_types,
+    generated_at,
+    repository_revision,
+    response_has_evidence as _response_has_evidence,
+    response_has_live_evidence as _response_has_live_evidence,
+    runtime_summary,
+    sha256_file,
+    write_json,
+)
+from .providers import (
+    FabricOntologySourceOperations,
+    KnowledgeBaseOperations,
+    McpServerSourceOperations,
+    ProviderResult,
+    SearchDataPlaneOperations,
+    SearchIndexSourceOperations,
+    SearchObjectSpec,
+    payload_is_subset as _payload_is_subset,
+)
 from .mcp_search_index import (
     build_payloads as build_mcp_search_index_payloads,
     redacted_payloads as redact_mcp_search_index_payloads,
@@ -757,12 +777,6 @@ def _mcp_search_index_lock_state(
     )
 
 
-def _search_object_etag(payload: Any) -> str:
-    if not isinstance(payload, dict):
-        return ""
-    return str(payload.get("@odata.etag") or payload.get("etag") or "")
-
-
 def _environment_lock_conflict(config: ResolvedConfig) -> str | None:
     try:
         lock = _load_lock(config.environment)
@@ -844,21 +858,6 @@ def _preserved_cleanup_metadata(lock: dict[str, Any] | None) -> dict[str, Any]:
         for key in ("authoredConfigDigest", "resourceGroupPreexisting")
         if key in lock
     }
-
-
-def _payload_is_subset(expected: Any, actual: Any) -> bool:
-    if isinstance(expected, dict):
-        return isinstance(actual, dict) and all(
-            key in actual and _payload_is_subset(value, actual[key])
-            for key, value in expected.items()
-        )
-    if isinstance(expected, list):
-        return (
-            isinstance(actual, list)
-            and len(expected) == len(actual)
-            and all(_payload_is_subset(left, right) for left, right in zip(expected, actual))
-        )
-    return expected == actual
 
 
 def _direct_combined_has_fabric(config: ResolvedConfig) -> bool:
@@ -1043,32 +1042,36 @@ def _search_index_plan_report(config: ResolvedConfig, checks: list[dict[str, Any
     runner = CommandRunner(root=ROOT, env=config.child_env(), quiet=True)
     try:
         token = acquire_search_bearer_token(runner)
+        operations = SearchDataPlaneOperations(config, token, search_index_request)
         names = {
             "knowledgeSource": ("knowledgesources", str(config.get("search.index_knowledge_source_name"))),
             "knowledgeBase": ("knowledgebases", str(config.get("search.index_knowledge_base_name"))),
         }
         for label, (kind, name) in names.items():
-            status_code, existing = search_index_request(
-                config,
-                token,
-                method="GET",
-                path=search_object_path(kind, name),
-                timeout=30,
+            existing = operations.read(
+                SearchObjectSpec(
+                    kind,
+                    name,
+                    str(config.get("search.api_version")),
+                    {},
+                )
             )
-            remote_etag = _search_object_etag(existing)
+            if existing.status_code not in {200, 404}:
+                raise RuntimeError("Search object name check failed.")
             owned = (
                 managed.get(label) == name
                 and bool(managed_etags.get(label))
-                and managed_etags.get(label) == remote_etag
+                and managed_etags.get(label) == existing.etag
             )
-            collision = status_code == 200 and not owned
-            ready = status_code == 404 or (status_code == 200 and owned)
+            ready = existing.status_code == 404 or (
+                existing.status_code == 200 and owned
+            )
             checks.append(
                 _check(
                     f"{label}-name",
                     "pass" if ready else "fail",
                     "Name is available."
-                    if status_code == 404
+                    if existing.status_code == 404
                     else "Existing object and ETag are owned by this environment."
                     if ready
                     else "An existing unowned object uses this name; choose another environment or explicit name.",
@@ -1197,6 +1200,7 @@ def _mcp_search_index_plan_report(config: ResolvedConfig, checks: list[dict[str,
     runner = CommandRunner(root=ROOT, env=config.child_env(), quiet=True)
     try:
         token = acquire_search_bearer_token(runner)
+        operations = SearchDataPlaneOperations(config, token, search_index_request)
         objects = [
             (
                 "searchIndexKnowledgeSource",
@@ -1230,28 +1234,25 @@ def _mcp_search_index_plan_report(config: ResolvedConfig, checks: list[dict[str,
             ),
         ]
         for label, kind, name, api_version in objects:
-            status_code, existing = search_index_request(
-                config,
-                token,
-                method="GET",
-                path=search_object_path(kind, name),
-                api_version=api_version,
-                timeout=30,
+            existing = operations.read(
+                SearchObjectSpec(kind, name, api_version, {})
             )
-            remote_etag = _search_object_etag(existing)
+            if existing.status_code not in {200, 404}:
+                raise RuntimeError("Search object name check failed.")
             owned = (
                 managed.get(label) == name
                 and bool(managed_etags.get(label))
-                and managed_etags.get(label) == remote_etag
+                and managed_etags.get(label) == existing.etag
             )
-            collision = status_code == 200 and not owned
-            ready = status_code == 404 or (status_code == 200 and owned)
+            ready = existing.status_code == 404 or (
+                existing.status_code == 200 and owned
+            )
             checks.append(
                 _check(
                     f"{label}-name",
                     "pass" if ready else "fail",
                     "Name is available."
-                    if status_code == 404
+                    if existing.status_code == 404
                     else "Existing object and ETag are owned by this environment."
                     if ready
                     else "An existing unowned object uses this name; choose another explicit name.",
@@ -1442,6 +1443,94 @@ def _confirm_up(config: ResolvedConfig, *, yes: bool, accept_fabric_capacity: bo
         raise PermissionError("Provisioning confirmation was not provided.")
 
 
+def _create_managed_search_objects(
+    config: ResolvedConfig,
+    operations: SearchDataPlaneOperations,
+    objects: list[tuple[str, SearchObjectSpec]],
+    managed: dict[str, str],
+    managed_etags: dict[str, str],
+    checks: list[dict[str, Any]],
+) -> None:
+    """Sequence provider creates while lifecycle policy owns the journal."""
+    for label, spec in objects:
+        existing = operations.read(spec)
+        if existing.status_code == 200:
+            if (
+                managed.get(label) != spec.name
+                or not managed_etags.get(label)
+                or managed_etags.get(label) != existing.etag
+            ):
+                raise RuntimeError(f"Refusing to overwrite an unowned or changed {label}.")
+            if not _payload_is_subset(spec.payload, existing.payload):
+                raise RuntimeError(
+                    f"Owned {label} definition changed; run down before recreating it."
+                )
+            checks.append(
+                _check(f"create-{label}", "pass", f"Owned {label} is already ready.")
+            )
+            continue
+        if existing.status_code != 404:
+            raise RuntimeError(
+                f"Unable to check the target {label} name "
+                f"(HTTP {existing.status_code})."
+            )
+
+        managed_etags.pop(label, None)
+        managed[label] = spec.name
+        write_lock(
+            config,
+            status="deployment-in-progress",
+            extra={
+                "checks": checks,
+                "managedObjects": managed,
+                "managedObjectEtags": managed_etags,
+            },
+        )
+        created = operations.create(spec)
+        if created.status_code not in {200, 201}:
+            if created.status_code not in {0} and created.status_code < 500:
+                managed.pop(label, None)
+            raise RuntimeError(
+                f"Creating {label} failed (HTTP {created.status_code})."
+            )
+        managed[label] = spec.name
+        if not created.etag:
+            write_lock(
+                config,
+                status="deployment-in-progress",
+                extra={
+                    "checks": checks,
+                    "managedObjects": managed,
+                    "managedObjectEtags": managed_etags,
+                },
+            )
+            raise RuntimeError(
+                f"Generated {label} is present but its ETag could not be recorded safely."
+            )
+        managed_etags[label] = created.etag
+        checks.append(
+            _check(
+                f"create-{label}",
+                "pass",
+                f"Generated {label} is ready"
+                + (
+                    " after reconciling an ambiguous response."
+                    if created.reconciled
+                    else "."
+                ),
+            )
+        )
+        write_lock(
+            config,
+            status="deployment-in-progress",
+            extra={
+                "checks": checks,
+                "managedObjects": managed,
+                "managedObjectEtags": managed_etags,
+            },
+        )
+
+
 def _search_index_up_report(
     config: ResolvedConfig,
     *,
@@ -1477,129 +1566,39 @@ def _search_index_up_report(
     try:
         _confirm_up(config, yes=yes, accept_fabric_capacity=False, creates_capacity=False)
         token = acquire_search_bearer_token(runner)
+        operations = SearchDataPlaneOperations(
+            config,
+            token,
+            search_index_request,
+        )
         objects = [
             (
                 "knowledgeSource",
-                "knowledgesources",
-                str(config.get("search.index_knowledge_source_name")),
-                payloads["knowledgeSource"],
+                SearchObjectSpec(
+                    "knowledgesources",
+                    str(config.get("search.index_knowledge_source_name")),
+                    str(config.get("search.api_version")),
+                    payloads["knowledgeSource"],
+                ),
             ),
             (
                 "knowledgeBase",
-                "knowledgebases",
-                str(config.get("search.index_knowledge_base_name")),
-                payloads["knowledgeBase"],
+                SearchObjectSpec(
+                    "knowledgebases",
+                    str(config.get("search.index_knowledge_base_name")),
+                    str(config.get("search.api_version")),
+                    payloads["knowledgeBase"],
+                ),
             ),
         ]
-        for label, kind, name, body in objects:
-            existing_code, existing = search_index_request(
-                config,
-                token,
-                method="GET",
-                path=search_object_path(kind, name),
-                timeout=30,
-            )
-            if existing_code == 200:
-                remote_etag = _search_object_etag(existing)
-                if (
-                    managed.get(label) != name
-                    or not managed_etags.get(label)
-                    or managed_etags.get(label) != remote_etag
-                ):
-                    raise RuntimeError(f"Refusing to overwrite an unowned or changed {label}.")
-                if not _payload_is_subset(body, existing):
-                    raise RuntimeError(f"Owned {label} definition changed; run down before recreating it.")
-                checks.append(_check(f"create-{label}", "pass", f"Owned {label} is already ready."))
-                continue
-            condition_headers = {
-                "If-None-Match": "*",
-                "Prefer": "return=representation",
-            }
-            if existing_code not in {200, 404}:
-                raise RuntimeError(f"Unable to check the target {label} name (HTTP {existing_code}).")
-            was_new = existing_code == 404
-            if was_new:
-                managed_etags.pop(label, None)
-                managed[label] = name
-                write_lock(
-                    config,
-                    status="deployment-in-progress",
-                    extra={
-                        "checks": checks,
-                        "managedObjects": managed,
-                        "managedObjectEtags": managed_etags,
-                    },
-                )
-            created: Any = {}
-            try:
-                status_code, created = search_index_request(
-                    config,
-                    token,
-                    method="PUT",
-                    path=search_object_path(kind, name),
-                    body=body,
-                    headers=condition_headers,
-                )
-            except Exception:
-                status_code = 0
-            reconciled = False
-            if status_code == 0 or status_code >= 500:
-                reconcile_code, reconciled_object = search_index_request(
-                    config,
-                    token,
-                    method="GET",
-                    path=search_object_path(kind, name),
-                    timeout=30,
-                )
-                if reconcile_code == 200 and _payload_is_subset(body, reconciled_object):
-                    status_code = 200
-                    created = reconciled_object
-                    reconciled = True
-            if status_code not in {200, 201}:
-                if was_new and status_code not in {0} and status_code < 500:
-                    managed.pop(label, None)
-                raise RuntimeError(f"Creating {label} failed (HTTP {status_code}).")
-            managed[label] = name
-            etag = _search_object_etag(created)
-            if not etag:
-                reconcile_code, reconciled_object = search_index_request(
-                    config,
-                    token,
-                    method="GET",
-                    path=search_object_path(kind, name),
-                    timeout=30,
-                )
-                if reconcile_code == 200 and _payload_is_subset(body, reconciled_object):
-                    etag = _search_object_etag(reconciled_object)
-            if not etag:
-                write_lock(
-                    config,
-                    status="deployment-in-progress",
-                    extra={
-                        "checks": checks,
-                        "managedObjects": managed,
-                        "managedObjectEtags": managed_etags,
-                    },
-                )
-                raise RuntimeError(f"Generated {label} is present but its ETag could not be recorded safely.")
-            managed_etags[label] = etag
-            checks.append(
-                _check(
-                    f"create-{label}",
-                    "pass",
-                    f"Generated {label} is ready"
-                    + (" after reconciling an ambiguous response." if reconciled else "."),
-                )
-            )
-            write_lock(
-                config,
-                status="deployment-in-progress",
-                extra={
-                    "checks": checks,
-                    "managedObjects": managed,
-                    "managedObjectEtags": managed_etags,
-                },
-            )
+        _create_managed_search_objects(
+            config,
+            operations,
+            objects,
+            managed,
+            managed_etags,
+            checks,
+        )
 
         verified = verify_report(
             config,
@@ -1711,29 +1710,40 @@ def _mcp_search_index_up_report(
     try:
         _confirm_up(config, yes=yes, accept_fabric_capacity=False, creates_capacity=False)
         token = acquire_search_bearer_token(runner)
+        operations = SearchDataPlaneOperations(
+            config,
+            token,
+            search_index_request,
+        )
         objects = [
             (
                 "searchIndexKnowledgeSource",
-                "knowledgesources",
-                str(config.get("search.index_knowledge_source_name")),
-                str(config.get("search.index_api_version")),
-                payloads["searchIndexKnowledgeSource"],
+                SearchObjectSpec(
+                    "knowledgesources",
+                    str(config.get("search.index_knowledge_source_name")),
+                    str(config.get("search.index_api_version")),
+                    payloads["searchIndexKnowledgeSource"],
+                ),
             ),
             (
                 "mcpKnowledgeSource",
-                "knowledgesources",
-                str(config.get("search.mcp_knowledge_source_name")),
-                str(config.get("search.preview_api_version")),
-                payloads["mcpKnowledgeSource"],
+                SearchObjectSpec(
+                    "knowledgesources",
+                    str(config.get("search.mcp_knowledge_source_name")),
+                    str(config.get("search.preview_api_version")),
+                    payloads["mcpKnowledgeSource"],
+                ),
             ),
             *(
                 [
                     (
                         "fabricKnowledgeSource",
-                        "knowledgesources",
-                        str(config.get("search.fabric_knowledge_source_name")),
-                        str(config.get("search.preview_api_version")),
-                        payloads["fabricKnowledgeSource"],
+                        SearchObjectSpec(
+                            "knowledgesources",
+                            str(config.get("search.fabric_knowledge_source_name")),
+                            str(config.get("search.preview_api_version")),
+                            payloads["fabricKnowledgeSource"],
+                        ),
                     )
                 ]
                 if _direct_combined_has_fabric(config)
@@ -1741,125 +1751,22 @@ def _mcp_search_index_up_report(
             ),
             (
                 "combinedKnowledgeBase",
-                "knowledgebases",
-                str(config.get("search.combined_knowledge_base_name")),
-                str(config.get("search.preview_api_version")),
-                payloads["knowledgeBase"],
+                SearchObjectSpec(
+                    "knowledgebases",
+                    str(config.get("search.combined_knowledge_base_name")),
+                    str(config.get("search.preview_api_version")),
+                    payloads["knowledgeBase"],
+                ),
             ),
         ]
-        for label, kind, name, api_version, body in objects:
-            existing_code, existing = search_index_request(
-                config,
-                token,
-                method="GET",
-                path=search_object_path(kind, name),
-                api_version=api_version,
-                timeout=30,
-            )
-            if existing_code == 200:
-                remote_etag = _search_object_etag(existing)
-                if (
-                    managed.get(label) != name
-                    or not managed_etags.get(label)
-                    or managed_etags.get(label) != remote_etag
-                ):
-                    raise RuntimeError(f"Refusing to overwrite an unowned or changed {label}.")
-                if not _payload_is_subset(body, existing):
-                    raise RuntimeError(f"Owned {label} definition changed; run down before recreating it.")
-                checks.append(_check(f"create-{label}", "pass", f"Owned {label} is already ready."))
-                continue
-            condition_headers = {
-                "If-None-Match": "*",
-                "Prefer": "return=representation",
-            }
-            if existing_code not in {200, 404}:
-                raise RuntimeError(f"Unable to check the target {label} name (HTTP {existing_code}).")
-            was_new = existing_code == 404
-            if was_new:
-                managed_etags.pop(label, None)
-                managed[label] = name
-                write_lock(
-                    config,
-                    status="deployment-in-progress",
-                    extra={
-                        "checks": checks,
-                        "managedObjects": managed,
-                        "managedObjectEtags": managed_etags,
-                    },
-                )
-            created: Any = {}
-            try:
-                status_code, created = search_index_request(
-                    config,
-                    token,
-                    method="PUT",
-                    path=search_object_path(kind, name),
-                    api_version=api_version,
-                    body=body,
-                    headers=condition_headers,
-                )
-            except Exception:
-                status_code = 0
-            reconciled = False
-            if status_code == 0 or status_code >= 500:
-                reconcile_code, reconciled_object = search_index_request(
-                    config,
-                    token,
-                    method="GET",
-                    path=search_object_path(kind, name),
-                    api_version=api_version,
-                    timeout=30,
-                )
-                if reconcile_code == 200 and _payload_is_subset(body, reconciled_object):
-                    status_code = 200
-                    created = reconciled_object
-                    reconciled = True
-            if status_code not in {200, 201}:
-                if was_new and status_code not in {0} and status_code < 500:
-                    managed.pop(label, None)
-                raise RuntimeError(f"Creating {label} failed (HTTP {status_code}).")
-            managed[label] = name
-            etag = _search_object_etag(created)
-            if not etag:
-                reconcile_code, reconciled_object = search_index_request(
-                    config,
-                    token,
-                    method="GET",
-                    path=search_object_path(kind, name),
-                    api_version=api_version,
-                    timeout=30,
-                )
-                if reconcile_code == 200 and _payload_is_subset(body, reconciled_object):
-                    etag = _search_object_etag(reconciled_object)
-            if not etag:
-                write_lock(
-                    config,
-                    status="deployment-in-progress",
-                    extra={
-                        "checks": checks,
-                        "managedObjects": managed,
-                        "managedObjectEtags": managed_etags,
-                    },
-                )
-                raise RuntimeError(f"Generated {label} is present but its ETag could not be recorded safely.")
-            managed_etags[label] = etag
-            checks.append(
-                _check(
-                    f"create-{label}",
-                    "pass",
-                    f"Generated {label} is ready"
-                    + (" after reconciling an ambiguous response." if reconciled else "."),
-                )
-            )
-            write_lock(
-                config,
-                status="deployment-in-progress",
-                extra={
-                    "checks": checks,
-                    "managedObjects": managed,
-                    "managedObjectEtags": managed_etags,
-                },
-            )
+        _create_managed_search_objects(
+            config,
+            operations,
+            objects,
+            managed,
+            managed_etags,
+            checks,
+        )
 
         verified = verify_report(
             config,
@@ -2098,41 +2005,6 @@ def up_report(
     finally:
         if restore_capacity_mode:
             runner.run(["azd", "env", "set", "FABRIC_CAPACITY_MODE", str(config.get("fabric.mode"))])
-
-
-def _response_has_evidence(payload: Any, source_type: str | None = None) -> bool:
-    if not isinstance(payload, dict):
-        return False
-    evidence = list(payload.get("activity", [])) + list(payload.get("references", []))
-    if not evidence:
-        return False
-    if source_type is None:
-        return True
-    return any(item.get("type") == source_type for item in evidence if isinstance(item, dict))
-
-
-def _response_has_live_evidence(payload: Any, source_type: str) -> bool:
-    return isinstance(payload, dict) and payload.get("mode") == "live" and _response_has_evidence(payload, source_type)
-
-
-def _evidence_types(payload: Any) -> list[str]:
-    if not isinstance(payload, dict):
-        return []
-    evidence = list(payload.get("activity", [])) + list(payload.get("references", []))
-    return sorted({str(item.get("type")) for item in evidence if isinstance(item, dict) and item.get("type")})
-
-
-def _evidence_count(payload: Any, source_type: str | None = None) -> int:
-    if not isinstance(payload, dict):
-        return 0
-    evidence = list(payload.get("activity", [])) + list(payload.get("references", []))
-    if source_type is None:
-        return sum(1 for item in evidence if isinstance(item, dict))
-    return sum(
-        1
-        for item in evidence
-        if isinstance(item, dict) and item.get("type") == source_type
-    )
 
 
 def _mcp_text_blocks(payload: Any) -> list[str]:
@@ -2480,35 +2352,35 @@ def _search_index_verify_report(
         ("search-index-knowledge-source", "knowledgesources", str(config.get("search.index_knowledge_source_name"))),
         ("search-index-knowledge-base", "knowledgebases", str(config.get("search.index_knowledge_base_name"))),
     ]
+    operations = SearchDataPlaneOperations(config, token, search_index_request)
     objects: dict[str, Any] = {}
     for label, kind, name in object_contracts:
         try:
-            status_code, payload = search_index_request(
-                config,
-                token,
-                method="GET",
-                path=search_object_path(kind, name),
-                timeout=30,
+            result = operations.read(
+                SearchObjectSpec(
+                    kind,
+                    name,
+                    str(config.get("search.api_version")),
+                    {},
+                )
             )
         except Exception:
-            status_code, payload = 0, {}
-        objects[label] = payload
+            result = ProviderResult(0, {})
+        objects[label] = result.payload
         checks.append(
             _check(
                 label,
-                "pass" if status_code == 200 else "fail",
-                "Object is readable." if status_code == 200 else f"Object read failed (HTTP {status_code or 'unavailable'}).",
+                "pass" if result.status_code == 200 else "fail",
+                "Object is readable."
+                if result.status_code == 200
+                else f"Object read failed (HTTP {result.status_code or 'unavailable'}).",
             )
         )
 
+    search_provider = SearchIndexSourceOperations()
+    knowledge_base_provider = KnowledgeBaseOperations()
     knowledge_source = objects.get("search-index-knowledge-source")
-    source_parameters = knowledge_source.get("searchIndexParameters", {}) if isinstance(knowledge_source, dict) else {}
-    source_matches = (
-        isinstance(knowledge_source, dict)
-        and knowledge_source.get("kind") == "searchIndex"
-        and source_parameters.get("searchIndexName") == config.get("search.index_name")
-        and source_parameters.get("semanticConfigurationName") == config.get("search.semantic_configuration_name")
-    )
+    source_matches = search_provider.matches(knowledge_source, config)
     checks.append(
         _check(
             "knowledge-source-contract",
@@ -2520,14 +2392,9 @@ def _search_index_verify_report(
     )
 
     knowledge_base = objects.get("search-index-knowledge-base")
-    source_names = {
-        str(item.get("name"))
-        for item in knowledge_base.get("knowledgeSources", [])
-        if isinstance(knowledge_base, dict) and isinstance(item, dict) and item.get("name")
-    } if isinstance(knowledge_base, dict) else set()
-    stable_kb = (
-        config.get("search.index_knowledge_source_name") in source_names
-        and not {"models", "outputMode", "retrievalReasoningEffort"}.intersection(knowledge_base or {})
+    stable_kb = knowledge_base_provider.matches_stable(
+        knowledge_base,
+        {search_provider.name(config)},
     )
     checks.append(
         _check(
@@ -2542,17 +2409,18 @@ def _search_index_verify_report(
     effective_query = query or "What information is available in this index?"
     payloads = build_search_index_payloads(config, query=effective_query)
     try:
-        retrieve_code, retrieve_payload = search_index_request(
-            config,
-            token,
-            method="POST",
-            path=f"{search_object_path('knowledgebases', str(config.get('search.index_knowledge_base_name')))}/retrieve",
-            body=payloads["retrieve"],
-            attempts=3,
-            retry_mode="read",
+        retrieve = operations.retrieve(
+            SearchObjectSpec(
+                "knowledgebases",
+                str(config.get("search.index_knowledge_base_name")),
+                str(config.get("search.api_version")),
+            ),
+            payloads["retrieve"],
         )
     except Exception:
-        retrieve_code, retrieve_payload = 0, {}
+        retrieve = ProviderResult(0, {})
+    retrieve_code = retrieve.status_code
+    retrieve_payload = retrieve.payload
     text_content = search_index_response_text(retrieve_payload)
     retrieve_ok = retrieve_code == 200 and bool(text_content) and _response_has_evidence(retrieve_payload, "searchIndex")
     checks.append(
@@ -2683,43 +2551,33 @@ def _mcp_search_index_verify_report(
             preview,
         ),
     ]
+    operations = SearchDataPlaneOperations(config, token, search_index_request)
     objects: dict[str, Any] = {}
     for label, kind, name, api_version in object_contracts:
         try:
-            status_code, payload = search_index_request(
-                config,
-                token,
-                method="GET",
-                path=search_object_path(kind, name),
-                api_version=api_version,
-                timeout=30,
+            result = operations.read(
+                SearchObjectSpec(kind, name, api_version, {})
             )
         except Exception:
-            status_code, payload = 0, {}
-        objects[label] = payload
+            result = ProviderResult(0, {})
+        objects[label] = result.payload
         checks.append(
             _check(
                 label,
-                "pass" if status_code == 200 else "fail",
+                "pass" if result.status_code == 200 else "fail",
                 f"Object is readable through {api_version}."
-                if status_code == 200
-                else f"Object read failed through {api_version} (HTTP {status_code or 'unavailable'}).",
+                if result.status_code == 200
+                else f"Object read failed through {api_version} (HTTP {result.status_code or 'unavailable'}).",
             )
         )
 
+    search_provider = SearchIndexSourceOperations()
+    mcp_provider = McpServerSourceOperations()
+    fabric_provider = FabricOntologySourceOperations()
+    knowledge_base_provider = KnowledgeBaseOperations()
     if _direct_combined_has_fabric(config):
         fabric_source = objects.get("fabric-knowledge-source")
-        fabric_parameters = (
-            fabric_source.get("fabricOntologyParameters", {})
-            if isinstance(fabric_source, dict)
-            else {}
-        )
-        fabric_source_matches = (
-            isinstance(fabric_source, dict)
-            and fabric_source.get("kind") == "fabricOntology"
-            and fabric_parameters.get("workspaceId") == config.get("fabric.workspace_id")
-            and fabric_parameters.get("ontologyId") == config.get("fabric.ontology_id")
-        )
+        fabric_source_matches = fabric_provider.matches(fabric_source, config)
         checks.append(
             _check(
                 "fabric-source-contract",
@@ -2731,13 +2589,7 @@ def _mcp_search_index_verify_report(
         )
 
     index_source = objects.get("search-index-knowledge-source")
-    index_parameters = index_source.get("searchIndexParameters", {}) if isinstance(index_source, dict) else {}
-    index_source_matches = (
-        isinstance(index_source, dict)
-        and index_source.get("kind") == "searchIndex"
-        and index_parameters.get("searchIndexName") == config.get("search.index_name")
-        and index_parameters.get("semanticConfigurationName") == config.get("search.semantic_configuration_name")
-    )
+    index_source_matches = search_provider.matches(index_source, config)
     checks.append(
         _check(
             "search-index-source-contract",
@@ -2749,14 +2601,7 @@ def _mcp_search_index_verify_report(
     )
 
     mcp_source = objects.get("mcp-knowledge-source")
-    mcp_parameters = mcp_source.get("mcpServerParameters", {}) if isinstance(mcp_source, dict) else {}
-    tools = mcp_parameters.get("tools", []) if isinstance(mcp_parameters, dict) else []
-    mcp_source_matches = (
-        isinstance(mcp_source, dict)
-        and mcp_source.get("kind") == "mcpServer"
-        and mcp_parameters.get("serverURL") == config.get("mcp.server_url")
-        and any(isinstance(tool, dict) and tool.get("name") == config.get("mcp.tool_name") for tool in tools)
-    )
+    mcp_source_matches = mcp_provider.matches(mcp_source, config)
     checks.append(
         _check(
             "mcp-source-contract",
@@ -2768,37 +2613,17 @@ def _mcp_search_index_verify_report(
     )
 
     knowledge_base = objects.get("combined-knowledge-base")
-    knowledge_source_names = (
-        {
-            str(item.get("name"))
-            for item in knowledge_base.get("knowledgeSources", [])
-            if isinstance(item, dict) and item.get("name")
-        }
-        if isinstance(knowledge_base, dict)
-        else set()
-    )
-    models = knowledge_base.get("models", []) if isinstance(knowledge_base, dict) else []
-    model_parameters = (
-        models[0].get("azureOpenAIParameters", {})
-        if models and isinstance(models[0], dict)
-        else {}
-    )
     expected_knowledge_source_names = {
-        str(config.get("search.index_knowledge_source_name")),
-        str(config.get("search.mcp_knowledge_source_name")),
+        search_provider.name(config),
+        mcp_provider.name(config),
     }
     if _direct_combined_has_fabric(config):
-        expected_knowledge_source_names.add(
-            str(config.get("search.fabric_knowledge_source_name"))
-        )
-    knowledge_base_matches = (
-        knowledge_source_names == expected_knowledge_source_names
-        and knowledge_base.get("outputMode") == "answerSynthesis"
-        and knowledge_base.get("retrievalReasoningEffort") == {"kind": "low"}
-        and model_parameters.get("resourceUri") == config.get("openai.endpoint")
-        and model_parameters.get("deploymentId") == config.get("openai.deployment_name")
-        and model_parameters.get("modelName") == config.get("openai.model_name")
-    ) if isinstance(knowledge_base, dict) else False
+        expected_knowledge_source_names.add(fabric_provider.name(config))
+    knowledge_base_matches = knowledge_base_provider.matches_preview(
+        knowledge_base,
+        config,
+        expected_knowledge_source_names,
+    )
     checks.append(
         _check(
             "combined-knowledge-base-contract",
@@ -2822,7 +2647,9 @@ def _mcp_search_index_verify_report(
         fabric_query=effective_fabric_query,
         combined_query=effective_combined_query,
     )
-    kb_path = f"{search_object_path('knowledgebases', str(config.get('search.combined_knowledge_base_name')))}/retrieve"
+    combined_knowledge_base_name = str(
+        config.get("search.combined_knowledge_base_name")
+    )
 
     fabric_headers: dict[str, str] | None = None
     fabric_authorization_ok = True
@@ -2856,17 +2683,16 @@ def _mcp_search_index_verify_report(
             retrieve_results[label] = (0, {})
             continue
         try:
-            retrieve_results[label] = search_index_request(
-                config,
-                token,
-                method="POST",
-                path=kb_path,
-                api_version=preview,
-                body=payloads["retrieve"][label],
+            result = operations.retrieve(
+                SearchObjectSpec(
+                    "knowledgebases",
+                    combined_knowledge_base_name,
+                    preview,
+                ),
+                payloads["retrieve"][label],
                 headers=fabric_headers if label == "fabric" else None,
-                attempts=3,
-                retry_mode="read",
             )
+            retrieve_results[label] = (result.status_code, result.payload)
         except Exception:
             retrieve_results[label] = (0, {})
 
@@ -2940,17 +2766,16 @@ def _mcp_search_index_verify_report(
     combined_payload: Any = {}
     if independent_sources_passed:
         try:
-            combined_code, combined_payload = search_index_request(
-                config,
-                token,
-                method="POST",
-                path=kb_path,
-                api_version=preview,
-                body=payloads["retrieve"]["combined"],
+            result = operations.retrieve(
+                SearchObjectSpec(
+                    "knowledgebases",
+                    combined_knowledge_base_name,
+                    preview,
+                ),
+                payloads["retrieve"]["combined"],
                 headers=fabric_headers if _direct_combined_has_fabric(config) else None,
-                attempts=3,
-                retry_mode="read",
             )
+            combined_code, combined_payload = result.status_code, result.payload
         except Exception:
             combined_code, combined_payload = 0, {}
     source_types = (
@@ -3202,6 +3027,91 @@ def _cleanup_ownership(config: ResolvedConfig) -> tuple[dict[str, str], str]:
     return effective, "resolved configuration + environment lock"
 
 
+def _delete_managed_search_objects(
+    operations: SearchDataPlaneOperations,
+    objects: list[tuple[str, SearchObjectSpec]],
+    managed: dict[str, str],
+    managed_etags: dict[str, str],
+    checks: list[dict[str, Any]],
+    *,
+    include_api_version: bool,
+) -> tuple[dict[str, str], dict[str, str]]:
+    """Apply centralized ownership evidence before provider deletes."""
+    remaining = dict(managed)
+    remaining_etags = dict(managed_etags)
+    for label, spec in objects:
+        name = managed.get(label)
+        if not name:
+            checks.append(
+                _check(f"delete-{label}", "pass", "No generated object is recorded.")
+            )
+            continue
+
+        etag = managed_etags.get(label, "")
+        if not etag:
+            try:
+                reconciled = operations.read(spec)
+            except Exception:
+                reconciled = ProviderResult(0, {})
+            if reconciled.status_code == 404:
+                checks.append(
+                    _check(
+                        f"delete-{label}",
+                        "pass",
+                        "Pending generated object is already absent.",
+                    )
+                )
+                remaining.pop(label, None)
+                remaining_etags.pop(label, None)
+                continue
+            etag = reconciled.etag or ""
+            if (
+                reconciled.status_code != 200
+                or not etag
+                or not _payload_is_subset(spec.payload, reconciled.payload)
+            ):
+                checks.append(
+                    _check(
+                        f"delete-{label}",
+                        "fail",
+                        "Pending object could not be reconciled to the expected generated definition and was preserved.",
+                    )
+                )
+                continue
+
+        try:
+            deleted_result = operations.delete(spec, etag=etag)
+        except Exception:
+            deleted_result = ProviderResult(0, {})
+        deleted = deleted_result.status_code in {200, 202, 204, 404}
+        if include_api_version:
+            success_message = (
+                f"Generated object is absent through {spec.api_version}."
+            )
+            failure_message = (
+                "Generated object deletion failed through "
+                f"{spec.api_version} (HTTP "
+                f"{deleted_result.status_code or 'unavailable'})."
+            )
+        else:
+            success_message = "Generated object is absent."
+            failure_message = (
+                "Generated object deletion failed "
+                f"(HTTP {deleted_result.status_code or 'unavailable'})."
+            )
+        checks.append(
+            _check(
+                f"delete-{label}",
+                "pass" if deleted else "fail",
+                success_message if deleted else failure_message,
+            )
+        )
+        if deleted:
+            remaining.pop(label, None)
+            remaining_etags.pop(label, None)
+    return remaining, remaining_etags
+
+
 def _search_index_down_report(config: ResolvedConfig, *, yes: bool, quiet: bool) -> dict[str, Any]:
     if not yes:
         expected = f"delete {config.environment}"
@@ -3247,8 +3157,7 @@ def _search_index_down_report(config: ResolvedConfig, *, yes: bool, quiet: bool)
             ownership=config.ownership(),
         )
 
-    remaining = dict(managed)
-    remaining_etags = dict(managed_etags)
+    operations = SearchDataPlaneOperations(config, token, search_index_request)
     expected_payloads = build_search_index_payloads(
         config,
         query="cleanup-reconciliation",
@@ -3257,86 +3166,55 @@ def _search_index_down_report(config: ResolvedConfig, *, yes: bool, quiet: bool)
         "knowledgeBase": expected_payloads["knowledgeBase"],
         "knowledgeSource": expected_payloads["knowledgeSource"],
     }
-    for label, kind in (("knowledgeBase", "knowledgebases"), ("knowledgeSource", "knowledgesources")):
-        name = managed.get(label)
-        if not name:
-            checks.append(_check(f"delete-{label}", "pass", "No generated object is recorded."))
-            continue
-        etag = managed_etags.get(label, "")
-        if not etag:
-            try:
-                reconcile_code, reconciled_object = search_index_request(
-                    config,
-                    token,
-                    method="GET",
-                    path=search_object_path(kind, name),
-                    timeout=30,
-                )
-            except Exception:
-                reconcile_code, reconciled_object = 0, {}
-            if reconcile_code == 404:
-                checks.append(_check(f"delete-{label}", "pass", "Pending generated object is already absent."))
-                remaining.pop(label, None)
-                remaining_etags.pop(label, None)
-                continue
-            etag = _search_object_etag(reconciled_object)
-            if (
-                reconcile_code != 200
-                or not etag
-                or not _payload_is_subset(expected_objects[label], reconciled_object)
-            ):
-                checks.append(
-                    _check(
-                        f"delete-{label}",
-                        "fail",
-                        "Pending object could not be reconciled to the expected generated definition and was preserved.",
-                    )
-                )
-                continue
-        try:
-            status_code, _ = search_index_request(
-                config,
-                token,
-                method="DELETE",
-                path=search_object_path(kind, name),
-                headers={"If-Match": etag},
-                attempts=3,
-                retry_mode="conditional-write",
-                timeout=60,
-            )
-        except Exception:
-            status_code = 0
-        deleted = status_code in {200, 202, 204, 404}
-        checks.append(
-            _check(
-                f"delete-{label}",
-                "pass" if deleted else "fail",
-                "Generated object is absent."
-                if deleted
-                else f"Generated object deletion failed (HTTP {status_code or 'unavailable'}).",
-            )
-        )
-        if deleted:
-            remaining.pop(label, None)
-            remaining_etags.pop(label, None)
+    stable_api_version = str(config.get("search.api_version"))
+    delete_objects = [
+        (
+            "knowledgeBase",
+            SearchObjectSpec(
+                "knowledgebases",
+                managed.get("knowledgeBase", ""),
+                stable_api_version,
+                expected_objects["knowledgeBase"],
+            ),
+        ),
+        (
+            "knowledgeSource",
+            SearchObjectSpec(
+                "knowledgesources",
+                managed.get("knowledgeSource", ""),
+                stable_api_version,
+                expected_objects["knowledgeSource"],
+            ),
+        ),
+    ]
+    remaining, remaining_etags = _delete_managed_search_objects(
+        operations,
+        delete_objects,
+        managed,
+        managed_etags,
+        checks,
+        include_api_version=False,
+    )
 
     try:
-        index_code, _ = search_index_request(
-            config,
-            token,
-            method="GET",
-            path=search_object_path("indexes", str(config.get("search.index_name"))),
-            timeout=30,
+        index_result = operations.read(
+            SearchObjectSpec(
+                "indexes",
+                str(config.get("search.index_name")),
+                stable_api_version,
+                {},
+            )
         )
     except Exception:
-        index_code = 0
+        index_result = ProviderResult(0, {})
     checks.append(
         _check(
             "search-index-preserved",
-            "pass" if index_code == 200 else "fail",
+            "pass" if index_result.status_code == 200 else "fail",
             "The existing Search index remains readable after cleanup."
-            if index_code == 200
-            else f"The existing Search index could not be confirmed after cleanup (HTTP {index_code or 'unavailable'}).",
+            if index_result.status_code == 200
+            else "The existing Search index could not be confirmed after cleanup "
+            f"(HTTP {index_result.status_code or 'unavailable'}).",
         )
     )
 
@@ -3407,8 +3285,7 @@ def _mcp_search_index_down_report(config: ResolvedConfig, *, yes: bool, quiet: b
             ownership=config.ownership(),
         )
 
-    remaining = dict(managed)
-    remaining_etags = dict(managed_etags)
+    operations = SearchDataPlaneOperations(config, token, search_index_request)
     expected_payloads = build_mcp_search_index_payloads(
         config,
         index_query="cleanup-reconciliation",
@@ -3454,89 +3331,46 @@ def _mcp_search_index_down_report(config: ResolvedConfig, *, yes: bool, quiet: b
             str(config.get("search.index_api_version")),
         ),
     ]
-    for label, kind, api_version in delete_contracts:
-        name = managed.get(label)
-        if not name:
-            checks.append(_check(f"delete-{label}", "pass", "No generated object is recorded."))
-            continue
-        etag = managed_etags.get(label, "")
-        if not etag:
-            try:
-                reconcile_code, reconciled_object = search_index_request(
-                    config,
-                    token,
-                    method="GET",
-                    path=search_object_path(kind, name),
-                    api_version=api_version,
-                    timeout=30,
-                )
-            except Exception:
-                reconcile_code, reconciled_object = 0, {}
-            if reconcile_code == 404:
-                checks.append(_check(f"delete-{label}", "pass", "Pending generated object is already absent."))
-                remaining.pop(label, None)
-                remaining_etags.pop(label, None)
-                continue
-            etag = _search_object_etag(reconciled_object)
-            if (
-                reconcile_code != 200
-                or not etag
-                or not _payload_is_subset(expected_objects[label], reconciled_object)
-            ):
-                checks.append(
-                    _check(
-                        f"delete-{label}",
-                        "fail",
-                        "Pending object could not be reconciled to the expected generated definition and was preserved.",
-                    )
-                )
-                continue
-        try:
-            status_code, _ = search_index_request(
-                config,
-                token,
-                method="DELETE",
-                path=search_object_path(kind, name),
-                api_version=api_version,
-                headers={"If-Match": etag},
-                attempts=3,
-                retry_mode="conditional-write",
-                timeout=60,
-            )
-        except Exception:
-            status_code = 0
-        deleted = status_code in {200, 202, 204, 404}
-        checks.append(
-            _check(
-                f"delete-{label}",
-                "pass" if deleted else "fail",
-                f"Generated object is absent through {api_version}."
-                if deleted
-                else f"Generated object deletion failed through {api_version} (HTTP {status_code or 'unavailable'}).",
-            )
+    delete_objects = [
+        (
+            label,
+            SearchObjectSpec(
+                kind,
+                managed.get(label, ""),
+                api_version,
+                expected_objects[label],
+            ),
         )
-        if deleted:
-            remaining.pop(label, None)
-            remaining_etags.pop(label, None)
+        for label, kind, api_version in delete_contracts
+    ]
+    remaining, remaining_etags = _delete_managed_search_objects(
+        operations,
+        delete_objects,
+        managed,
+        managed_etags,
+        checks,
+        include_api_version=True,
+    )
 
     try:
-        index_code, _ = search_index_request(
-            config,
-            token,
-            method="GET",
-            path=search_object_path("indexes", str(config.get("search.index_name"))),
-            api_version=str(config.get("search.index_api_version")),
-            timeout=30,
+        index_result = operations.read(
+            SearchObjectSpec(
+                "indexes",
+                str(config.get("search.index_name")),
+                str(config.get("search.index_api_version")),
+                {},
+            )
         )
     except Exception:
-        index_code = 0
+        index_result = ProviderResult(0, {})
     checks.append(
         _check(
             "search-index-preserved",
-            "pass" if index_code == 200 else "fail",
+            "pass" if index_result.status_code == 200 else "fail",
             "The existing Search index remains readable after cleanup."
-            if index_code == 200
-            else f"The existing Search index could not be confirmed after cleanup (HTTP {index_code or 'unavailable'}).",
+            if index_result.status_code == 200
+            else "The existing Search index could not be confirmed after cleanup "
+            f"(HTTP {index_result.status_code or 'unavailable'}).",
         )
     )
     checks.append(

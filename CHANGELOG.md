@@ -43,6 +43,7 @@ All notable changes to this accelerator are documented here.
 
 ### Changed
 
+- Direct Search data-plane profiles now share explicit, independently tested provider operations for Search Index, MCP Server, native Fabric Ontology, and Knowledge Base payloads plus read/create/retrieve/delete normalization. Lifecycle sequencing, ownership and lock policy, ETag-authorized cleanup, evidence redaction, and public reports remain centralized and behavior-compatible.
 - The existing protected read-only retrieve test remains available, while the same test module now owns the opt-in full lifecycle canary contract. Normal CI runs neither credentialed path.
 - Profile selection, CLI/configuration documentation, generated environment catalogs, and API matrices now describe the guarded `search-index -> mcp-search-index` expansion without changing any existing profile.
 - Direct Search requests now accept an explicit API version so the combined lifecycle uses `2026-04-01` only for the Search Index KS and `2026-05-01-preview` only for MCP KS, combined KB, and retrieve.

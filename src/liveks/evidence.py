@@ -61,3 +61,52 @@ def sha256_file(path: Path) -> str:
 def write_json(path: Path, payload: dict[str, Any]) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps(payload, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+
+
+def response_has_evidence(payload: Any, source_type: str | None = None) -> bool:
+    if not isinstance(payload, dict):
+        return False
+    evidence = list(payload.get("activity", [])) + list(payload.get("references", []))
+    if not evidence:
+        return False
+    if source_type is None:
+        return True
+    return any(
+        item.get("type") == source_type
+        for item in evidence
+        if isinstance(item, dict)
+    )
+
+
+def response_has_live_evidence(payload: Any, source_type: str) -> bool:
+    return (
+        isinstance(payload, dict)
+        and payload.get("mode") == "live"
+        and response_has_evidence(payload, source_type)
+    )
+
+
+def evidence_types(payload: Any) -> list[str]:
+    if not isinstance(payload, dict):
+        return []
+    evidence = list(payload.get("activity", [])) + list(payload.get("references", []))
+    return sorted(
+        {
+            str(item.get("type"))
+            for item in evidence
+            if isinstance(item, dict) and item.get("type")
+        }
+    )
+
+
+def evidence_count(payload: Any, source_type: str | None = None) -> int:
+    if not isinstance(payload, dict):
+        return 0
+    evidence = list(payload.get("activity", [])) + list(payload.get("references", []))
+    if source_type is None:
+        return sum(1 for item in evidence if isinstance(item, dict))
+    return sum(
+        1
+        for item in evidence
+        if isinstance(item, dict) and item.get("type") == source_type
+    )

@@ -5,23 +5,14 @@ from __future__ import annotations
 import json
 from typing import Any
 
-from ks_factory import (
-    create_fabric_ontology_knowledge_source,
-    create_knowledge_base,
-    create_mcp_server_knowledge_source,
-    create_search_index_knowledge_source,
+from .providers.sources import (
+    FabricOntologySourceOperations,
+    KnowledgeBaseOperations,
+    McpServerSourceOperations,
+    SearchIndexSourceOperations,
 )
 
 from .config import ResolvedConfig
-
-
-def _source_params(name: str, kind: str) -> dict[str, Any]:
-    return {
-        "knowledgeSourceName": name,
-        "kind": kind,
-        "includeReferences": True,
-        "includeReferenceSourceData": True,
-    }
 
 
 def _retrieve(query: str, sources: list[dict[str, Any]], *, max_runtime: int) -> dict[str, Any]:
@@ -49,30 +40,26 @@ def build_payloads(
     fabric_query: str | None = None,
 ) -> dict[str, Any]:
     """Build version-separated payloads for the combined data-plane profile."""
-    index_source_name = str(config.get("search.index_knowledge_source_name"))
-    mcp_source_name = str(config.get("search.mcp_knowledge_source_name"))
-    fabric_source_name = str(config.get("search.fabric_knowledge_source_name"))
+    index_provider = SearchIndexSourceOperations()
+    mcp_provider = McpServerSourceOperations()
+    fabric_provider = FabricOntologySourceOperations()
+    knowledge_base_provider = KnowledgeBaseOperations()
+    index_source_name = index_provider.name(config)
+    mcp_source_name = mcp_provider.name(config)
+    fabric_source_name = fabric_provider.name(config)
     includes_fabric = config.profile == "three-source"
 
-    index_source = create_search_index_knowledge_source(
-        name=index_source_name,
-        search_index_name=str(config.get("search.index_name")),
-        semantic_configuration_name=str(config.get("search.semantic_configuration_name")),
-        search_fields=list(config.get("search.search_fields", [])),
-        source_data_fields=list(config.get("search.source_data_fields", [])),
+    index_source = index_provider.build(
+        config,
         description="Generally available Knowledge Source over an existing Azure AI Search index.",
     )
-    mcp_source = create_mcp_server_knowledge_source(
-        name=mcp_source_name,
-        server_url=str(config.get("mcp.server_url")),
-        tool_name=str(config.get("mcp.tool_name")),
+    mcp_source = mcp_provider.build(
+        config,
         description="Preview MCP Server Knowledge Source for official Microsoft Learn guidance.",
     )
     fabric_source = (
-        create_fabric_ontology_knowledge_source(
-            name=fabric_source_name,
-            workspace_id=str(config.get("fabric.workspace_id")),
-            ontology_id=str(config.get("fabric.ontology_id")),
+        fabric_provider.build(
+            config,
             description="Preview native Fabric Ontology Knowledge Source over existing governed assets.",
         )
         if includes_fabric
@@ -81,12 +68,9 @@ def build_payloads(
     knowledge_source_names = [index_source_name, mcp_source_name]
     if includes_fabric:
         knowledge_source_names.append(fabric_source_name)
-    knowledge_base = create_knowledge_base(
-        name=str(config.get("search.combined_knowledge_base_name")),
-        knowledge_source_names=knowledge_source_names,
-        azure_openai_endpoint=str(config.get("openai.endpoint")),
-        azure_openai_deployment_id=str(config.get("openai.deployment_name")),
-        azure_openai_model_name=str(config.get("openai.model_name")),
+    knowledge_base = knowledge_base_provider.build_preview(
+        config,
+        knowledge_source_names,
         description=(
             "Preview Knowledge Base combining an existing Search index, an MCP Server, "
             "and a native Fabric ontology."
@@ -103,9 +87,18 @@ def build_payloads(
             )
         ),
     )
-    index_params = _source_params(index_source_name, "searchIndex")
-    mcp_params = _source_params(mcp_source_name, "mcpServer")
-    fabric_params = _source_params(fabric_source_name, "fabricOntology")
+    index_params = index_provider.retrieval_parameter(
+        config,
+        include_evidence=True,
+    )
+    mcp_params = mcp_provider.retrieval_parameter(
+        config,
+        include_evidence=True,
+    )
+    fabric_params = fabric_provider.retrieval_parameter(
+        config,
+        include_evidence=True,
+    )
     payloads = {
         "searchIndexKnowledgeSource": index_source,
         "mcpKnowledgeSource": mcp_source,

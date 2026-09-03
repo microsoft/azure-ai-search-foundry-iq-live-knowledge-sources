@@ -3,11 +3,10 @@
 from __future__ import annotations
 
 from typing import Any
-from urllib.parse import quote
-
-from ks_factory import create_extracting_knowledge_base, create_search_index_knowledge_source
 
 from .config import ResolvedConfig
+from .providers.data_plane import search_object_path
+from .providers.sources import KnowledgeBaseOperations, SearchIndexSourceOperations
 from .runtime import CommandRunner, RetryPolicy, http_json
 
 
@@ -73,32 +72,26 @@ def request(
 def object_path(kind: str, name: str) -> str:
     if kind not in {"indexes", "knowledgesources", "knowledgebases"}:
         raise ValueError(f"Unsupported Search object kind: {kind}")
-    return f"/{kind}/{quote(name, safe='')}"
+    return search_object_path(kind, name)
 
 
 def build_payloads(config: ResolvedConfig, *, query: str) -> dict[str, dict[str, Any]]:
-    knowledge_source_name = str(config.get("search.index_knowledge_source_name"))
-    knowledge_base_name = str(config.get("search.index_knowledge_base_name"))
-    knowledge_source = create_search_index_knowledge_source(
-        name=knowledge_source_name,
-        search_index_name=str(config.get("search.index_name")),
-        semantic_configuration_name=str(config.get("search.semantic_configuration_name")),
-        search_fields=list(config.get("search.search_fields", [])),
-        source_data_fields=list(config.get("search.source_data_fields", [])),
+    source = SearchIndexSourceOperations()
+    knowledge_base_provider = KnowledgeBaseOperations()
+    knowledge_source_name = source.name(config)
+    knowledge_source = source.build(
+        config,
         description="Stable Knowledge Source over an existing Azure AI Search index.",
     )
-    knowledge_base = create_extracting_knowledge_base(
-        name=knowledge_base_name,
-        knowledge_source_names=[knowledge_source_name],
+    knowledge_base = knowledge_base_provider.build_stable(
+        config,
+        [knowledge_source_name],
         description="Stable Knowledge Base for extractive retrieval from an existing search index.",
     )
     retrieve = {
         "intents": [{"type": "semantic", "search": query}],
         "knowledgeSourceParams": [
-            {
-                "knowledgeSourceName": knowledge_source_name,
-                "kind": "searchIndex",
-            }
+            source.retrieval_parameter(config, include_evidence=False)
         ],
     }
     return {"knowledgeSource": knowledge_source, "knowledgeBase": knowledge_base, "retrieve": retrieve}
