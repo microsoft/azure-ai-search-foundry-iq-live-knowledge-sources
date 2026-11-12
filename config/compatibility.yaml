@@ -153,7 +153,7 @@ dependencies:
   requirements-liveks.txt:
     - PyYAML==6.0.3
   requirements-docs.txt:
-    - mkdocs-material==9.7.7
+    - mkdocs-material==9.8.0
 
 independent_mcp_consumer:
   entrypoint: samples/python/knowledge_base_mcp_consumer.py
